@@ -1,9 +1,51 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Phone, Mail, MapPin, Linkedin, Twitter, Youtube, Facebook, Instagram } from 'lucide-react'
+import { Phone, Mail, MapPin, Linkedin, Twitter, Youtube, Facebook, Instagram, ArrowUpRight, ExternalLink } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function Footer() {
+  const handleLinkClick = (linkName: string, category: string) => {
+    toast.success(`🔗 ${linkName}`, {
+      description: `${category} section coming soon!`,
+      duration: 3000,
+    })
+  }
+
+  const handleContactClick = (type: string, value: string) => {
+    if (type === 'phone') {
+      toast.info("📞 Phone", {
+        description: `Calling ${value}...`,
+        duration: 3000,
+      })
+    } else if (type === 'email') {
+      toast.info("📧 Email", {
+        description: `Opening email client for ${value}`,
+        duration: 3000,
+      })
+    } else if (type === 'location') {
+      toast.info("📍 Location", {
+        description: `Office located in ${value}`,
+        duration: 3000,
+      })
+    }
+  }
+
+  const handleSocialClick = (platform: string) => {
+    toast.success(`🌐 ${platform}`, {
+      description: `Follow us on ${platform} for updates!`,
+      duration: 3000,
+    })
+  }
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    toast.success("⬆️ Back to Top", {
+      description: "Welcome back to the top!",
+      duration: 2000,
+    })
+  }
+
   const footerLinks = {
     product: [
       { name: "Home", href: "#" },
@@ -77,18 +119,36 @@ export default function Footer() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center text-gray-300">
+                  <motion.div 
+                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
+                    onClick={() => handleContactClick('phone', '+91 98765 43210')}
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Phone className="h-4 w-4 mr-3 text-sky-400" />
                     <span className="text-sm">+91 98765 43210</span>
-                  </div>
-                  <div className="flex items-center text-gray-300">
+                    <ArrowUpRight className="h-3 w-3 ml-auto" />
+                  </motion.div>
+                  <motion.div 
+                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
+                    onClick={() => handleContactClick('email', 'contact@saanify.com')}
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Mail className="h-4 w-4 mr-3 text-sky-400" />
                     <span className="text-sm">contact@saanify.com</span>
-                  </div>
-                  <div className="flex items-center text-gray-300">
+                    <ArrowUpRight className="h-3 w-3 ml-auto" />
+                  </motion.div>
+                  <motion.div 
+                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
+                    onClick={() => handleContactClick('location', 'Mumbai, India')}
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <MapPin className="h-4 w-4 mr-3 text-sky-400" />
                     <span className="text-sm">Mumbai, India</span>
-                  </div>
+                    <ArrowUpRight className="h-3 w-3 ml-auto" />
+                  </motion.div>
                 </div>
               </motion.div>
 
@@ -106,14 +166,19 @@ export default function Footer() {
                   </h4>
                   <ul className="space-y-2">
                     {links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <a
-                          href={link.href}
-                          className="text-gray-400 hover:text-sky-400 text-sm transition-colors duration-200"
+                      <motion.li 
+                        key={linkIndex}
+                        whileHover={{ x: 5 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <button
+                          onClick={() => handleLinkClick(link.name, category)}
+                          className="text-gray-400 hover:text-sky-400 text-sm transition-colors duration-200 flex items-center group"
                         >
                           {link.name}
-                        </a>
-                      </li>
+                          <ArrowUpRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        </button>
+                      </motion.li>
                     ))}
                   </ul>
                 </motion.div>

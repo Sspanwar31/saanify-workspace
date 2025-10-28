@@ -74,10 +74,11 @@ interface FeatureCardProps {
   shadowColor: string
   floatDuration: number
   floatDelay: number
+  onClick?: () => void
   children?: React.ReactNode
 }
 
-function FeatureCard({ icon, title, description, gradient, shadowColor, floatDuration, floatDelay, children }: FeatureCardProps) {
+function FeatureCard({ icon, title, description, gradient, shadowColor, floatDuration, floatDelay, onClick, children }: FeatureCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -146,6 +147,7 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
+      onClick={onClick}
       style={{
         transform: !isMobile ? `perspective(1000px) rotateX(${transformX}) rotateY(${transformY})` : 'none',
         transformStyle: 'preserve-3d',
@@ -191,6 +193,31 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
 }
 
 export default function Hero() {
+  const handleStartTrial = () => {
+    toast.success("🎉 Trial Started!", {
+      description: "Welcome to Saanify! Your 15-day free trial has begun.",
+      duration: 5000,
+    })
+  }
+
+  const handleWatchDemo = () => {
+    toast.info("🎥 Demo Video", {
+      description: "Demo video will start playing in a new window.",
+      duration: 3000,
+    })
+    // In a real app, this would open a modal or navigate to demo page
+    setTimeout(() => {
+      window.open('#demo', '_blank')
+    }, 1000)
+  }
+
+  const handleFeatureClick = (featureName: string) => {
+    toast.success(`✨ ${featureName}`, {
+      description: "Learn more about this feature in our dashboard.",
+      duration: 3000,
+    })
+  }
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-sky-50 to-sky-100">
       {/* Blurred Light Orbs for Depth */}
@@ -244,21 +271,33 @@ export default function Hero() {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12"
             >
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Start Your 15-Day Free Trial
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="border-2 border-sky-600 text-sky-600 hover:bg-sky-600 hover:text-white font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
+                <Button 
+                  onClick={handleStartTrial}
+                  size="lg" 
+                  className="bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                >
+                  Start Your 15-Day Free Trial
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Play className="mr-2 h-5 w-5" />
-                Watch Demo
-              </Button>
+                <Button 
+                  onClick={handleWatchDemo}
+                  variant="outline" 
+                  size="lg" 
+                  className="border-2 border-sky-600 text-sky-600 hover:bg-sky-600 hover:text-white font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Watch Demo
+                </Button>
+              </motion.div>
             </motion.div>
 
             {/* Counters */}
@@ -291,6 +330,7 @@ export default function Hero() {
                 shadowColor="shadow-[0_8px_30px_rgba(14,165,233,0.3)]"
                 floatDuration={5}
                 floatDelay={0}
+                onClick={() => handleFeatureClick("Active Members")}
               >
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -311,6 +351,7 @@ export default function Hero() {
                 shadowColor="shadow-[0_8px_30px_rgba(16,185,129,0.3)]"
                 floatDuration={4.5}
                 floatDelay={0.5}
+                onClick={() => handleFeatureClick("Security")}
               >
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -331,6 +372,7 @@ export default function Hero() {
                 shadowColor="shadow-[0_8px_30px_rgba(139,92,246,0.3)]"
                 floatDuration={6}
                 floatDelay={1}
+                onClick={() => handleFeatureClick("Transactions")}
               >
                 <motion.div
                   initial={{ opacity: 0 }}
