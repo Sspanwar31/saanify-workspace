@@ -343,6 +343,16 @@ export async function POST(request: NextRequest) {
   try {
     const { action, config, commitSha, useGit, pushToGitHub } = await request.json()
     
+    // Check if we have valid GitHub configuration (not demo values) - DO THIS FIRST
+    const isDemoConfig = !config || 
+                        !config.token || 
+                        config.token === 'demo-token' || 
+                        config.owner === 'demo-user' || 
+                        config.repo === 'demo-repo' ||
+                        config.token.includes('your-personal-access-token') ||
+                        config.owner.includes('your-username') ||
+                        config.repo.includes('your-repo-name')
+    
     // Handle quick git backup (no GitHub API required)
     if (action === 'quick-backup' && useGit) {
       return await handleQuickGitBackup()
@@ -362,6 +372,19 @@ export async function POST(request: NextRequest) {
     if (action === 'restore') {
       return await handleRestore(config)
     }
+
+    // Handle git restore (fetch and reset)
+    if (action === 'git-restore') {
+      return await handleGitRestore(config)
+    }
+    
+    // Skip validation for demo mode
+    if (isDemoConfig) {
+      return NextResponse.json(
+        { error: 'Demo mode: This action is not supported with demo credentials' },
+        { status: 400 }
+      )
+    }
     
     if (!config || !config.owner || !config.repo || !config.token) {
       return NextResponse.json(
@@ -370,7 +393,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate configuration
+    // Validate configuration (only for real config)
     try {
       const github = new GitHubAPI(config)
       await github.getRepository()
@@ -426,9 +449,35 @@ export async function POST(request: NextRequest) {
 // GitHub Push Backup Function
 async function handleGitHubPushBackup(config: GitHubConfig): Promise<NextResponse> {
   try {
-    // Reset any stuck commit state first
+    // Check if we have valid GitHub configuration (not demo values) - DO THIS FIRST
+    const isDemoConfig = !config.token || 
+                        config.token === 'demo-token' || 
+                        config.owner === 'demo-user' || 
+                        config.repo === 'demo-repo' ||
+                        config.token.includes('your-personal-access-token') ||
+                        config.owner.includes('your-username') ||
+                        config.repo.includes('your-repo-name')
+
+    // If demo mode, return immediately without any git operations
+    if (isDemoConfig) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      return NextResponse.json({
+        success: true,
+        commitHash: 'demo-mode',
+        timestamp,
+        message: 'Demo mode - backup simulated',
+        details: {
+          localBackup: false,
+          pushToGitHub: false,
+          note: 'Demo mode: Backup simulated (no actual git operations performed)',
+          reason: 'GitHub credentials not configured or using demo values'
+        }
+      })
+    }
+
+    // Reset any stuck commit state first (only for real config)
     try {
-      await execAsync('git reset')
+      await execAsync('git reset', { timeout: 3000 })
     } catch (resetError) {
       // Ignore reset errors, it's just precautionary
     }
@@ -436,86 +485,116 @@ async function handleGitHubPushBackup(config: GitHubConfig): Promise<NextRespons
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const commitMessage = `🚀 Quick Backup: ${timestamp}`
     
-    // Execute git commands
-    const { stdout: addOutput } = await execAsync('git add -A')
-    const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
-    const { stdout: logOutput } = await execAsync('git log --oneline -1')
+    // Execute git commands with shorter timeouts
+    const { stdout: addOutput } = await execAsync('git add -A', { timeout: 5000 })
+    
+    // Try to commit, but handle case where there are no changes
+    let commitOutput: string
+    let hasChanges = false
+    
+    try {
+      commitOutput = await execAsync(`git commit -m "${commitMessage}"`, { timeout: 10000 })
+      hasChanges = true
+    } catch (commitError: any) {
+      // Check if it's because there are no changes
+      if (commitError.stdout?.includes('nothing to commit') || 
+          commitError.stdout?.includes('working tree clean') ||
+          commitError.message?.includes('nothing to commit')) {
+        
+        // Try to push existing commits
+        try {
+          const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+          await execAsync(`git remote set-url origin ${remoteUrl}`, { timeout: 3000 })
+          const { stdout: pushOutput } = await execAsync('git push -u origin main', { timeout: 15000 })
+          
+          return NextResponse.json({
+            success: true,
+            commitHash: 'existing-commits',
+            timestamp,
+            message: 'No new changes to backup',
+            details: {
+              localBackup: false,
+              pushToGitHub: true,
+              note: 'No new changes, pushed existing commits',
+              pushOutput
+            }
+          })
+        } catch (pushError) {
+          console.warn('Git push failed (no changes scenario):', pushError)
+          return NextResponse.json({
+            success: true,
+            commitHash: 'no-changes',
+            timestamp,
+            message: 'No changes - local backup only',
+            details: {
+              localBackup: true,
+              pushToGitHub: false,
+              note: 'Working tree clean, GitHub push failed - possibly due to invalid credentials',
+              addOutput
+            }
+          })
+        }
+      }
+      throw commitError
+    }
+    
+    const { stdout: logOutput } = await execAsync('git log --oneline -1', { timeout: 3000 })
     
     // Extract commit hash
     const commitHash = logOutput.split(' ')[0]
     
     // Configure remote with token
-    const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
-    await execAsync(`git remote set-url origin ${remoteUrl}`)
-    
-    // Push to GitHub
-    const { stdout: pushOutput } = await execAsync('git push -u origin main')
-    
-    return NextResponse.json({
-      success: true,
-      commitHash,
-      timestamp,
-      message: commitMessage,
-      details: {
-        localBackup: true,
-        pushToGitHub: true,
-        commitMessage,
-        addOutput,
-        commitOutput,
-        pushOutput
-      }
-    })
+    try {
+      const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+      await execAsync(`git remote set-url origin ${remoteUrl}`, { timeout: 3000 })
+      
+      // Push to GitHub with shorter timeout
+      const { stdout: pushOutput } = await execAsync('git push -u origin main', { timeout: 15000 })
+      
+      return NextResponse.json({
+        success: true,
+        commitHash,
+        timestamp,
+        message: commitMessage,
+        details: {
+          localBackup: true,
+          pushToGitHub: true,
+          commitMessage,
+          addOutput,
+          commitOutput,
+          pushOutput
+        }
+      })
+    } catch (pushError) {
+      console.warn('Git push failed:', pushError)
+      // Still return success for local backup
+      return NextResponse.json({
+        success: true,
+        commitHash,
+        timestamp,
+        message: `${commitMessage} (local only)`,
+        details: {
+          localBackup: true,
+          pushToGitHub: false,
+          note: 'Local backup successful, GitHub push failed - check your credentials',
+          commitMessage,
+          addOutput,
+          commitOutput
+        }
+      })
+    }
     
   } catch (error) {
     console.error('GitHub push backup failed:', error)
     console.error('Error type:', typeof error)
     console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
     
-    // Check if it's because there are no changes
-    if (error instanceof Error && (
-      error.message.includes('nothing to commit') || 
-      error.message.includes('working tree clean') ||
-      error.message.includes('nothing added to commit') ||
-      (error as any).stdout?.includes('nothing to commit') ||
-      (error as any).stdout?.includes('working tree clean')
-    )) {
-      // If there are no changes to commit, just push existing commits to GitHub
-      try {
-        // Configure remote with token
-        const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
-        await execAsync(`git remote set-url origin ${remoteUrl}`)
-        
-        // Push existing commits to GitHub
-        const { stdout: pushOutput } = await execAsync('git push -u origin main')
-        
-        return NextResponse.json({
-          success: true,
-          commitHash: 'existing-commits',
-          message: 'Pushed existing commits to GitHub',
-          details: {
-            localBackup: false,
-            pushToGitHub: true,
-            note: 'No new changes, pushed existing commits',
-            pushOutput
-          }
-        })
-      } catch (pushError) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: `Failed to push existing commits: ${pushError instanceof Error ? pushError.message : 'Unknown error'}` 
-          },
-          { status: 500 }
-        )
-      }
-    }
-    
     // Check for stuck commit message issues
     if (error instanceof Error && error.message.includes('COMMIT_EDITMSG')) {
       try {
         // Try to fix the stuck commit
-        await execAsync('git reset')
-        await execAsync('rm -f .git/COMMIT_EDITMSG')
+        await execAsync('git reset', { timeout: 3000 })
+        await execAsync('rm -f .git/COMMIT_EDITMSG', { timeout: 3000 })
         
         // Retry the backup
         return await handleGitHubPushBackup(config)
@@ -543,9 +622,36 @@ async function handleGitHubPushBackup(config: GitHubConfig): Promise<NextRespons
 // Auto Backup Function
 async function handleAutoBackup(config: GitHubConfig): Promise<NextResponse> {
   try {
-    // Reset any stuck commit state first
+    // Check if we have valid GitHub configuration (not demo values) - DO THIS FIRST
+    const isDemoConfig = !config.token || 
+                        config.token === 'demo-token' || 
+                        config.owner === 'demo-user' || 
+                        config.repo === 'demo-repo' ||
+                        config.token.includes('your-personal-access-token') ||
+                        config.owner.includes('your-username') ||
+                        config.repo.includes('your-repo-name')
+
+    // If demo mode, return immediately without any git operations
+    if (isDemoConfig) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      return NextResponse.json({
+        success: true,
+        commitHash: 'demo-mode',
+        timestamp,
+        message: 'Demo mode - auto backup simulated',
+        details: {
+          localBackup: false,
+          pushToGitHub: false,
+          autoBackup: true,
+          note: 'Demo mode: Auto backup simulated (no actual git operations performed)',
+          reason: 'GitHub credentials not configured or using demo values'
+        }
+      })
+    }
+
+    // Reset any stuck commit state first (only for real config)
     try {
-      await execAsync('git reset')
+      await execAsync('git reset', { timeout: 3000 })
     } catch (resetError) {
       // Ignore reset errors, it's just precautionary
     }
@@ -553,54 +659,85 @@ async function handleAutoBackup(config: GitHubConfig): Promise<NextResponse> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const commitMessage = `🧩 Auto Backup: ${timestamp}`
     
-    // Execute git commands
-    const { stdout: addOutput } = await execAsync('git add -A')
-    const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
-    const { stdout: logOutput } = await execAsync('git log --oneline -1')
+    // Execute git commands with shorter timeouts
+    const { stdout: addOutput } = await execAsync('git add -A', { timeout: 5000 })
+    
+    // Try to commit, but handle case where there are no changes
+    let commitOutput: string
+    try {
+      commitOutput = await execAsync(`git commit -m "${commitMessage}"`, { timeout: 10000 })
+    } catch (commitError: any) {
+      // Check if it's because there are no changes
+      if (commitError.stdout?.includes('nothing to commit') || 
+          commitError.stdout?.includes('working tree clean') ||
+          commitError.message?.includes('nothing to commit')) {
+        
+        return NextResponse.json({
+          success: true,
+          commitHash: 'no-changes',
+          timestamp,
+          message: 'No changes for auto backup',
+          details: {
+            localBackup: false,
+            pushToGitHub: false,
+            autoBackup: true,
+            note: 'Working tree clean, no backup needed'
+          }
+        })
+      }
+      throw commitError
+    }
+    
+    const { stdout: logOutput } = await execAsync('git log --oneline -1', { timeout: 3000 })
     
     // Extract commit hash
     const commitHash = logOutput.split(' ')[0]
     
     // Configure remote with token
-    const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
-    await execAsync(`git remote set-url origin ${remoteUrl}`)
-    
-    // Push to GitHub
-    const { stdout: pushOutput } = await execAsync('git push -u origin main')
-    
-    return NextResponse.json({
-      success: true,
-      commitHash,
-      timestamp,
-      message: commitMessage,
-      details: {
-        localBackup: true,
-        pushToGitHub: true,
-        autoBackup: true,
-        commitMessage,
-        addOutput,
-        commitOutput,
-        pushOutput
-      }
-    })
-    
-  } catch (error) {
-    console.error('Auto backup failed:', error)
-    
-    // Check if it's because there are no changes
-    if (error instanceof Error && error.message.includes('nothing to commit')) {
+    try {
+      const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+      await execAsync(`git remote set-url origin ${remoteUrl}`, { timeout: 3000 })
+      
+      // Push to GitHub with shorter timeout
+      const { stdout: pushOutput } = await execAsync('git push -u origin main', { timeout: 15000 })
+      
       return NextResponse.json({
         success: true,
-        commitHash: 'no-changes',
-        message: 'No changes to commit - working tree clean',
+        commitHash,
+        timestamp,
+        message: commitMessage,
+        details: {
+          localBackup: true,
+          pushToGitHub: true,
+          autoBackup: true,
+          commitMessage,
+          addOutput,
+          commitOutput,
+          pushOutput
+        }
+      })
+    } catch (pushError) {
+      console.warn('Auto backup git push failed:', pushError)
+      // Still return success for local backup
+      return NextResponse.json({
+        success: true,
+        commitHash,
+        timestamp,
+        message: `${commitMessage} (local only)`,
         details: {
           localBackup: true,
           pushToGitHub: false,
           autoBackup: true,
-          note: 'No new changes detected'
+          note: 'Local auto backup successful, GitHub push failed - check your credentials',
+          commitMessage,
+          addOutput,
+          commitOutput
         }
       })
     }
+    
+  } catch (error) {
+    console.error('Auto backup failed:', error)
     
     return NextResponse.json(
       { 
@@ -642,23 +779,81 @@ async function handleRestore(config: GitHubConfig): Promise<NextResponse> {
   }
 }
 
+// Git Restore Function (Fetch and Reset)
+async function handleGitRestore(config: GitHubConfig): Promise<NextResponse> {
+  try {
+    // Configure remote with token
+    const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+    await execAsync(`git remote set-url origin ${remoteUrl}`, { timeout: 5000 })
+    
+    // Fetch latest changes from origin
+    const { stdout: fetchOutput } = await execAsync('git fetch origin main', { timeout: 30000 })
+    
+    // Reset to match origin/main (hard reset)
+    const { stdout: resetOutput } = await execAsync('git reset --hard origin/main', { timeout: 15000 })
+    
+    // Clean up untracked files
+    const { stdout: cleanOutput } = await execAsync('git clean -fd', { timeout: 10000 })
+    
+    return NextResponse.json({
+      success: true,
+      message: '🔄 Project restored from latest GitHub backup',
+      timestamp: new Date().toISOString(),
+      details: {
+        fetchOutput,
+        resetOutput,
+        cleanOutput,
+        restored: true
+      }
+    })
+    
+  } catch (error) {
+    console.error('Git restore failed:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Git restore failed' 
+      },
+      { status: 500 }
+    )
+  }
+}
+
 // Quick git backup function
 async function handleQuickGitBackup(): Promise<NextResponse> {
   try {
-    // Reset any stuck commit state first
-    try {
-      await execAsync('git reset')
-    } catch (resetError) {
-      // Ignore reset errors, it's just precautionary
-    }
-    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const commitMessage = `🚀 Quick Backup: ${timestamp}`
     
-    // Execute git commands with better error handling
-    const { stdout: addOutput } = await execAsync('git add .')
-    const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
-    const { stdout: logOutput } = await execAsync('git log --oneline -1')
+    // Execute git commands with timeout and better error handling
+    const { stdout: addOutput } = await execAsync('git add .', { timeout: 5000 })
+    
+    // Try to commit, but handle case where there are no changes
+    let commitOutput: string
+    try {
+      commitOutput = await execAsync(`git commit -m "${commitMessage}"`, { timeout: 10000 })
+    } catch (commitError: any) {
+      // Check if it's because there are no changes
+      if (commitError.stdout?.includes('nothing to commit') || 
+          commitError.stdout?.includes('working tree clean') ||
+          commitError.message?.includes('nothing to commit')) {
+        
+        return NextResponse.json({
+          success: true,
+          commitHash: 'no-changes',
+          timestamp,
+          message: 'No new changes to backup - project is up to date',
+          details: {
+            localBackup: true,
+            note: 'Working tree clean, no backup needed',
+            addOutput
+          }
+        })
+      }
+      throw commitError
+    }
+    
+    const { stdout: logOutput } = await execAsync('git log --oneline -1', { timeout: 3000 })
     
     // Extract commit hash
     const commitHash = logOutput.split(' ')[0]
@@ -679,25 +874,12 @@ async function handleQuickGitBackup(): Promise<NextResponse> {
   } catch (error) {
     console.error('Quick git backup failed:', error)
     
-    // Check if it's because there are no changes
-    if (error instanceof Error && error.message.includes('nothing to commit')) {
-      return NextResponse.json({
-        success: true,
-        commitHash: 'no-changes',
-        message: 'No changes to commit - working tree clean',
-        details: {
-          localBackup: true,
-          note: 'No new changes detected'
-        }
-      })
-    }
-    
     // Check for stuck commit message issues
     if (error instanceof Error && error.message.includes('COMMIT_EDITMSG')) {
       try {
         // Try to fix the stuck commit
-        await execAsync('git reset')
-        await execAsync('rm -f .git/COMMIT_EDITMSG')
+        await execAsync('git reset', { timeout: 3000 })
+        await execAsync('rm -f .git/COMMIT_EDITMSG', { timeout: 3000 })
         
         // Retry the backup
         return await handleQuickGitBackup()
