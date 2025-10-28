@@ -411,10 +411,17 @@ export async function POST(request: NextRequest) {
 // Quick git backup function
 async function handleQuickGitBackup(): Promise<NextResponse> {
   try {
+    // Reset any stuck commit state first
+    try {
+      await execAsync('git reset')
+    } catch (resetError) {
+      // Ignore reset errors, it's just precautionary
+    }
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const commitMessage = `🚀 Quick Backup: ${timestamp}`
     
-    // Execute git commands
+    // Execute git commands with better error handling
     const { stdout: addOutput } = await execAsync('git add .')
     const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
     const { stdout: logOutput } = await execAsync('git log --oneline -1')
@@ -449,6 +456,26 @@ async function handleQuickGitBackup(): Promise<NextResponse> {
           note: 'No new changes detected'
         }
       })
+    }
+    
+    // Check for stuck commit message issues
+    if (error instanceof Error && error.message.includes('COMMIT_EDITMSG')) {
+      try {
+        // Try to fix the stuck commit
+        await execAsync('git reset')
+        await execAsync('rm -f .git/COMMIT_EDITMSG')
+        
+        // Retry the backup
+        return await handleQuickGitBackup()
+      } catch (retryError) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Git state was corrupted and could not be auto-fixed. Please try again.' 
+          },
+          { status: 500 }
+        )
+      }
     }
     
     return NextResponse.json(
