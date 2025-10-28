@@ -207,15 +207,28 @@ export default function Footer() {
                 className="flex space-x-4"
               >
                 {socialLinks.map((social, index) => (
-                  <a
+                  <motion.button
                     key={index}
-                    href={social.href}
+                    onClick={() => handleSocialClick(social.label)}
                     aria-label={social.label}
-                    className="w-10 h-10 bg-gray-800 hover:bg-sky-600 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    className="w-10 h-10 bg-gray-800 hover:bg-sky-600 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 group"
+                    whileHover={{ y: -5, rotate: 360 }}
+                    whileTap={{ scale: 0.9 }}
                   >
-                    <social.icon className="h-5 w-5" />
-                  </a>
+                    <social.icon className="h-5 w-5 group-hover:text-white transition-colors duration-200" />
+                  </motion.button>
                 ))}
+                
+                {/* Back to Top Button */}
+                <motion.button
+                  onClick={handleScrollToTop}
+                  aria-label="Back to top"
+                  className="w-10 h-10 bg-sky-600 hover:bg-sky-700 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+                  whileHover={{ y: -5 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <ArrowUpRight className="h-5 w-5" />
+                </motion.button>
               </motion.div>
             </div>
           </div>
