@@ -20,7 +20,7 @@ export default function GitHubToggle() {
           <Button
             onClick={() => setIsOpen(true)}
             size="lg"
-            className="bg-gray-900 hover:bg-gray-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-3"
+            className="bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-3 border border-slate-700"
           >
             <Github className="h-5 w-5 mr-2" />
             GitHub

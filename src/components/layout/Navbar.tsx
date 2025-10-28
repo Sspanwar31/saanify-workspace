@@ -91,7 +91,7 @@ export default function Navbar() {
                 variant="ghost" 
                 size="sm"
                 onClick={() => setIsGitHubOpen(true)}
-                className={`font-medium ${
+                className={`font-medium border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all duration-200 ${
                   isScrolled ? 'text-gray-700 hover:text-gray-900' : 'text-gray-700 hover:text-gray-900'
                 }`}
               >
@@ -157,7 +157,7 @@ export default function Navbar() {
                 <div className="pt-4 border-t border-gray-200 space-y-3">
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start font-medium text-gray-700 hover:text-gray-900"
+                    className="w-full justify-start font-medium text-gray-700 hover:text-gray-900 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all duration-200"
                     onClick={() => {
                       setIsGitHubOpen(true)
                       setIsMobileMenuOpen(false)
