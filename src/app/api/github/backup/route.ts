@@ -475,7 +475,9 @@ async function handleGitHubPushBackup(config: GitHubConfig): Promise<NextRespons
     if (error instanceof Error && (
       error.message.includes('nothing to commit') || 
       error.message.includes('working tree clean') ||
-      error.message.includes('nothing added to commit')
+      error.message.includes('nothing added to commit') ||
+      (error as any).stdout?.includes('nothing to commit') ||
+      (error as any).stdout?.includes('working tree clean')
     )) {
       // If there are no changes to commit, just push existing commits to GitHub
       try {
