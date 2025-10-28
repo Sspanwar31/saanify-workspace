@@ -157,11 +157,30 @@ export default function GitHubToggle() {
   const quickBackup = async () => {
     setIsBackingUp(true)
     try {
-      // Simulate backup process
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      setMessage({ type: 'success', text: 'Backup completed successfully!' })
+      const response = await fetch('/api/github/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'quick-backup',
+          useGit: true 
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setMessage({ 
+          type: 'success', 
+          text: `Backup completed! Commit: ${data.commitHash}` 
+        })
+        setTimeout(() => setMessage(null), 3000)
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Backup failed' })
+        setTimeout(() => setMessage(null), 5000)
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Backup failed!' })
+      setMessage({ type: 'error', text: 'Failed to create backup' })
+      setTimeout(() => setMessage(null), 5000)
     } finally {
       setIsBackingUp(false)
     }
@@ -554,11 +573,11 @@ export default function GitHubToggle() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-xs text-gray-600">
-                      Create an instant backup of your entire project to GitHub.
+                      Create an instant backup of your entire project using local git.
                     </p>
                     <Button
                       onClick={quickBackup}
-                      disabled={isBackingUp || !config.isConnected}
+                      disabled={isBackingUp}
                       className="w-full bg-green-600 hover:bg-green-700"
                     >
                       {isBackingUp ? (
@@ -568,6 +587,9 @@ export default function GitHubToggle() {
                       )}
                       {isBackingUp ? 'Creating Backup...' : 'Quick Backup'}
                     </Button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      💡 Local git backup - no GitHub connection required
+                    </p>
                   </CardContent>
                 </Card>
 
