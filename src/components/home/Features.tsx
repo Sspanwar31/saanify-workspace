@@ -1,6 +1,7 @@
 'use client'
 
-import { motion, useState } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { Lock, Zap, BarChart, Headphones, Users, Plug, ArrowRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,28 +29,28 @@ function FeatureCard({ icon, title, description, delay, onLearnMore }: FeatureCa
       onHoverEnd={() => setIsHovered(false)}
       onClick={() => onLearnMore?.(title)}
     >
-      <Card className="h-full p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md bg-white hover:bg-gradient-to-br hover:from-white hover:to-blue-50 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <Card className="h-full p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md bg-card hover:bg-gradient-to-br hover:from-card hover:to-accent/20 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <CardContent className="p-0 text-center relative z-10">
           <div className="mb-4 flex justify-center">
             <motion.div 
-              className="p-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white"
+              className="p-3 rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
               whileHover={{ rotate: 360, scale: 1.1 }}
               transition={{ duration: 0.6 }}
             >
               {icon}
             </motion.div>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
+          <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors duration-300">
             {title}
           </h3>
-          <p className="text-gray-600 text-sm leading-relaxed mb-4">{description}</p>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-4">{description}</p>
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: isHovered ? 1 : 0, height: isHovered ? 'auto' : 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+            <Button variant="ghost" size="sm" className="text-primary hover:text-primary/90 hover:bg-primary/10">
               Learn More <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </motion.div>
@@ -107,7 +108,7 @@ export default function Features() {
   ]
 
   return (
-    <section id="features" className="py-20 bg-gray-50">
+    <section id="features" className="py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -116,10 +117,10 @@ export default function Features() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Why Choose Saanify?
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Discover the features that make us the trusted choice for modern society management
           </p>
         </motion.div>

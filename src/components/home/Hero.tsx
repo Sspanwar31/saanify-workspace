@@ -56,12 +56,12 @@ function Counter({ value, suffix = '', label, delay }: CounterProps) {
       className="text-center"
     >
       <div className="flex items-center justify-center gap-1 mb-2">
-        <TrendingUp className="h-4 w-4 text-sky-600" />
-        <span className="text-2xl font-bold text-gray-900">
+        <TrendingUp className="h-4 w-4 text-primary" />
+        <span className="text-2xl font-bold text-foreground">
           +{count}{suffix}
         </span>
       </div>
-      <p className="text-sm text-gray-600">{label}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
     </motion.div>
   )
 }
@@ -219,11 +219,11 @@ export default function Hero() {
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-sky-50 to-sky-100">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-sky-50/10 to-sky-100/10 dark:from-background dark:via-sky-950/50 dark:to-sky-900/50">
       {/* Blurred Light Orbs for Depth */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-sky-300 rounded-full blur-3xl opacity-30" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-teal-300 rounded-full blur-3xl opacity-30" />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-200 rounded-full blur-3xl opacity-20" />
+      <div className="absolute top-20 left-20 w-72 h-72 bg-sky-400 rounded-full blur-3xl opacity-20 dark:opacity-30" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-teal-400 rounded-full blur-3xl opacity-20 dark:opacity-30" />
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-300 rounded-full blur-3xl opacity-15 dark:opacity-20" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -239,16 +239,16 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-sm font-medium mb-6"
+              className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 dark:bg-primary/20"
             >
               ⚡ AI-Powered Society Management
             </motion.div>
             
             {/* Headline */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
               Effortless Society Management,
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-teal-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">
                 Guaranteed Growth.
               </span>
             </h1>
@@ -258,7 +258,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-lg text-gray-600 mb-8 max-w-2xl leading-relaxed"
+              className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed"
             >
               Experience complete transparency in deposits, member management, and financial operations. 
               All-in-one platform designed for modern societies.
@@ -278,7 +278,7 @@ export default function Hero() {
                 <Button 
                   onClick={handleStartTrial}
                   size="lg" 
-                  className="bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   Start Your 15-Day Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -292,7 +292,7 @@ export default function Hero() {
                   onClick={handleWatchDemo}
                   variant="outline" 
                   size="lg" 
-                  className="border-2 border-sky-600 text-sky-600 hover:bg-sky-600 hover:text-white font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
+                  className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
                 >
                   <Play className="mr-2 h-5 w-5" />
                   Watch Demo

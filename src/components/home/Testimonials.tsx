@@ -1,6 +1,7 @@
 'use client'
 
-import { motion, useState, useEffect } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import { Star, Quote, ArrowLeft, ArrowRight, Users } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,22 +33,22 @@ function TestimonialCard({ name, role, society, content, rating, delay, isActive
       onHoverEnd={() => setIsHovered(false)}
       className={`${isActive ? 'z-10' : 'z-0'}`}
     >
-      <Card className={`h-full p-6 transition-all duration-300 border-0 bg-white ${
-        isActive ? 'shadow-2xl ring-2 ring-blue-500 ring-opacity-50' : 'shadow-lg'
+      <Card className={`h-full p-6 transition-all duration-300 border-0 bg-card ${
+        isActive ? 'shadow-2xl ring-2 ring-primary ring-opacity-50' : 'shadow-lg'
       } ${isHovered ? 'shadow-2xl' : ''} cursor-pointer`}>
         <CardContent className="p-0">
           <div className="flex items-center mb-4">
             <motion.div 
-              className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
+              className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg mr-4"
               animate={{ rotate: isHovered ? 360 : 0, scale: isHovered ? 1.1 : 1 }}
               transition={{ duration: 0.6 }}
             >
               {name.charAt(0)}
             </motion.div>
             <div>
-              <h4 className="font-semibold text-gray-900">{name}</h4>
-              <p className="text-sm text-gray-600">{role}</p>
-              <p className="text-xs text-indigo-600 font-medium">{society}</p>
+              <h4 className="font-semibold text-foreground">{name}</h4>
+              <p className="text-sm text-muted-foreground">{role}</p>
+              <p className="text-xs text-primary font-medium">{society}</p>
             </div>
           </div>
           
@@ -73,9 +74,9 @@ function TestimonialCard({ name, role, society, content, rating, delay, isActive
               animate={{ rotate: isHovered ? 10 : 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Quote className="absolute -top-2 -left-2 h-8 w-8 text-indigo-100" />
+              <Quote className="absolute -top-2 -left-2 h-8 w-8 text-primary/20" />
             </motion.div>
-            <p className="text-gray-700 text-sm leading-relaxed pl-6 italic">
+            <p className="text-muted-foreground text-sm leading-relaxed pl-6 italic">
               {content}
             </p>
           </div>
@@ -86,7 +87,7 @@ function TestimonialCard({ name, role, society, content, rating, delay, isActive
             transition={{ duration: 0.3 }}
             className="mt-4 text-center"
           >
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+            <Button variant="ghost" size="sm" className="text-primary hover:text-primary/90">
               Read Full Story
             </Button>
           </motion.div>
@@ -176,7 +177,7 @@ export default function Testimonials() {
   ]
 
   return (
-    <section id="testimonials" className="py-20 bg-white">
+    <section id="testimonials" className="py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Testimonials Section */}
         <motion.div
@@ -186,10 +187,10 @@ export default function Testimonials() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             What Our Customers Say
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Hear from society managers who have transformed their operations with Saanify
           </p>
         </motion.div>
@@ -202,7 +203,7 @@ export default function Testimonials() {
                 onClick={handlePrevTestimonial}
                 variant="outline"
                 size="sm"
-                className="rounded-full p-2 hover:bg-blue-50"
+                className="rounded-full p-2 hover:bg-primary/10"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -214,8 +215,8 @@ export default function Testimonials() {
                     onClick={() => handleTestimonialClick(index)}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
                       currentTestimonial === index 
-                        ? 'bg-blue-600 w-8' 
-                        : 'bg-gray-300 hover:bg-gray-400'
+                        ? 'bg-primary w-8' 
+                        : 'bg-muted hover:bg-muted-foreground'
                     }`}
                   />
                 ))}
@@ -225,7 +226,7 @@ export default function Testimonials() {
                 onClick={handleNextTestimonial}
                 variant="outline"
                 size="sm"
-                className="rounded-full p-2 hover:bg-blue-50"
+                className="rounded-full p-2 hover:bg-primary/10"
               >
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -265,11 +266,11 @@ export default function Testimonials() {
           className="text-center"
         >
           <div className="mb-12">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-              <Users className="h-6 w-6 text-blue-600" />
+            <h3 className="text-2xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+              <Users className="h-6 w-6 text-primary" />
               Trusted by 500+ Societies Worldwide
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Join thousands of satisfied communities using Saanify
             </p>
           </div>
@@ -284,17 +285,17 @@ export default function Testimonials() {
                 viewport={{ once: true }}
                 whileHover={{ y: -5, scale: 1.05 }}
                 onClick={() => handleSocietyClick(society)}
-                className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                className="flex items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted hover:shadow-lg transition-all duration-300 cursor-pointer"
               >
                 <div className="text-center">
                   <motion.div 
-                    className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs mx-auto mb-2"
+                    className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center text-primary-foreground font-bold text-xs mx-auto mb-2"
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.6 }}
                   >
                     {society.substring(0, 2).toUpperCase()}
                   </motion.div>
-                  <p className="text-sm font-medium text-gray-700">{society}</p>
+                  <p className="text-sm font-medium text-foreground">{society}</p>
                 </div>
               </motion.div>
             ))}

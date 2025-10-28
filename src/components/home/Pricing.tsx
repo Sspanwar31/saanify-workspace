@@ -1,6 +1,7 @@
 'use client'
 
-import { motion, useState } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { Check, Star, ArrowRight, Zap, Shield, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -38,7 +39,7 @@ function PricingCard({ title, price, period, description, features, highlighted,
           animate={{ scale: isHovered ? 1.1 : 1 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
             <Star className="h-4 w-4 fill-current" />
             Most Popular
           </div>
@@ -47,8 +48,8 @@ function PricingCard({ title, price, period, description, features, highlighted,
       
       <Card className={`h-full p-8 relative cursor-pointer transition-all duration-300 ${
         highlighted 
-          ? 'border-2 border-indigo-500 shadow-2xl bg-gradient-to-br from-indigo-50 to-blue-50' 
-          : 'border-0 shadow-lg bg-white hover:shadow-xl'
+          ? 'border-2 border-primary shadow-2xl bg-gradient-to-br from-primary/5 to-primary/10' 
+          : 'border-0 shadow-lg bg-card hover:shadow-xl'
       } ${isHovered ? 'transform -translate-y-2' : ''}`}>
         <CardContent className="p-0">
           <div className="text-center mb-8">
@@ -61,12 +62,12 @@ function PricingCard({ title, price, period, description, features, highlighted,
               {title === "Pro" && <Shield className="h-8 w-8 text-blue-500" />}
               {title === "Enterprise" && <Crown className="h-8 w-8 text-purple-500" />}
             </motion.div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">{title}</h3>
+            <h3 className="text-2xl font-bold text-foreground mb-2">{title}</h3>
             <div className="mb-4">
-              <span className="text-4xl font-bold text-gray-900">{price}</span>
-              {period && <span className="text-gray-600 ml-2">{period}</span>}
+              <span className="text-4xl font-bold text-foreground">{price}</span>
+              {period && <span className="text-muted-foreground ml-2">{period}</span>}
             </div>
-            <p className="text-gray-600 text-sm">{description}</p>
+            <p className="text-muted-foreground text-sm">{description}</p>
           </div>
 
           <ul className="space-y-4 mb-8">
@@ -84,7 +85,7 @@ function PricingCard({ title, price, period, description, features, highlighted,
                 >
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                 </motion.div>
-                <span className="text-gray-700 text-sm">{feature}</span>
+                <span className="text-foreground text-sm">{feature}</span>
               </motion.li>
             ))}
           </ul>
@@ -97,8 +98,8 @@ function PricingCard({ title, price, period, description, features, highlighted,
               onClick={() => onSelectPlan(title)}
               className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${
                 highlighted
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
-                  : 'bg-gray-900 hover:bg-gray-800 text-white'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl'
+                  : 'bg-foreground hover:bg-foreground/90 text-background'
               }`}
             >
               {cta}
@@ -194,7 +195,7 @@ export default function Pricing() {
   ]
 
   return (
-    <section id="pricing" className="py-20 bg-gray-50">
+    <section id="pricing" className="py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -203,10 +204,10 @@ export default function Pricing() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Plans & Pricing
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Choose the perfect plan for your society. Scale as you grow with our flexible pricing options.
           </p>
         </motion.div>
@@ -235,7 +236,7 @@ export default function Pricing() {
           viewport={{ once: true }}
           className="text-center mt-12"
         >
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Need a custom solution? We offer tailored plans for specific requirements.
           </p>
           <motion.div
@@ -245,7 +246,7 @@ export default function Pricing() {
             <Button 
               onClick={handleContactSales}
               variant="outline" 
-              className="border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white font-semibold px-8 py-3 rounded-lg transition-all duration-300"
+              className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-8 py-3 rounded-lg transition-all duration-300"
             >
               Talk to Sales Team
             </Button>

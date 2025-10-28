@@ -84,10 +84,10 @@ export default function Footer() {
   return (
     <>
       {/* Wave SVG Divider */}
-      <div className="relative bg-sky-50">
+      <div className="relative bg-muted">
         <svg 
           viewBox="0 0 1440 320" 
-          className="w-full h-20 fill-current text-sky-50"
+          className="w-full h-20 fill-current text-muted"
           preserveAspectRatio="none"
         >
           <path 
@@ -97,7 +97,7 @@ export default function Footer() {
         </svg>
       </div>
 
-      <footer className="bg-gray-900 text-white">
+      <footer className="bg-foreground text-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Footer Content */}
           <div className="py-16">
@@ -111,8 +111,8 @@ export default function Footer() {
                 className="lg:col-span-2"
               >
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-white mb-2">Saanify</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">
+                  <h3 className="text-2xl font-bold text-background mb-2">Saanify</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     Premium society management solution for modern residential communities. 
                     Streamline operations, enhance engagement, and drive growth.
                   </p>
@@ -120,32 +120,32 @@ export default function Footer() {
 
                 <div className="space-y-3">
                   <motion.div 
-                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
+                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                     onClick={() => handleContactClick('phone', '+91 98765 43210')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Phone className="h-4 w-4 mr-3 text-sky-400" />
+                    <Phone className="h-4 w-4 mr-3 text-primary" />
                     <span className="text-sm">+91 98765 43210</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
                   <motion.div 
-                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
+                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                     onClick={() => handleContactClick('email', 'contact@saanify.com')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Mail className="h-4 w-4 mr-3 text-sky-400" />
+                    <Mail className="h-4 w-4 mr-3 text-primary" />
                     <span className="text-sm">contact@saanify.com</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
                   <motion.div 
-                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
+                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                     onClick={() => handleContactClick('location', 'Mumbai, India')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <MapPin className="h-4 w-4 mr-3 text-sky-400" />
+                    <MapPin className="h-4 w-4 mr-3 text-primary" />
                     <span className="text-sm">Mumbai, India</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
@@ -161,7 +161,7 @@ export default function Footer() {
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                   viewport={{ once: true }}
                 >
-                  <h4 className="text-lg font-semibold text-white mb-4 capitalize">
+                  <h4 className="text-lg font-semibold text-background mb-4 capitalize">
                     {category === 'product' ? 'Product' : category === 'company' ? 'Company' : category === 'support' ? 'Support' : 'Legal'}
                   </h4>
                   <ul className="space-y-2">
@@ -173,7 +173,7 @@ export default function Footer() {
                       >
                         <button
                           onClick={() => handleLinkClick(link.name, category)}
-                          className="text-gray-400 hover:text-sky-400 text-sm transition-colors duration-200 flex items-center group"
+                          className="text-muted-foreground hover:text-primary text-sm transition-colors duration-200 flex items-center group"
                         >
                           {link.name}
                           <ArrowUpRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />

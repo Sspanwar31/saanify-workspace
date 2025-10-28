@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, ArrowRight, Github, LogIn, User, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { toast } from 'sonner'
 
 export default function Navbar() {
@@ -78,7 +79,7 @@ export default function Navbar() {
       <motion.nav
         className={`sticky top-0 z-50 transition-all duration-300 ${
           isScrolled 
-            ? 'backdrop-blur-md shadow-sm bg-white/70 border-b border-gray-200/50' 
+            ? 'backdrop-blur-md shadow-sm bg-background/70 border-b border-border' 
             : 'bg-transparent'
         }`}
         initial={{ y: -100 }}
@@ -105,7 +106,7 @@ export default function Navbar() {
                   <span className="text-white font-bold text-sm">S</span>
                 </motion.div>
                 <span className={`text-xl font-bold ${
-                  isScrolled ? 'text-gray-900' : 'text-gray-900'
+                  isScrolled ? 'text-foreground' : 'text-foreground'
                 }`}>
                   Saanify
                 </span>
@@ -123,11 +124,11 @@ export default function Navbar() {
                 <motion.button
                   key={item.label}
                   onClick={() => handleNavClick(item.href, item.label)}
-                  className={`text-sm font-medium transition-all duration-300 hover:text-sky-600 relative ${
-                    isScrolled ? 'text-gray-700' : 'text-gray-700'
+                  className={`text-sm font-medium transition-all duration-300 hover:text-primary relative ${
+                    isScrolled ? 'text-foreground' : 'text-foreground'
                   } ${
                     activeSection === item.href.replace('#', '') 
-                      ? 'text-sky-600' 
+                      ? 'text-primary' 
                       : ''
                   }`}
                   whileHover={{ y: -2 }}
@@ -136,7 +137,7 @@ export default function Navbar() {
                   {item.label}
                   {activeSection === item.href.replace('#', '') && (
                     <motion.div
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-sky-600"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
                       layoutId="activeSection"
                       initial={false}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -153,6 +154,7 @@ export default function Navbar() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
+              <ThemeToggle />
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -161,8 +163,8 @@ export default function Navbar() {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setIsGitHubOpen(true)}
-                  className={`font-medium border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all duration-200 ${
-                    isScrolled ? 'text-gray-700 hover:text-gray-900' : 'text-gray-700 hover:text-gray-900'
+                  className={`font-medium border border-transparent hover:border-border hover:bg-accent transition-all duration-200 ${
+                    isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
                   }`}
                 >
                   <Github className="h-4 w-4 mr-2" />
@@ -178,7 +180,7 @@ export default function Navbar() {
                   size="sm"
                   onClick={handleSignIn}
                   className={`font-medium ${
-                    isScrolled ? 'text-gray-700 hover:text-gray-900' : 'text-gray-700 hover:text-gray-900'
+                    isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
                   }`}
                 >
                   <LogIn className="h-4 w-4 mr-2" />
@@ -192,7 +194,7 @@ export default function Navbar() {
                 <Button 
                   onClick={handleGetStarted}
                   size="sm"
-                  className="bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-medium"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 >
                   <Zap className="h-4 w-4 mr-2" />
                   Get Started
@@ -203,16 +205,16 @@ export default function Navbar() {
 
             {/* Mobile Menu Button */}
             <motion.button
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-accent transition-colors"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               {isMobileMenuOpen ? (
-                <X className="h-6 w-6 text-gray-700" />
+                <X className="h-6 w-6 text-foreground" />
               ) : (
-                <Menu className="h-6 w-6 text-gray-700" />
+                <Menu className="h-6 w-6 text-foreground" />
               )}
             </motion.button>
           </div>
@@ -226,7 +228,7 @@ export default function Navbar() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden bg-white border-t border-gray-200"
+              className="md:hidden bg-background border-t border-border"
             >
               <div className="px-4 py-6 space-y-4">
                 {navItems.map((item) => (
@@ -235,8 +237,8 @@ export default function Navbar() {
                     onClick={() => handleNavClick(item.href, item.label)}
                     className={`block w-full text-left text-base font-medium transition-colors py-2 ${
                       activeSection === item.href.replace('#', '')
-                        ? 'text-sky-600'
-                        : 'text-gray-700 hover:text-sky-600'
+                        ? 'text-primary'
+                        : 'text-foreground hover:text-primary'
                     }`}
                     whileHover={{ x: 10 }}
                     whileTap={{ scale: 0.95 }}
@@ -244,14 +246,18 @@ export default function Navbar() {
                     {item.label}
                   </motion.button>
                 ))}
-                <div className="pt-4 border-t border-gray-200 space-y-3">
+                <div className="pt-4 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Theme</span>
+                    <ThemeToggle />
+                  </div>
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <Button 
                       variant="ghost" 
-                      className="w-full justify-start font-medium text-gray-700 hover:text-gray-900 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all duration-200"
+                      className="w-full justify-start font-medium text-foreground hover:text-foreground hover:bg-accent border border-transparent hover:border-border transition-all duration-200"
                       onClick={() => {
                         setIsGitHubOpen(true)
                         setIsMobileMenuOpen(false)
@@ -267,7 +273,7 @@ export default function Navbar() {
                   >
                     <Button 
                       variant="ghost" 
-                      className="w-full justify-start font-medium text-gray-700 hover:text-gray-900"
+                      className="w-full justify-start font-medium text-foreground hover:text-foreground"
                       onClick={() => {
                         handleSignIn()
                         setIsMobileMenuOpen(false)
@@ -286,7 +292,7 @@ export default function Navbar() {
                         handleGetStarted()
                         setIsMobileMenuOpen(false)
                       }}
-                      className="w-full bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-medium"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                     >
                       <Zap className="h-4 w-4 mr-2" />
                       Get Started

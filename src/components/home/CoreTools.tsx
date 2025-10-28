@@ -1,6 +1,7 @@
 'use client'
 
-import { motion, useState } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { Users, DollarSign, FileText, LayoutDashboard, ArrowRight, CheckCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,9 +30,9 @@ function CoreFeature({ icon, title, description, features, delay, onExplore }: C
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
     >
-      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg bg-gradient-to-br from-white to-gray-50 relative overflow-hidden group">
+      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg bg-gradient-to-br from-card to-muted/20 relative overflow-hidden group">
         {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         <CardContent className="p-0 relative z-10">
           <motion.div 
@@ -39,22 +40,22 @@ function CoreFeature({ icon, title, description, features, delay, onExplore }: C
             animate={{ rotate: isHovered ? 360 : 0, scale: isHovered ? 1.1 : 1 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-600 text-white inline-block shadow-lg">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground inline-block shadow-lg">
               {icon}
             </div>
           </motion.div>
           
-          <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
+          <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-primary transition-colors duration-300">
             {title}
           </h3>
           
-          <p className="text-gray-600 mb-6 leading-relaxed">{description}</p>
+          <p className="text-muted-foreground mb-6 leading-relaxed">{description}</p>
           
           <ul className="space-y-3 mb-6">
             {features.map((feature, index) => (
               <motion.li 
                 key={index} 
-                className="flex items-center text-sm text-gray-700 cursor-pointer hover:text-blue-600 transition-colors duration-200"
+                className="flex items-center text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                 onClick={() => setExpandedFeature(expandedFeature === index ? null : index)}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -65,14 +66,14 @@ function CoreFeature({ icon, title, description, features, delay, onExplore }: C
                   animate={{ scale: expandedFeature === index ? 1.2 : 1 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <CheckCircle className="h-4 w-4 text-blue-500 mr-3" />
+                  <CheckCircle className="h-4 w-4 text-primary mr-3" />
                 </motion.div>
                 <span className="flex-1">{feature}</span>
                 {expandedFeature === index && (
                   <motion.span
                     initial={{ opacity: 0, width: 0 }}
                     animate={{ opacity: 1, width: 'auto' }}
-                    className="text-xs text-blue-600 ml-2"
+                    className="text-xs text-primary ml-2"
                   >
                     Click to learn more
                   </motion.span>
@@ -89,7 +90,7 @@ function CoreFeature({ icon, title, description, features, delay, onExplore }: C
             <Button 
               onClick={() => onExplore?.(title)}
               variant="outline" 
-              className="w-full border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300"
+              className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
             >
               Explore Feature <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -160,7 +161,7 @@ export default function CoreTools() {
   ]
 
   return (
-    <section id="about" className="py-20 bg-white">
+    <section id="about" className="py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -169,10 +170,10 @@ export default function CoreTools() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Core Platform Features
           </h2>
-          <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+          <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
             Discover the powerful tools that make society management simple, efficient, and enjoyable.
           </p>
         </motion.div>

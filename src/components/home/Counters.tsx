@@ -122,7 +122,7 @@ export default function Counters() {
   }
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -131,17 +131,17 @@ export default function Counters() {
           viewport={{ once: true, margin: "-100px" }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-foreground mb-4">
             Trusted by Leading Societies
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Join thousands of societies already experiencing the future of community management
           </p>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="mt-4 text-sm text-gray-500"
+            className="mt-4 text-sm text-muted-foreground"
           >
             💡 Click any counter to refresh live data
           </motion.div>
@@ -209,7 +209,7 @@ export default function Counters() {
                 duration: 3000,
               })}
               variant="outline" 
-              className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >
               View Detailed Analytics
             </Button>
