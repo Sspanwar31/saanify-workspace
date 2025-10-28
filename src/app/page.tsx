@@ -1,13 +1,23 @@
+import Hero from '@/components/home/Hero'
+import Features from '@/components/home/Features'
+import CoreTools from '@/components/home/CoreTools'
+import Demo from '@/components/home/Demo'
+import Pricing from '@/components/home/Pricing'
+import Testimonials from '@/components/home/Testimonials'
+import Footer from '@/components/home/Footer'
+import GitHubToggle from '@/components/github/GitHubToggle'
+
 export default function Home() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-4">
-      <div className="relative w-24 h-24 md:w-32 md:h-32">
-        <img
-          src="/logo.svg"
-          alt="Z.ai Logo"
-          className="w-full h-full object-contain"
-        />
-      </div>
+    <div className="min-h-screen">
+      <Hero />
+      <Features />
+      <CoreTools />
+      <Demo />
+      <Pricing />
+      <Testimonials />
+      <Footer />
+      <GitHubToggle />
     </div>
   )
 }
