@@ -468,19 +468,44 @@ async function handleGitHubPushBackup(config: GitHubConfig): Promise<NextRespons
     
   } catch (error) {
     console.error('GitHub push backup failed:', error)
+    console.error('Error type:', typeof error)
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
     
     // Check if it's because there are no changes
-    if (error instanceof Error && error.message.includes('nothing to commit')) {
-      return NextResponse.json({
-        success: true,
-        commitHash: 'no-changes',
-        message: 'No changes to commit - working tree clean',
-        details: {
-          localBackup: true,
-          pushToGitHub: false,
-          note: 'No new changes detected'
-        }
-      })
+    if (error instanceof Error && (
+      error.message.includes('nothing to commit') || 
+      error.message.includes('working tree clean') ||
+      error.message.includes('nothing added to commit')
+    )) {
+      // If there are no changes to commit, just push existing commits to GitHub
+      try {
+        // Configure remote with token
+        const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+        await execAsync(`git remote set-url origin ${remoteUrl}`)
+        
+        // Push existing commits to GitHub
+        const { stdout: pushOutput } = await execAsync('git push -u origin main')
+        
+        return NextResponse.json({
+          success: true,
+          commitHash: 'existing-commits',
+          message: 'Pushed existing commits to GitHub',
+          details: {
+            localBackup: false,
+            pushToGitHub: true,
+            note: 'No new changes, pushed existing commits',
+            pushOutput
+          }
+        })
+      } catch (pushError) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Failed to push existing commits: ${pushError instanceof Error ? pushError.message : 'Unknown error'}` 
+          },
+          { status: 500 }
+        )
+      }
     }
     
     // Check for stuck commit message issues
