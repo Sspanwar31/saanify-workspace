@@ -341,7 +341,12 @@ async function restoreFromBackup(config: GitHubConfig, commitSha: string): Promi
 // Enhanced API route handler
 export async function POST(request: NextRequest) {
   try {
-    const { action, config, commitSha } = await request.json()
+    const { action, config, commitSha, useGit } = await request.json()
+    
+    // Handle quick git backup (no GitHub API required)
+    if (action === 'quick-backup' && useGit) {
+      return await handleQuickGitBackup()
+    }
     
     if (!config || !config.owner || !config.repo || !config.token) {
       return NextResponse.json(
@@ -398,6 +403,59 @@ export async function POST(request: NextRequest) {
     console.error('GitHub API error:', error)
     return NextResponse.json(
       { error: 'Internal server error during GitHub operation' },
+      { status: 500 }
+    )
+  }
+}
+
+// Quick git backup function
+async function handleQuickGitBackup(): Promise<NextResponse> {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const commitMessage = `🚀 Quick Backup: ${timestamp}`
+    
+    // Execute git commands
+    const { stdout: addOutput } = await execAsync('git add .')
+    const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
+    const { stdout: logOutput } = await execAsync('git log --oneline -1')
+    
+    // Extract commit hash
+    const commitHash = logOutput.split(' ')[0]
+    
+    return NextResponse.json({
+      success: true,
+      commitHash,
+      timestamp,
+      message: commitMessage,
+      details: {
+        localBackup: true,
+        commitMessage,
+        addOutput,
+        commitOutput
+      }
+    })
+    
+  } catch (error) {
+    console.error('Quick git backup failed:', error)
+    
+    // Check if it's because there are no changes
+    if (error instanceof Error && error.message.includes('nothing to commit')) {
+      return NextResponse.json({
+        success: true,
+        commitHash: 'no-changes',
+        message: 'No changes to commit - working tree clean',
+        details: {
+          localBackup: true,
+          note: 'No new changes detected'
+        }
+      })
+    }
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Quick backup failed' 
+      },
       { status: 500 }
     )
   }

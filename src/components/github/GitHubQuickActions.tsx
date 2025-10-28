@@ -2,16 +2,78 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Github, Upload, Download, Shield, Zap } from 'lucide-react'
+import { Github, Upload, Settings, Shield, Zap, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import GitHubIntegration from './GitHubIntegration'
 
 export default function GitHubQuickActions() {
   const [showIntegration, setShowIntegration] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
+
+  // Quick backup using git command
+  const handleQuickBackup = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/github/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'quick-backup',
+          useGit: true 
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setMessage({ 
+          type: 'success', 
+          text: `Backup completed! Commit: ${data.commitHash}` 
+        })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Backup failed' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to create backup' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <>
+      {/* Message Display */}
+      {message && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-24 right-4 z-50 w-80"
+        >
+          <Alert className={`${
+            message.type === 'success' ? 'border-green-500 bg-green-50' :
+            message.type === 'error' ? 'border-red-500 bg-red-50' :
+            'border-blue-500 bg-blue-50'
+          }`}>
+            <AlertCircle className={`h-4 w-4 ${
+              message.type === 'success' ? 'text-green-600' :
+              message.type === 'error' ? 'text-red-600' :
+              'text-blue-600'
+            }`} />
+            <AlertDescription className={`text-sm ${
+              message.type === 'success' ? 'text-green-800' :
+              message.type === 'error' ? 'text-red-800' :
+              'text-blue-800'
+            }`}>
+              {message.text}
+            </AlertDescription>
+          </Alert>
+        </motion.div>
+      )}
+
       {/* Quick Actions Floating Widget */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -23,21 +85,26 @@ export default function GitHubQuickActions() {
           <CardContent className="p-0">
             <div className="flex items-center gap-2 mb-3">
               <Github className="h-5 w-5 text-gray-700" />
-              <h3 className="font-semibold text-gray-900 text-sm">GitHub Backup</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">Quick Git Backup</h3>
               <Shield className="h-4 w-4 text-green-500 ml-auto" />
             </div>
             
             <p className="text-xs text-gray-600 mb-4">
-              Secure your project with automatic GitHub backups
+              Fast local git backup with one click
             </p>
 
             <div className="space-y-2">
               <Button
                 size="sm"
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => setShowIntegration(true)}
+                onClick={handleQuickBackup}
+                disabled={isLoading}
               >
-                <Upload className="h-3 w-3 mr-2" />
+                {isLoading ? (
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-3 w-3 mr-2" />
+                )}
                 Quick Backup
               </Button>
               
@@ -47,14 +114,14 @@ export default function GitHubQuickActions() {
                 className="w-full"
                 onClick={() => setShowIntegration(true)}
               >
-                <Download className="h-3 w-3 mr-2" />
-                Restore Backup
+                <Settings className="h-3 w-3 mr-2" />
+                GitHub Settings
               </Button>
 
               <div className="pt-2 border-t border-gray-200">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Zap className="h-3 w-3" />
-                  <span>Auto-sync enabled</span>
+                  <span>Local git backup</span>
                 </div>
               </div>
             </div>
