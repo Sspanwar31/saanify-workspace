@@ -341,11 +341,26 @@ async function restoreFromBackup(config: GitHubConfig, commitSha: string): Promi
 // Enhanced API route handler
 export async function POST(request: NextRequest) {
   try {
-    const { action, config, commitSha, useGit } = await request.json()
+    const { action, config, commitSha, useGit, pushToGitHub } = await request.json()
     
     // Handle quick git backup (no GitHub API required)
     if (action === 'quick-backup' && useGit) {
       return await handleQuickGitBackup()
+    }
+
+    // Handle GitHub push backup
+    if (action === 'github-push-backup' && pushToGitHub) {
+      return await handleGitHubPushBackup(config)
+    }
+
+    // Handle auto backup
+    if (action === 'auto-backup' && pushToGitHub) {
+      return await handleAutoBackup(config)
+    }
+
+    // Handle restore
+    if (action === 'restore') {
+      return await handleRestore(config)
     }
     
     if (!config || !config.owner || !config.repo || !config.token) {
@@ -403,6 +418,198 @@ export async function POST(request: NextRequest) {
     console.error('GitHub API error:', error)
     return NextResponse.json(
       { error: 'Internal server error during GitHub operation' },
+      { status: 500 }
+    )
+  }
+}
+
+// GitHub Push Backup Function
+async function handleGitHubPushBackup(config: GitHubConfig): Promise<NextResponse> {
+  try {
+    // Reset any stuck commit state first
+    try {
+      await execAsync('git reset')
+    } catch (resetError) {
+      // Ignore reset errors, it's just precautionary
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const commitMessage = `🚀 Quick Backup: ${timestamp}`
+    
+    // Execute git commands
+    const { stdout: addOutput } = await execAsync('git add -A')
+    const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
+    const { stdout: logOutput } = await execAsync('git log --oneline -1')
+    
+    // Extract commit hash
+    const commitHash = logOutput.split(' ')[0]
+    
+    // Configure remote with token
+    const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+    await execAsync(`git remote set-url origin ${remoteUrl}`)
+    
+    // Push to GitHub
+    const { stdout: pushOutput } = await execAsync('git push -u origin main')
+    
+    return NextResponse.json({
+      success: true,
+      commitHash,
+      timestamp,
+      message: commitMessage,
+      details: {
+        localBackup: true,
+        pushToGitHub: true,
+        commitMessage,
+        addOutput,
+        commitOutput,
+        pushOutput
+      }
+    })
+    
+  } catch (error) {
+    console.error('GitHub push backup failed:', error)
+    
+    // Check if it's because there are no changes
+    if (error instanceof Error && error.message.includes('nothing to commit')) {
+      return NextResponse.json({
+        success: true,
+        commitHash: 'no-changes',
+        message: 'No changes to commit - working tree clean',
+        details: {
+          localBackup: true,
+          pushToGitHub: false,
+          note: 'No new changes detected'
+        }
+      })
+    }
+    
+    // Check for stuck commit message issues
+    if (error instanceof Error && error.message.includes('COMMIT_EDITMSG')) {
+      try {
+        // Try to fix the stuck commit
+        await execAsync('git reset')
+        await execAsync('rm -f .git/COMMIT_EDITMSG')
+        
+        // Retry the backup
+        return await handleGitHubPushBackup(config)
+      } catch (retryError) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Git state was corrupted and could not be auto-fixed. Please try again.' 
+          },
+          { status: 500 }
+        )
+      }
+    }
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'GitHub push backup failed' 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Auto Backup Function
+async function handleAutoBackup(config: GitHubConfig): Promise<NextResponse> {
+  try {
+    // Reset any stuck commit state first
+    try {
+      await execAsync('git reset')
+    } catch (resetError) {
+      // Ignore reset errors, it's just precautionary
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const commitMessage = `🧩 Auto Backup: ${timestamp}`
+    
+    // Execute git commands
+    const { stdout: addOutput } = await execAsync('git add -A')
+    const { stdout: commitOutput } = await execAsync(`git commit -m "${commitMessage}"`)
+    const { stdout: logOutput } = await execAsync('git log --oneline -1')
+    
+    // Extract commit hash
+    const commitHash = logOutput.split(' ')[0]
+    
+    // Configure remote with token
+    const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+    await execAsync(`git remote set-url origin ${remoteUrl}`)
+    
+    // Push to GitHub
+    const { stdout: pushOutput } = await execAsync('git push -u origin main')
+    
+    return NextResponse.json({
+      success: true,
+      commitHash,
+      timestamp,
+      message: commitMessage,
+      details: {
+        localBackup: true,
+        pushToGitHub: true,
+        autoBackup: true,
+        commitMessage,
+        addOutput,
+        commitOutput,
+        pushOutput
+      }
+    })
+    
+  } catch (error) {
+    console.error('Auto backup failed:', error)
+    
+    // Check if it's because there are no changes
+    if (error instanceof Error && error.message.includes('nothing to commit')) {
+      return NextResponse.json({
+        success: true,
+        commitHash: 'no-changes',
+        message: 'No changes to commit - working tree clean',
+        details: {
+          localBackup: true,
+          pushToGitHub: false,
+          autoBackup: true,
+          note: 'No new changes detected'
+        }
+      })
+    }
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Auto backup failed' 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Restore Function
+async function handleRestore(config: GitHubConfig): Promise<NextResponse> {
+  try {
+    // Configure remote with token
+    const remoteUrl = `https://${config.token}@github.com/${config.owner}/${config.repo}.git`
+    await execAsync(`git remote set-url origin ${remoteUrl}`)
+    
+    // Pull latest changes
+    const { stdout: pullOutput } = await execAsync('git pull origin main')
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Project restored from latest commit',
+      details: {
+        pullOutput
+      }
+    })
+    
+  } catch (error) {
+    console.error('Restore failed:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Restore failed' 
+      },
       { status: 500 }
     )
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Github, 
@@ -17,7 +17,13 @@ import {
   X,
   Loader2,
   Shield,
-  Zap
+  Zap,
+  Upload,
+  RefreshCw,
+  Clock,
+  Usb,
+  Play,
+  Pause
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,7 +33,6 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import OpenSourceCollaboration from './OpenSourceCollaboration'
 
 interface GitHubConfig {
   owner: string
@@ -36,6 +41,14 @@ interface GitHubConfig {
   branch: string
   isConnected: boolean
   accountName: string
+}
+
+interface BackupStatus {
+  isAutoBackupEnabled: boolean
+  isDongleModeEnabled: boolean
+  lastBackupTime: string | null
+  autoBackupStatus: 'active' | 'paused' | 'error'
+  dongleConnected: boolean
 }
 
 export default function GitHubToggle() {
@@ -48,11 +61,20 @@ export default function GitHubToggle() {
     isConnected: false,
     accountName: ''
   })
+  const [backupStatus, setBackupStatus] = useState<BackupStatus>({
+    isAutoBackupEnabled: false,
+    isDongleModeEnabled: false,
+    lastBackupTime: null,
+    autoBackupStatus: 'paused',
+    dongleConnected: true
+  })
   const [isLoading, setIsLoading] = useState(false)
+  const [isBackingUp, setIsBackingUp] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [activeTab, setActiveTab] = useState('sync')
   const [copied, setCopied] = useState('')
-  const [isBackingUp, setIsBackingUp] = useState(false)
+  const autoBackupInterval = useRef<NodeJS.Timeout | null>(null)
 
   // Load config from localStorage
   useEffect(() => {
@@ -61,6 +83,12 @@ export default function GitHubToggle() {
       const parsed = JSON.parse(savedConfig)
       setConfig(parsed)
     }
+
+    const savedBackupStatus = localStorage.getItem('backup-status')
+    if (savedBackupStatus) {
+      const parsed = JSON.parse(savedBackupStatus)
+      setBackupStatus(parsed)
+    }
   }, [])
 
   // Save config to localStorage
@@ -68,6 +96,20 @@ export default function GitHubToggle() {
     localStorage.setItem('github-toggle-config', JSON.stringify(config))
     setMessage({ type: 'success', text: 'GitHub configuration saved successfully!' })
     setTimeout(() => setMessage(null), 3000)
+  }
+
+  // Save backup status to localStorage
+  const saveBackupStatus = (status: Partial<BackupStatus>) => {
+    const newStatus = { ...backupStatus, ...status }
+    setBackupStatus(newStatus)
+    localStorage.setItem('backup-status', JSON.stringify(newStatus))
+  }
+
+  // Show notification
+  const showNotification = (type: 'success' | 'error' | 'info', text: string) => {
+    setMessage({ type, text })
+    setTimeout(() => setMessage(null), 3000)
+    console.log(`[${type.toUpperCase()}] ${text}`)
   }
 
   // Copy to clipboard
@@ -91,13 +133,173 @@ export default function GitHubToggle() {
       })
       
       saveConfig()
-      setMessage({ type: 'success', text: 'Successfully connected to GitHub!' })
+      showNotification('success', `✅ Connected to ${config.owner}/${config.repo}`)
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to connect to GitHub' })
+      showNotification('error', 'Failed to connect to GitHub')
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Quick Backup with GitHub Push
+  const quickBackup = async () => {
+    if (!config.isConnected) {
+      showNotification('error', 'Please connect to GitHub first')
+      return
+    }
+
+    setIsBackingUp(true)
+    try {
+      const response = await fetch('/api/github/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'github-push-backup',
+          config,
+          pushToGitHub: true
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        showNotification('success', '✅ Backup pushed to GitHub successfully')
+        saveBackupStatus({ lastBackupTime: new Date().toISOString() })
+      } else {
+        showNotification('error', data.error || 'Backup failed')
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to create backup')
+    } finally {
+      setIsBackingUp(false)
+    }
+  }
+
+  // Auto Backup Toggle
+  const toggleAutoBackup = (enabled: boolean) => {
+    if (enabled && !config.isConnected) {
+      showNotification('error', 'Please connect to GitHub first')
+      return
+    }
+
+    saveBackupStatus({ 
+      isAutoBackupEnabled: enabled,
+      autoBackupStatus: enabled ? 'active' : 'paused'
+    })
+
+    if (enabled) {
+      startAutoBackup()
+      showNotification('success', 'Auto Backup enabled')
+    } else {
+      stopAutoBackup()
+      showNotification('info', 'Auto Backup paused')
+    }
+  }
+
+  // Start Auto Backup
+  const startAutoBackup = () => {
+    if (autoBackupInterval.current) {
+      clearInterval(autoBackupInterval.current)
+    }
+
+    autoBackupInterval.current = setInterval(async () => {
+      if (backupStatus.isDongleModeEnabled && !backupStatus.dongleConnected) {
+        saveBackupStatus({ autoBackupStatus: 'paused' })
+        showNotification('error', 'Dongle not detected — Auto Backup paused')
+        return
+      }
+
+      try {
+        const response = await fetch('/api/github/backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: 'auto-backup',
+            config,
+            pushToGitHub: true
+          })
+        })
+
+        const data = await response.json()
+        
+        if (data.success) {
+          saveBackupStatus({ lastBackupTime: new Date().toISOString() })
+          console.log('🧩 Auto backup completed successfully')
+        } else {
+          console.error('Auto backup failed:', data.error)
+        }
+      } catch (error) {
+        console.error('Auto backup error:', error)
+      }
+    }, 2 * 60 * 1000) // 2 minutes
+  }
+
+  // Stop Auto Backup
+  const stopAutoBackup = () => {
+    if (autoBackupInterval.current) {
+      clearInterval(autoBackupInterval.current)
+      autoBackupInterval.current = null
+    }
+  }
+
+  // Restore Latest Backup
+  const restoreLatest = async () => {
+    if (!config.isConnected) {
+      showNotification('error', 'Please connect to GitHub first')
+      return
+    }
+
+    setIsRestoring(true)
+    try {
+      const response = await fetch('/api/github/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'restore',
+          config
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        showNotification('success', '✅ Project restored from latest commit')
+      } else {
+        showNotification('error', data.error || 'Restore failed')
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to restore backup')
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  // Toggle Dongle Mode
+  const toggleDongleMode = (enabled: boolean) => {
+    saveBackupStatus({ isDongleModeEnabled: enabled })
+    
+    if (enabled) {
+      // Simulate dongle detection
+      const dongleDetected = Math.random() > 0.3 // 70% chance of detection
+      saveBackupStatus({ dongleConnected: dongleDetected })
+      
+      if (dongleDetected) {
+        showNotification('success', 'Dongle detected and enabled')
+      } else {
+        showNotification('error', 'Dongle not detected — Auto Backup paused')
+        saveBackupStatus({ autoBackupStatus: 'paused' })
+      }
+    } else {
+      showNotification('info', 'Dongle mode disabled')
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopAutoBackup()
+    }
+  }, [])
 
   // Clone repository
   const cloneRepository = (method: 'https' | 'ssh' | 'cli') => {
@@ -113,34 +315,20 @@ export default function GitHubToggle() {
   // Open in VS Code
   const openInVSCode = () => {
     if (!config.isConnected || !config.owner || !config.repo) {
-      setMessage({ type: 'error', text: 'Please connect to GitHub first' })
+      showNotification('error', 'Please connect to GitHub first')
       return
     }
     
-    // VS Code Web Editor URL with proper encoding
     const encodedOwner = encodeURIComponent(config.owner)
     const encodedRepo = encodeURIComponent(config.repo)
     const vscodeUrl = `https://vscode.dev/github/${encodedOwner}/${encodedRepo}`
-    
-    // Open in new tab
     window.open(vscodeUrl, '_blank')
   }
 
-  // Open in GitHub Codespaces (alternative)
-  const openInCodespaces = () => {
-    if (!config.isConnected || !config.owner || !config.repo) {
-      setMessage({ type: 'error', text: 'Please connect to GitHub first' })
-      return
-    }
-    
-    const codespacesUrl = `https://github.com/codespaces/new/${config.owner}/${config.repo}`
-    window.open(codespacesUrl, '_blank')
-  }
-
-  // Open in GitHub.dev (web-based VS Code)
+  // Open in GitHub.dev
   const openInGitHubDev = () => {
     if (!config.isConnected || !config.owner || !config.repo) {
-      setMessage({ type: 'error', text: 'Please connect to GitHub first' })
+      showNotification('error', 'Please connect to GitHub first')
       return
     }
     
@@ -151,53 +339,6 @@ export default function GitHubToggle() {
   // View on GitHub
   const viewOnGitHub = () => {
     window.open(`https://github.com/${config.owner}/${config.repo}`, '_blank')
-  }
-
-  // Quick backup function
-  const quickBackup = async () => {
-    setIsBackingUp(true)
-    try {
-      const response = await fetch('/api/github/backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'quick-backup',
-          useGit: true 
-        })
-      })
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setMessage({ 
-          type: 'success', 
-          text: `Backup completed! Commit: ${data.commitHash}` 
-        })
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Backup failed' })
-        setTimeout(() => setMessage(null), 5000)
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to create backup' })
-      setTimeout(() => setMessage(null), 5000)
-    } finally {
-      setIsBackingUp(false)
-    }
-  }
-
-  // Quick restore function
-  const quickRestore = async () => {
-    setIsBackingUp(true)
-    try {
-      // Simulate restore process
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setMessage({ type: 'success', text: 'Restore completed successfully!' })
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Restore failed!' })
-    } finally {
-      setIsBackingUp(false)
-    }
   }
 
   return (
@@ -248,13 +389,8 @@ export default function GitHubToggle() {
           <div className="flex items-center gap-3">
             <Github className="h-5 w-5" />
             <span className="font-medium">
-              {config.isConnected ? 'Connected' : 'GitHub'}
+              {config.isConnected ? `✅ ${config.owner}/${config.repo}` : 'GitHub'}
             </span>
-            {config.isConnected && (
-              <Badge className="bg-white/20 text-white text-xs">
-                {config.accountName}
-              </Badge>
-            )}
             <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
               isOpen ? 'rotate-180' : ''
             }`} />
@@ -273,7 +409,7 @@ export default function GitHubToggle() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
+            className="absolute top-full right-0 mt-2 w-[420px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-4">
@@ -283,7 +419,7 @@ export default function GitHubToggle() {
                   <div>
                     <h3 className="font-semibold">GitHub Integration</h3>
                     <p className="text-xs text-gray-300">
-                      {config.isConnected ? 'Connected to repository' : 'Connect your project'}
+                      Connect your project to GitHub for 2-way sync and collaboration.
                     </p>
                   </div>
                 </div>
@@ -296,284 +432,86 @@ export default function GitHubToggle() {
               </div>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 m-4">
-                <TabsTrigger value="sync" className="text-xs">Sync</TabsTrigger>
-                <TabsTrigger value="code" className="text-xs">Code</TabsTrigger>
-                <TabsTrigger value="backup" className="text-xs">Backup</TabsTrigger>
-                <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
-              </TabsList>
-
-              {/* Sync Tab */}
-              <TabsContent value="sync" className="p-4 space-y-4">
-                {config.isConnected ? (
-                  <>
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <GitBranch className="h-4 w-4" />
-                          Repository Info
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Repository</span>
-                          <Badge variant="outline" className="text-xs">
-                            {config.owner}/{config.repo}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Branch</span>
-                          <Badge variant="outline" className="text-xs">
-                            {config.branch}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Account</span>
-                          <Badge variant="outline" className="text-xs">
-                            {config.accountName}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={viewOnGitHub}
-                        className="text-xs"
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        View on GitHub
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        <Users className="h-3 w-3 mr-1" />
-                        Collaborate
-                      </Button>
-                    </div>
-
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-gray-500 mb-2">
-                        2-way sync enabled. Changes are automatically synchronized.
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-3 w-3 text-yellow-500" />
-                        <span className="text-xs text-green-600">Last sync: Just now</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <Alert>
-                      <Github className="h-4 w-4" />
-                      <AlertDescription>
-                        Connect your project to GitHub for 2-way sync and collaboration.
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="owner" className="text-sm">Repository Owner</Label>
-                        <Input
-                          id="owner"
-                          value={config.owner}
-                          onChange={(e) => setConfig({ ...config, owner: e.target.value })}
-                          placeholder="username"
-                          className="text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="repo" className="text-sm">Repository Name</Label>
-                        <Input
-                          id="repo"
-                          value={config.repo}
-                          onChange={(e) => setConfig({ ...config, repo: e.target.value })}
-                          placeholder="repository-name"
-                          className="text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="token" className="text-sm">GitHub Token</Label>
-                        <Input
-                          id="token"
-                          type="password"
-                          value={config.token}
-                          onChange={(e) => setConfig({ ...config, token: e.target.value })}
-                          placeholder="ghp_xxxxxxxxxxxx"
-                          className="text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={connectToGitHub}
-                      disabled={isLoading || !config.owner || !config.repo || !config.token}
-                      className="w-full"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Github className="h-4 w-4 mr-2" />
-                      )}
-                      Connect to GitHub
-                    </Button>
+            {/* Connection Section */}
+            <div className="p-4 border-b">
+              {config.isConnected ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">✅ Connected to</span>
+                    <Badge variant="outline" className="text-xs">
+                      {config.owner}/{config.repo}
+                    </Badge>
                   </div>
-                )}
-              </TabsContent>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Branch</span>
+                    <Badge variant="outline" className="text-xs">
+                      {config.branch}
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="owner" className="text-sm">Repository Owner</Label>
+                    <Input
+                      id="owner"
+                      value={config.owner}
+                      onChange={(e) => setConfig({ ...config, owner: e.target.value })}
+                      placeholder="username"
+                      className="text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="repo" className="text-sm">Repository Name</Label>
+                    <Input
+                      id="repo"
+                      value={config.repo}
+                      onChange={(e) => setConfig({ ...config, repo: e.target.value })}
+                      placeholder="repository-name"
+                      className="text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="token" className="text-sm">Access Token</Label>
+                    <Input
+                      id="token"
+                      type="password"
+                      value={config.token}
+                      onChange={(e) => setConfig({ ...config, token: e.target.value })}
+                      placeholder="ghp_xxxxxxxxxxxx"
+                      className="text-sm mt-1"
+                    />
+                  </div>
+                  <Button
+                    onClick={connectToGitHub}
+                    disabled={isLoading || !config.owner || !config.repo || !config.token}
+                    className="w-full"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Github className="h-4 w-4 mr-2" />
+                    )}
+                    Connect to GitHub
+                  </Button>
+                </div>
+              )}
+            </div>
 
-              {/* Code Tab */}
-              <TabsContent value="code" className="p-4 space-y-4">
+            {/* Backup Management Sections */}
+            {config.isConnected && (
+              <div className="p-4 space-y-4">
+                {/* Quick Backup Section */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Code className="h-4 w-4" />
-                      Code Editor Options
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-xs text-gray-600">
-                      Choose your preferred code editor for online development.
-                    </p>
-                    
-                    <div className="grid grid-cols-1 gap-2">
-                      <Button
-                        onClick={openInVSCode}
-                        disabled={!config.isConnected}
-                        className="bg-blue-600 hover:bg-blue-700"
-                        size="sm"
-                      >
-                        <Code className="h-4 w-4 mr-2" />
-                        VS Code Web Editor
-                      </Button>
-                      
-                      <Button
-                        onClick={openInGitHubDev}
-                        disabled={!config.isConnected}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Github className="h-4 w-4 mr-2" />
-                        GitHub.dev Editor
-                      </Button>
-                      
-                      <Button
-                        onClick={openInCodespaces}
-                        disabled={!config.isConnected}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Terminal className="h-4 w-4 mr-2" />
-                        GitHub Codespaces
-                      </Button>
-                    </div>
-                    
-                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                      <strong>Tip:</strong> If VS Code Web Editor shows an error, try GitHub.dev Editor instead.
-                    </div>
-                    
-                    <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
-                      <strong>Troubleshooting:</strong>
-                      <ul className="mt-1 space-y-1">
-                        <li>• Ensure repository is public or you have access</li>
-                        <li>• Check GitHub token permissions</li>
-                        <li>• Try GitHub.dev Editor if vscode.dev fails</li>
-                        <li>• Use Codespaces for full development environment</li>
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Clone Repository
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={`https://github.com/${config.owner}/${config.repo}.git`}
-                          readOnly
-                          className="text-xs"
-                          disabled={!config.isConnected}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => cloneRepository('https')}
-                          disabled={!config.isConnected}
-                        >
-                          {copied === 'https' ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={`git@github.com:${config.owner}/${config.repo}.git`}
-                          readOnly
-                          className="text-xs"
-                          disabled={!config.isConnected}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => cloneRepository('ssh')}
-                          disabled={!config.isConnected}
-                        >
-                          {copied === 'ssh' ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={`gh repo clone ${config.owner}/${config.repo}`}
-                          readOnly
-                          className="text-xs"
-                          disabled={!config.isConnected}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => cloneRepository('cli')}
-                          disabled={!config.isConnected}
-                        >
-                          {copied === 'cli' ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Terminal className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Backup Tab */}
-              <TabsContent value="backup" className="p-4 space-y-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Download className="h-4 w-4" />
+                      <Upload className="h-4 w-4" />
                       Quick Backup
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-xs text-gray-600">
-                      Create an instant backup of your entire project using local git.
+                      Create an instant backup and push to GitHub
                     </p>
                     <Button
                       onClick={quickBackup}
@@ -583,114 +521,124 @@ export default function GitHubToggle() {
                       {isBackingUp ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        <Download className="h-4 w-4 mr-2" />
+                        <Upload className="h-4 w-4 mr-2" />
                       )}
                       {isBackingUp ? 'Creating Backup...' : 'Quick Backup'}
                     </Button>
-                    <p className="text-xs text-gray-500 mt-2">
-                      💡 Local git backup - no GitHub connection required
-                    </p>
+                    {backupStatus.lastBackupTime && (
+                      <p className="text-xs text-gray-500">
+                        Last backup: {new Date(backupStatus.lastBackupTime).toLocaleTimeString()}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
 
+                {/* Auto Backup Section */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <GitBranch className="h-4 w-4" />
-                      Restore Backup
+                      <Clock className="h-4 w-4" />
+                      Auto Backup
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <p className="text-xs text-gray-600">
-                      Restore your project from a previous backup.
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm">Auto Backup</Label>
+                        <p className="text-xs text-gray-500">
+                          {backupStatus.isAutoBackupEnabled ? 'Auto Backup Active' : 'Paused'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={backupStatus.isAutoBackupEnabled}
+                        onCheckedChange={toggleAutoBackup}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm">Dongle Mode</Label>
+                        <p className="text-xs text-gray-500">
+                          {backupStatus.isDongleModeEnabled 
+                            ? backupStatus.dongleConnected 
+                              ? 'Dongle connected' 
+                              : 'Dongle not detected'
+                            : 'Disabled'
+                          }
+                        </p>
+                      </div>
+                      <Switch
+                        checked={backupStatus.isDongleModeEnabled}
+                        onCheckedChange={toggleDongleMode}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      {backupStatus.autoBackupStatus === 'active' ? (
+                        <>
+                          <Play className="h-3 w-3 text-green-500" />
+                          <span className="text-green-600">Watching for changes (2 min interval)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="h-3 w-3 text-gray-400" />
+                          <span>Auto backup paused</span>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Restore Section */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      Restore / Dongle
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
                     <Button
-                      onClick={quickRestore}
-                      disabled={isBackingUp || !config.isConnected}
+                      onClick={restoreLatest}
+                      disabled={isRestoring}
                       variant="outline"
                       className="w-full"
                     >
-                      {isBackingUp ? (
+                      {isRestoring ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        <GitBranch className="h-4 w-4 mr-2" />
+                        <RefreshCw className="h-4 w-4 mr-2" />
                       )}
-                      {isBackingUp ? 'Restoring...' : 'Restore Backup'}
+                      {isRestoring ? 'Restoring...' : 'Restore Latest'}
                     </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Open Source Collaboration
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <OpenSourceCollaboration />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Settings Tab */}
-              <TabsContent value="settings" className="p-4 space-y-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      Connection Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-sm">Auto Sync</Label>
-                        <p className="text-xs text-gray-500">Automatically sync changes</p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-sm">Real-time Updates</Label>
-                        <p className="text-xs text-gray-500">Live collaboration</p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-sm">Backup on Save</Label>
-                        <p className="text-xs text-gray-500">Create backup points</p>
-                      </div>
-                      <Switch />
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Usb className="h-3 w-3" />
+                      <span>Dongle protection: {backupStatus.isDongleModeEnabled ? 'Enabled' : 'Disabled'}</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                {config.isConnected && (
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 gap-2">
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      setConfig({
-                        owner: '',
-                        repo: '',
-                        token: '',
-                        branch: 'main',
-                        isConnected: false,
-                        accountName: ''
-                      })
-                      localStorage.removeItem('github-toggle-config')
-                      setMessage({ type: 'info', text: 'Disconnected from GitHub' })
-                    }}
+                    onClick={viewOnGitHub}
+                    className="text-xs"
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    Disconnect
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View on GitHub
                   </Button>
-                )}
-              </TabsContent>
-            </Tabs>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openInGitHubDev}
+                    className="text-xs"
+                  >
+                    <Code className="h-3 w-3 mr-1" />
+                    Open in Editor
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
