@@ -34,11 +34,14 @@ export default function GitHubQuickActions() {
           type: 'success', 
           text: `Backup completed! Commit: ${data.commitHash}` 
         })
+        setTimeout(() => setMessage(null), 3000)
       } else {
         setMessage({ type: 'error', text: data.error || 'Backup failed' })
+        setTimeout(() => setMessage(null), 5000)
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to create backup' })
+      setTimeout(() => setMessage(null), 5000)
     } finally {
       setIsLoading(false)
     }
