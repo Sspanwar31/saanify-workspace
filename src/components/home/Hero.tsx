@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, useSpring, useInView } from 'framer-motion'
 import { Play, ArrowRight, TrendingUp, Users, Shield, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface CounterProps {
   value: number

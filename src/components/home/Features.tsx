@@ -1,33 +1,58 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Lock, Zap, BarChart, Headphones, Users, Plug } from 'lucide-react'
+import { motion, useState } from 'framer-motion'
+import { Lock, Zap, BarChart, Headphones, Users, Plug, ArrowRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface FeatureCardProps {
   icon: React.ReactNode
   title: string
   description: string
   delay: number
+  onLearnMore?: (title: string) => void
 }
 
-function FeatureCard({ icon, title, description, delay }: FeatureCardProps) {
+function FeatureCard({ icon, title, description, delay, onLearnMore }: FeatureCardProps) {
+  const [isHovered, setIsHovered] = useState(false)
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay }}
       viewport={{ once: true }}
+      whileHover={{ y: -10, scale: 1.02 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onClick={() => onLearnMore?.(title)}
     >
-      <Card className="h-full p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-white/80 backdrop-blur-sm">
-        <CardContent className="p-0 text-center">
+      <Card className="h-full p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md bg-white hover:bg-gradient-to-br hover:from-white hover:to-blue-50 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <CardContent className="p-0 text-center relative z-10">
           <div className="mb-4 flex justify-center">
-            <div className="p-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white">
+            <motion.div 
+              className="p-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white"
+              whileHover={{ rotate: 360, scale: 1.1 }}
+              transition={{ duration: 0.6 }}
+            >
               {icon}
-            </div>
+            </motion.div>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
-          <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
+            {title}
+          </h3>
+          <p className="text-gray-600 text-sm leading-relaxed mb-4">{description}</p>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: isHovered ? 1 : 0, height: isHovered ? 'auto' : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+              Learn More <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </motion.div>
         </CardContent>
       </Card>
     </motion.div>
@@ -35,6 +60,13 @@ function FeatureCard({ icon, title, description, delay }: FeatureCardProps) {
 }
 
 export default function Features() {
+  const handleLearnMore = (featureTitle: string) => {
+    toast.success(`Learn more about ${featureTitle}`, {
+      description: "Feature details coming soon!",
+      duration: 3000,
+    })
+  }
+
   const features = [
     {
       icon: <Lock className="h-6 w-6" />,
@@ -100,6 +132,7 @@ export default function Features() {
               title={feature.title}
               description={feature.description}
               delay={feature.delay}
+              onLearnMore={handleLearnMore}
             />
           ))}
         </div>
