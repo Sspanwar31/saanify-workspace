@@ -152,7 +152,7 @@ export default function GitHubQuickActions() {
                   ×
                 </Button>
               </div>
-              <GitHubIntegration />
+              <GitHubIntegration isOpen={showIntegration} onOpenChange={setShowIntegration} />
             </div>
           </motion.div>
         </div>

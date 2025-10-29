@@ -62,9 +62,10 @@ class GitHubIssuesAPI {
   private async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {
     const response = await fetch(url, {
       headers: {
-        'Authorization': `token ${this.token}`,
+        'Authorization': `Bearer ${this.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
         ...options.headers
       },
       ...options
@@ -185,9 +186,10 @@ class GitHubProjectsAPI {
   private async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {
     const response = await fetch(url, {
       headers: {
-        'Authorization': `token ${this.token}`,
+        'Authorization': `Bearer ${this.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
         ...options.headers
       },
       ...options
@@ -339,11 +341,11 @@ async function handleIssuesAction(action: string, body: any): Promise<IssueRespo
         }
 
       case 'labels':
-        const labels = await issuesAPI.getLabels()
+        const labelsList = await issuesAPI.getLabels()
         return {
           success: true,
-          message: `Found ${labels.length} labels`,
-          issue: labels as any
+          message: `Found ${labelsList.length} labels`,
+          issue: labelsList as any
         }
 
       case 'createLabel':

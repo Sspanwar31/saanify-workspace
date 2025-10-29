@@ -92,7 +92,13 @@ async function listFiles(dirPath: string, recursive: boolean = false): Promise<F
     }
 
     const files = await fs.readdir(fullPath)
-    const fileList = []
+    const fileList: Array<{
+      name: string
+      path: string
+      size: number
+      isDirectory: boolean
+      lastModified: string
+    }> = []
 
     for (const file of files) {
       const filePath = path.join(fullPath, file)

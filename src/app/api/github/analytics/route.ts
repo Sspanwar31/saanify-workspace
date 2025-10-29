@@ -92,11 +92,16 @@ class GitHubAnalyticsAPI {
   }
 
   private async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {
+    // Determine token type and use appropriate auth method
+    const isClassicToken = this.token.startsWith('ghp_')
+    const authMethod = isClassicToken ? 'token' : 'Bearer'
+    
     const response = await fetch(url, {
       headers: {
-        'Authorization': `token ${this.token}`,
+        'Authorization': `${authMethod} ${this.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
         ...options.headers
       },
       ...options
@@ -104,7 +109,7 @@ class GitHubAnalyticsAPI {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      throw ErrorHandler.handleGitHubError(response, error)
+      throw ErrorHandler.handleGitHubError(error)
     }
 
     return response
@@ -325,11 +330,11 @@ class GitHubAnalyticsAPI {
       recommendations.push('Add a repository description to improve discoverability')
     }
 
-    if (analytics.issues?.open > 20) {
+    if ((analytics.issues?.open || 0) > 20) {
       recommendations.push('Consider addressing open issues to maintain repository health')
     }
 
-    if (analytics.pullRequests?.open > 10) {
+    if ((analytics.pullRequests?.open || 0) > 10) {
       recommendations.push('Review and merge pending pull requests')
     }
 
@@ -356,9 +361,9 @@ class GitHubAnalyticsAPI {
 async function generateRepositoryAnalytics(token: string, owner: string, repo: string): Promise<AnalyticsResponse> {
   try {
     // Validate inputs
-    ErrorHandler.validateRequired({ token, owner, repo }, ['token', 'owner', 'repo'])
+    ErrorHandler.validateRequired(token, 'token')
     ErrorHandler.validateGitHubToken(token)
-    ErrorHandler.validateRepository(owner, repo)
+    ErrorHandler.validateRepository(`${owner}/${repo}`)
 
     const analyticsAPI = new GitHubAnalyticsAPI(token, owner, repo)
 
@@ -454,8 +459,9 @@ async function generateRepositoryAnalytics(token: string, owner: string, repo: s
     }
 
   } catch (error) {
-    ErrorHandler.logError(error, 'Repository Analytics')
-    return ErrorHandler.createErrorResponse(error, 'Repository Analytics') as AnalyticsResponse
+    ErrorHandler.logError(error as Error, 'Repository Analytics')
+    const apiError = ErrorHandler.handleGitHubError(error)
+    return ErrorHandler.createErrorResponse(apiError) as any
   }
 }
 

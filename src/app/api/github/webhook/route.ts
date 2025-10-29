@@ -14,6 +14,8 @@ interface WebhookEvent {
   commits?: any[]
   ref?: string
   pusher?: any
+  release?: any
+  forker?: any
 }
 
 interface WebhookResponse {
@@ -219,7 +221,7 @@ async function handleForkEvent(payload: WebhookEvent): Promise<WebhookResponse> 
 // Main webhook handler
 export async function POST(request: NextRequest) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const signature = headersList.get('x-hub-signature-256')
     const event = headersList.get('x-github-event')
     

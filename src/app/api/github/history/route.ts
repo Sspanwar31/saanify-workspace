@@ -28,12 +28,17 @@ export async function POST(request: NextRequest) {
     }
     
     // Get commit history
+    // Determine token type and use appropriate auth method
+    const isClassicToken = token.startsWith('ghp_')
+    const authMethod = isClassicToken ? 'token' : 'Bearer'
+    
     const commitsResponse = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/commits?sha=${branch}&per_page=50`,
       {
         headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
+          'Authorization': `${authMethod} ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'X-GitHub-Api-Version': '2022-11-28'
         }
       }
     )
