@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, useSpring, useInView } from 'framer-motion'
-import { Play, ArrowRight, TrendingUp, Users, Shield, Activity } from 'lucide-react'
+import { Play, ArrowRight, TrendingUp, Users, Shield, Activity, UserCheck, Lock, CreditCard, Zap, Globe, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -56,12 +56,12 @@ function Counter({ value, suffix = '', label, delay }: CounterProps) {
       className="text-center"
     >
       <div className="flex items-center justify-center gap-1 mb-2">
-        <TrendingUp className="h-4 w-4 text-primary" />
-        <span className="text-2xl font-bold text-foreground">
+        <TrendingUp className="h-4 w-4 text-blue-500" />
+        <span className="text-2xl font-bold text-gray-900 dark:text-white">
           +{count}{suffix}
         </span>
       </div>
-      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
     </motion.div>
   )
 }
@@ -131,7 +131,7 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
     <motion.div
       className="relative"
       animate={{ 
-        y: [0, -10, 0],
+        y: [0, -8, 0],
       }}
       transition={{ 
         duration: floatDuration, 
@@ -141,7 +141,7 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
         delay: floatDelay 
       }}
       whileHover={!isMobile ? {
-        scale: 1.05,
+        scale: 1.02,
         z: 50,
       } : {}}
       onMouseMove={handleMouseMove}
@@ -154,37 +154,66 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
       }}
     >
       <div className={`
-        relative rounded-2xl p-6 bg-gradient-to-br ${gradient} 
-        shadow-xl ${shadowColor} 
-        transition-all duration-300 cursor-pointer
-        ${isHovered ? 'shadow-2xl' : ''}
-        backdrop-blur-sm border border-white/20
+        relative rounded-3xl p-8 bg-gradient-to-br ${gradient} 
+        shadow-2xl ${shadowColor} 
+        transition-all duration-500 cursor-pointer
+        ${isHovered ? 'shadow-3xl' : ''}
+        backdrop-blur-md border border-white/20
+        min-h-[180px] flex flex-col justify-between
       `}>
+        {/* Animated background pattern */}
+        <div className="absolute inset-0 rounded-3xl opacity-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent" />
+        </div>
+        
         {/* Glow effect on hover */}
         {isHovered && (
           <motion.div
-            className="absolute inset-0 rounded-2xl opacity-30"
+            className="absolute inset-0 rounded-3xl opacity-40"
             style={{
-              background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 70%)`,
+              background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), transparent 70%)`,
             }}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.3 }}
+            animate={{ opacity: 0.4 }}
             transition={{ duration: 0.3 }}
           />
         )}
         
         <div className="relative z-10">
-          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm mb-4">
-            {icon}
+          {/* Modern Icon Container */}
+          <div className="flex items-center justify-between mb-6">
+            <motion.div 
+              className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30"
+              whileHover={{ rotate: 360, scale: 1.1 }}
+              transition={{ duration: 0.6 }}
+            >
+              {icon}
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+            >
+              <Zap className="h-5 w-5 text-white" />
+            </motion.div>
           </div>
           
-          <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-          <p className="text-white/90 text-sm leading-relaxed">{description}</p>
+          <div className="space-y-3">
+            <h3 className="text-2xl font-bold text-white leading-tight">{title}</h3>
+            <p className="text-white/90 text-base leading-relaxed">{description}</p>
+          </div>
           
           {children && (
-            <div className="mt-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6"
+            >
               {children}
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
@@ -219,11 +248,54 @@ export default function Hero() {
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-sky-50/10 to-sky-100/10 dark:from-background dark:via-sky-950/50 dark:to-sky-900/50">
-      {/* Blurred Light Orbs for Depth */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-sky-400 rounded-full blur-3xl opacity-20 dark:opacity-30" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-teal-400 rounded-full blur-3xl opacity-20 dark:opacity-30" />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-300 rounded-full blur-3xl opacity-15 dark:opacity-20" />
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-gray-950">
+      {/* Modern Blurred Light Orbs for Depth */}
+      <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-cyan-300/20 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-purple-400/20 to-pink-300/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-indigo-400/15 to-blue-300/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '4s' }} />
+      
+      {/* Floating Elements */}
+      <motion.div
+        animate={{ 
+          y: [0, -20, 0],
+          x: [0, 10, 0],
+        }}
+        transition={{ 
+          duration: 6, 
+          repeat: Infinity, 
+          ease: "easeInOut" 
+        }}
+        className="absolute top-32 right-32 w-4 h-4 bg-blue-400/60 rounded-full blur-sm"
+      />
+      <motion.div
+        animate={{ 
+          y: [0, -15, 0],
+          x: [0, -10, 0],
+        }}
+        transition={{ 
+          duration: 5, 
+          repeat: Infinity, 
+          ease: "easeInOut",
+          delay: 1
+        }}
+        className="absolute bottom-40 left-40 w-3 h-3 bg-purple-400/60 rounded-full blur-sm"
+      />
+      <motion.div
+        animate={{ 
+          y: [0, -25, 0],
+          x: [0, 15, 0],
+        }}
+        transition={{ 
+          duration: 7, 
+          repeat: Infinity, 
+          ease: "easeInOut",
+          delay: 2
+        }}
+        className="absolute top-60 left-60 w-5 h-5 bg-pink-400/60 rounded-full blur-sm"
+      />
+      
+      {/* Modern Gradient Mesh Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-gray-950 dark:via-blue-950/30 dark:to-purple-950/20" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -239,16 +311,17 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 dark:bg-primary/20"
+              className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200/50 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 text-sm font-semibold mb-6 backdrop-blur-sm"
             >
+              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" />
               ⚡ AI-Powered Society Management
             </motion.div>
             
             {/* Headline */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               Effortless Society Management,
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 animate-gradient bg-300">
                 Guaranteed Growth.
               </span>
             </h1>
@@ -258,7 +331,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed"
+              className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl leading-relaxed"
             >
               Experience complete transparency in deposits, member management, and financial operations. 
               All-in-one platform designed for modern societies.
@@ -278,7 +351,7 @@ export default function Hero() {
                 <Button 
                   onClick={handleStartTrial}
                   size="lg" 
-                  className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 glow-primary"
                 >
                   Start Your 15-Day Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -292,7 +365,7 @@ export default function Hero() {
                   onClick={handleWatchDemo}
                   variant="outline" 
                   size="lg" 
-                  className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
+                  className="border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300 backdrop-blur-sm hover:shadow-lg"
                 >
                   <Play className="mr-2 h-5 w-5" />
                   Watch Demo
@@ -321,67 +394,109 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="relative"
           >
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-8">
               <FeatureCard
-                icon={<Users className="h-6 w-6 text-white" />}
+                icon={<UserCheck className="h-8 w-8 text-white" />}
                 title="Active Members"
                 description="Connect with 45,000+ happy members across 12+ societies seamlessly."
-                gradient="from-sky-400 to-blue-600"
-                shadowColor="shadow-[0_8px_30px_rgba(14,165,233,0.3)]"
+                gradient="from-blue-600 via-blue-500 to-indigo-600"
+                shadowColor="shadow-[0_20px_40px_rgba(59,130,246,0.4)]"
                 floatDuration={5}
                 floatDelay={0}
                 onClick={() => handleFeatureClick("Active Members")}
               >
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1 }}
-                  className="flex items-center justify-center text-white font-bold text-lg"
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
                 >
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  +45.2K
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <Globe className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white/80 text-sm">Total Members</p>
+                      <p className="text-white font-bold text-xl">+45.2K</p>
+                    </div>
+                  </div>
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-green-300"
+                  >
+                    <TrendingUp className="h-5 w-5" />
+                  </motion.div>
                 </motion.div>
               </FeatureCard>
 
               <FeatureCard
-                icon={<Shield className="h-6 w-6 text-white" />}
+                icon={<Lock className="h-8 w-8 text-white" />}
                 title="Secure & Protected"
                 description="Bank-level security with encrypted transactions and data protection."
-                gradient="from-emerald-400 to-green-600"
-                shadowColor="shadow-[0_8px_30px_rgba(16,185,129,0.3)]"
+                gradient="from-emerald-600 via-green-500 to-teal-600"
+                shadowColor="shadow-[0_20px_40px_rgba(16,185,129,0.4)]"
                 floatDuration={4.5}
                 floatDelay={0.5}
                 onClick={() => handleFeatureClick("Security")}
               >
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.2 }}
-                  className="flex items-center justify-center text-white font-bold text-lg"
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
                 >
-                  <Shield className="h-4 w-4 mr-1" />
-                  256-bit SSL
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <Shield className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white/80 text-sm">Security Level</p>
+                      <p className="text-white font-bold text-xl">256-bit SSL</p>
+                    </div>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    className="text-yellow-300"
+                  >
+                    <Lock className="h-5 w-5" />
+                  </motion.div>
                 </motion.div>
               </FeatureCard>
 
               <FeatureCard
-                icon={<Activity className="h-6 w-6 text-white" />}
+                icon={<CreditCard className="h-8 w-8 text-white" />}
                 title="Transaction Flow"
                 description="Process $2.4M+ revenue with real-time tracking and analytics."
-                gradient="from-violet-400 to-indigo-600"
-                shadowColor="shadow-[0_8px_30px_rgba(139,92,246,0.3)]"
+                gradient="from-purple-600 via-pink-500 to-indigo-600"
+                shadowColor="shadow-[0_20px_40px_rgba(168,85,247,0.4)]"
                 floatDuration={6}
                 floatDelay={1}
                 onClick={() => handleFeatureClick("Transactions")}
               >
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.4 }}
-                  className="flex items-center justify-center text-white font-bold text-lg"
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
                 >
-                  <Activity className="h-4 w-4 mr-1" />
-                  $2.4M+
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <BarChart3 className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white/80 text-sm">Revenue Processed</p>
+                      <p className="text-white font-bold text-xl">$2.4M+</p>
+                    </div>
+                  </div>
+                  <motion.div
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="text-green-300"
+                  >
+                    <Activity className="h-5 w-5" />
+                  </motion.div>
                 </motion.div>
               </FeatureCard>
             </div>
