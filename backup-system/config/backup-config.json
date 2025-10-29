@@ -16,6 +16,7 @@
       "server.ts",
       "README.md",
       ".env.example",
+      ".env",
       "backup-system/**/*"
     ],
     "exclude": [
@@ -28,7 +29,6 @@
       "Thumbs.db",
       ".env.local",
       ".env.*.local",
-      "**/.env",
       ".github/**/*",
       ".gitignore",
       "coverage/**/*",

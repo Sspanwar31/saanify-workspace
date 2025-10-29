@@ -26,8 +26,7 @@ class EncryptionManager {
 
   encrypt(text) {
     const iv = crypto.randomBytes(this.ivLength);
-    const cipher = crypto.createCipher(this.algorithm, this.secretKey);
-    cipher.setAAD(Buffer.from('saanify-backup', 'utf8'));
+    const cipher = crypto.createCipheriv(this.algorithm, this.secretKey, iv);
     
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -42,8 +41,7 @@ class EncryptionManager {
   }
 
   decrypt(encryptedData) {
-    const decipher = crypto.createDecipher(this.algorithm, this.secretKey);
-    decipher.setAAD(Buffer.from('saanify-backup', 'utf8'));
+    const decipher = crypto.createDecipheriv(this.algorithm, this.secretKey, Buffer.from(encryptedData.iv, 'hex'));
     decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
     
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');

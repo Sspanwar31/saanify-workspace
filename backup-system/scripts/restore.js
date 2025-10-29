@@ -100,14 +100,21 @@ class RestoreSystem {
     if (backupPath.endsWith('.tar.gz')) {
       await tar.extract({
         file: backupPath,
-        cwd: this.tempDir
+        cwd: this.tempDir,
+        strip: 0
       });
     } else {
       // Copy directory
       this.copyDirectory(backupPath, extractPath);
     }
     
-    return path.join(this.tempDir, extractId);
+    // Find the extracted directory
+    const extractedDirs = fs.readdirSync(this.tempDir).filter(name => name.includes('saanify-workspace'));
+    if (extractedDirs.length === 0) {
+      throw new Error('Backup extraction failed - no directory found');
+    }
+    
+    return path.join(this.tempDir, extractedDirs[0]);
   }
 
   copyDirectory(src, dest) {
@@ -152,8 +159,8 @@ class RestoreSystem {
     const files = fs.readdirSync(extractedPath, { withFileTypes: true });
     
     for (const file of files) {
-      if (file.name === 'backup-metadata.json') {
-        continue;
+      if (file.name === 'backup-metadata.json' || file.name === 'backup-system') {
+        continue; // Skip backup system files
       }
       
       const srcPath = path.join(extractedPath, file.name);
