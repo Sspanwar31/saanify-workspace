@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, useSpring, useInView } from 'framer-motion'
-import { Play, ArrowRight, TrendingUp, Users, Shield, Activity, UserCheck, Lock, CreditCard, Zap, Globe, BarChart3 } from 'lucide-react'
+import { Play, ArrowRight, TrendingUp, Users, Shield, Activity, UserCheck, Lock, CreditCard, Zap, Globe, BarChart3, Building, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -154,15 +154,15 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
       }}
     >
       <div className={`
-        relative rounded-3xl p-8 bg-gradient-to-br ${gradient} 
-        shadow-2xl ${shadowColor} 
+        relative rounded-2xl p-6 bg-gradient-to-br ${gradient} 
+        shadow-xl ${shadowColor} 
         transition-all duration-500 cursor-pointer
-        ${isHovered ? 'shadow-3xl' : ''}
+        ${isHovered ? 'shadow-2xl' : ''}
         backdrop-blur-md border border-white/20
-        min-h-[180px] flex flex-col justify-between
+        min-h-[140px] flex flex-col justify-between
       `}>
         {/* Animated background pattern */}
-        <div className="absolute inset-0 rounded-3xl opacity-10">
+        <div className="absolute inset-0 rounded-2xl opacity-10">
           <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent" />
         </div>
@@ -170,7 +170,7 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
         {/* Glow effect on hover */}
         {isHovered && (
           <motion.div
-            className="absolute inset-0 rounded-3xl opacity-40"
+            className="absolute inset-0 rounded-2xl opacity-40"
             style={{
               background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), transparent 70%)`,
             }}
@@ -182,9 +182,9 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
         
         <div className="relative z-10">
           {/* Modern Icon Container */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <motion.div 
-              className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30"
+              className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30"
               whileHover={{ rotate: 360, scale: 1.1 }}
               transition={{ duration: 0.6 }}
             >
@@ -194,15 +194,15 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
             >
-              <Zap className="h-5 w-5 text-white" />
+              <Zap className="h-4 w-4 text-white" />
             </motion.div>
           </div>
           
-          <div className="space-y-3">
-            <h3 className="text-2xl font-bold text-white leading-tight">{title}</h3>
-            <p className="text-white/90 text-base leading-relaxed">{description}</p>
+          <div className="space-y-2">
+            <h3 className="text-lg font-bold text-white leading-tight">{title}</h3>
+            <p className="text-white/90 text-sm leading-relaxed">{description}</p>
           </div>
           
           {children && (
@@ -210,7 +210,7 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="mt-6"
+              className="mt-4"
             >
               {children}
             </motion.div>
@@ -298,7 +298,7 @@ export default function Hero() {
       <div className="absolute inset-0 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-gray-950 dark:via-blue-950/30 dark:to-purple-950/20" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left Side - Content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -342,7 +342,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12"
+              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8"
             >
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -373,30 +373,64 @@ export default function Hero() {
               </motion.div>
             </motion.div>
 
-            {/* Counters */}
+            {/* Compact Stats Bar */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-8"
+              className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-950/50 dark:to-indigo-950/50 rounded-2xl p-6 backdrop-blur-sm border border-blue-200/30 dark:border-blue-800/30"
             >
-              <Counter value={12} suffix="+" label="Total Societies" delay={1000} />
-              <Counter value={45.2} suffix="K" label="Happy Members" delay={1200} />
-              <Counter value={1247} suffix="" label="Events Managed" delay={1400} />
-              <Counter value={2.4} suffix="M" label="Revenue Processed" delay={1600} />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+                      <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+12</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Societies</div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
+                      <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+45.2K</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Happy Members</div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+                      <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+1247</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Events Managed</div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+2.4M</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Revenue Processed</div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
 
-          {/* Right Side - 3D Floating Cards */}
+          {/* Right Side - Compact 3D Floating Cards */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
             className="relative"
           >
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 gap-6">
               <FeatureCard
-                icon={<UserCheck className="h-8 w-8 text-white" />}
+                icon={<UserCheck className="h-7 w-7 text-white" />}
                 title="Active Members"
                 description="Connect with 45,000+ happy members across 12+ societies seamlessly."
                 gradient="from-blue-600 via-blue-500 to-indigo-600"
@@ -409,15 +443,15 @@ export default function Hero() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1 }}
-                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Globe className="h-4 w-4 text-white" />
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                      <Globe className="h-3 w-3 text-white" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm">Total Members</p>
-                      <p className="text-white font-bold text-xl">+45.2K</p>
+                      <p className="text-white/80 text-xs">Total Members</p>
+                      <p className="text-white font-bold text-sm">+45.2K</p>
                     </div>
                   </div>
                   <motion.div
@@ -425,13 +459,13 @@ export default function Hero() {
                     transition={{ duration: 2, repeat: Infinity }}
                     className="text-green-300"
                   >
-                    <TrendingUp className="h-5 w-5" />
+                    <TrendingUp className="h-4 w-4" />
                   </motion.div>
                 </motion.div>
               </FeatureCard>
 
               <FeatureCard
-                icon={<Lock className="h-8 w-8 text-white" />}
+                icon={<Lock className="h-7 w-7 text-white" />}
                 title="Secure & Protected"
                 description="Bank-level security with encrypted transactions and data protection."
                 gradient="from-emerald-600 via-green-500 to-teal-600"
@@ -444,15 +478,15 @@ export default function Hero() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.2 }}
-                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Shield className="h-4 w-4 text-white" />
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                      <Shield className="h-3 w-3 text-white" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm">Security Level</p>
-                      <p className="text-white font-bold text-xl">256-bit SSL</p>
+                      <p className="text-white/80 text-xs">Security Level</p>
+                      <p className="text-white font-bold text-sm">256-bit SSL</p>
                     </div>
                   </div>
                   <motion.div
@@ -460,13 +494,13 @@ export default function Hero() {
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                     className="text-yellow-300"
                   >
-                    <Lock className="h-5 w-5" />
+                    <Lock className="h-4 w-4" />
                   </motion.div>
                 </motion.div>
               </FeatureCard>
 
               <FeatureCard
-                icon={<CreditCard className="h-8 w-8 text-white" />}
+                icon={<CreditCard className="h-7 w-7 text-white" />}
                 title="Transaction Flow"
                 description="Process $2.4M+ revenue with real-time tracking and analytics."
                 gradient="from-purple-600 via-pink-500 to-indigo-600"
@@ -479,15 +513,15 @@ export default function Hero() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.4 }}
-                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
+                  className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <BarChart3 className="h-4 w-4 text-white" />
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                      <BarChart3 className="h-3 w-3 text-white" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm">Revenue Processed</p>
-                      <p className="text-white font-bold text-xl">$2.4M+</p>
+                      <p className="text-white/80 text-xs">Revenue Processed</p>
+                      <p className="text-white font-bold text-sm">$2.4M+</p>
                     </div>
                   </div>
                   <motion.div
@@ -495,7 +529,7 @@ export default function Hero() {
                     transition={{ duration: 1.5, repeat: Infinity }}
                     className="text-green-300"
                   >
-                    <Activity className="h-5 w-5" />
+                    <Activity className="h-4 w-4" />
                   </motion.div>
                 </motion.div>
               </FeatureCard>
