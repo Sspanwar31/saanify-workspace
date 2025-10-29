@@ -32,7 +32,7 @@ function FeatureCard({ icon, title, description, delay, onLearnMore }: FeatureCa
       <Card className="h-full p-8 hover:shadow-2xl transition-all duration-500 cursor-pointer border-0 shadow-lg bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/50 dark:hover:from-gray-900 dark:hover:to-blue-950/50 relative overflow-hidden group rounded-2xl">
         {/* Animated background pattern */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:from-white/5" />
         
         <CardContent className="p-0 text-center relative z-10">
           <div className="mb-6 flex justify-center">

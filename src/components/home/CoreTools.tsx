@@ -30,7 +30,7 @@ function CoreFeature({ icon, title, description, features, delay, onExplore }: C
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
     >
-      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg bg-gradient-to-br from-card to-muted/20 relative overflow-hidden group">
+      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg bg-gradient-to-br from-card to-muted/10 relative overflow-hidden group">
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         

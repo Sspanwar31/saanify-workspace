@@ -112,7 +112,7 @@ export default function Footer() {
               >
                 <div className="mb-6">
                   <h3 className="text-2xl font-bold text-background mb-2">Saanify</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
+                  <p className="text-gray-300 text-sm leading-relaxed">
                     Premium society management solution for modern residential communities. 
                     Streamline operations, enhance engagement, and drive growth.
                   </p>
@@ -120,32 +120,32 @@ export default function Footer() {
 
                 <div className="space-y-3">
                   <motion.div 
-                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
+                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
                     onClick={() => handleContactClick('phone', '+91 98765 43210')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Phone className="h-4 w-4 mr-3 text-primary" />
+                    <Phone className="h-4 w-4 mr-3 text-sky-400" />
                     <span className="text-sm">+91 98765 43210</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
                   <motion.div 
-                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
+                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
                     onClick={() => handleContactClick('email', 'contact@saanify.com')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Mail className="h-4 w-4 mr-3 text-primary" />
+                    <Mail className="h-4 w-4 mr-3 text-sky-400" />
                     <span className="text-sm">contact@saanify.com</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
                   <motion.div 
-                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
+                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200"
                     onClick={() => handleContactClick('location', 'Mumbai, India')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <MapPin className="h-4 w-4 mr-3 text-primary" />
+                    <MapPin className="h-4 w-4 mr-3 text-sky-400" />
                     <span className="text-sm">Mumbai, India</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
@@ -173,7 +173,7 @@ export default function Footer() {
                       >
                         <button
                           onClick={() => handleLinkClick(link.name, category)}
-                          className="text-muted-foreground hover:text-primary text-sm transition-colors duration-200 flex items-center group"
+                          className="text-gray-300 hover:text-sky-400 text-sm transition-colors duration-200 flex items-center group"
                         >
                           {link.name}
                           <ArrowUpRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -187,14 +187,14 @@ export default function Footer() {
           </div>
 
           {/* Social Links & Copyright */}
-          <div className="border-t border-gray-800 py-8">
+          <div className="border-t border-gray-700 py-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
-                className="text-gray-400 text-sm"
+                className="text-gray-300 text-sm"
               >
                 ©2025 Saanify. All rights reserved. | Stay updated with our latest features and releases.
               </motion.div>
@@ -215,7 +215,7 @@ export default function Footer() {
                     whileHover={{ y: -5, rotate: 360 }}
                     whileTap={{ scale: 0.9 }}
                   >
-                    <social.icon className="h-5 w-5 group-hover:text-white transition-colors duration-200" />
+                    <social.icon className="h-5 w-5 text-gray-400 group-hover:text-white transition-colors duration-200" />
                   </motion.button>
                 ))}
                 
@@ -227,7 +227,7 @@ export default function Footer() {
                   whileHover={{ y: -5 }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  <ArrowUpRight className="h-5 w-5" />
+                  <ArrowUpRight className="h-5 w-5 text-white" />
                 </motion.button>
               </motion.div>
             </div>

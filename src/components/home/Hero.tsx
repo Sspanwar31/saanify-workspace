@@ -250,9 +250,9 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-gray-950">
       {/* Modern Blurred Light Orbs for Depth */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-cyan-300/20 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-purple-400/20 to-pink-300/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-indigo-400/15 to-blue-300/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '4s' }} />
+      <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-emerald-400/20 to-teal-300/20 rounded-full blur-3xl animate-pulse-slow dark:from-emerald-400/10 dark:to-teal-300/10" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-300/20 rounded-full blur-3xl animate-pulse-slow dark:from-cyan-400/10 dark:to-blue-300/10" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-green-400/15 to-emerald-300/15 rounded-full blur-3xl animate-pulse-slow dark:from-green-400/8 dark:to-emerald-300/8" style={{ animationDelay: '4s' }} />
       
       {/* Floating Elements */}
       <motion.div
@@ -265,7 +265,7 @@ export default function Hero() {
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute top-32 right-32 w-4 h-4 bg-blue-400/60 rounded-full blur-sm"
+        className="absolute top-32 right-32 w-4 h-4 bg-emerald-400/40 rounded-full blur-sm dark:bg-emerald-400/20"
       />
       <motion.div
         animate={{ 
@@ -278,7 +278,7 @@ export default function Hero() {
           ease: "easeInOut",
           delay: 1
         }}
-        className="absolute bottom-40 left-40 w-3 h-3 bg-purple-400/60 rounded-full blur-sm"
+        className="absolute bottom-40 left-40 w-3 h-3 bg-teal-400/40 rounded-full blur-sm dark:bg-teal-400/20"
       />
       <motion.div
         animate={{ 
@@ -291,11 +291,11 @@ export default function Hero() {
           ease: "easeInOut",
           delay: 2
         }}
-        className="absolute top-60 left-60 w-5 h-5 bg-pink-400/60 rounded-full blur-sm"
+        className="absolute top-60 left-60 w-5 h-5 bg-cyan-400/40 rounded-full blur-sm dark:bg-cyan-400/20"
       />
       
       {/* Modern Gradient Mesh Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-gray-950 dark:via-blue-950/30 dark:to-purple-950/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-emerald-50/40 to-cyan-50/30 dark:from-gray-950 dark:via-emerald-950/40 dark:to-cyan-950/30" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -311,9 +311,9 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200/50 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 text-sm font-semibold mb-6 backdrop-blur-sm"
+              className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200/50 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-sm font-semibold mb-6 backdrop-blur-sm"
             >
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" />
+              <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse" />
               ⚡ AI-Powered Society Management
             </motion.div>
             
@@ -321,7 +321,7 @@ export default function Hero() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               Effortless Society Management,
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 animate-gradient bg-300">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 animate-gradient bg-300">
                 Guaranteed Growth.
               </span>
             </h1>
@@ -351,7 +351,7 @@ export default function Hero() {
                 <Button 
                   onClick={handleStartTrial}
                   size="lg" 
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 glow-primary"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 dark:from-emerald-500 dark:to-teal-500 dark:hover:from-emerald-600 dark:hover:to-teal-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 glow-primary"
                 >
                   Start Your 15-Day Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -365,7 +365,7 @@ export default function Hero() {
                   onClick={handleWatchDemo}
                   variant="outline" 
                   size="lg" 
-                  className="border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300 backdrop-blur-sm hover:shadow-lg"
+                  className="border-2 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300 backdrop-blur-sm hover:shadow-lg"
                 >
                   <Play className="mr-2 h-5 w-5" />
                   Watch Demo
@@ -378,44 +378,44 @@ export default function Hero() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-950/50 dark:to-indigo-950/50 rounded-2xl p-6 backdrop-blur-sm border border-blue-200/30 dark:border-blue-800/30"
+              className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-500 dark:via-teal-500 dark:to-cyan-500 rounded-2xl p-6 shadow-2xl backdrop-blur-sm border border-emerald-500/20 dark:border-emerald-400/20"
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-2">
-                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
-                      <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-8 h-8 bg-white/20 dark:bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <Building className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+12</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Societies</div>
+                  <div className="text-2xl font-bold text-white">+12</div>
+                  <div className="text-sm text-emerald-50 dark:text-emerald-100 font-medium">Total Societies</div>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-2">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
-                      <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <div className="w-8 h-8 bg-white/20 dark:bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <Users className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+45.2K</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Happy Members</div>
+                  <div className="text-2xl font-bold text-white">+45.2K</div>
+                  <div className="text-sm text-emerald-50 dark:text-emerald-100 font-medium">Happy Members</div>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-2">
-                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
-                      <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <div className="w-8 h-8 bg-white/20 dark:bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <Calendar className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+1247</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Events Managed</div>
+                  <div className="text-2xl font-bold text-white">+1247</div>
+                  <div className="text-sm text-emerald-50 dark:text-emerald-100 font-medium">Events Managed</div>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-2">
-                    <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    <div className="w-8 h-8 bg-white/20 dark:bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <TrendingUp className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">+2.4M</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Revenue Processed</div>
+                  <div className="text-2xl font-bold text-white">+2.4M</div>
+                  <div className="text-sm text-emerald-50 dark:text-emerald-100 font-medium">Revenue Processed</div>
                 </div>
               </div>
             </motion.div>
