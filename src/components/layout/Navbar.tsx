@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, Github, LogIn, User, Zap } from 'lucide-react'
+import { Menu, X, ArrowRight, Github, LogIn, User, Zap, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
+import LoginModal from '@/components/auth/LoginModal'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { toast } from 'sonner'
 
@@ -12,6 +13,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isGitHubOpen, setIsGitHubOpen] = useState(false)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
@@ -50,21 +52,12 @@ export default function Navbar() {
     }
   }
 
-  const handleSignIn = () => {
-    toast.info("🔐 Sign In", {
-      description: "Sign in functionality coming soon!",
-      duration: 3000,
-    })
+  const handleGetStarted = () => {
+    setIsLoginModalOpen(true)
   }
 
-  const handleGetStarted = () => {
-    toast.success("🚀 Welcome!", {
-      description: "Starting your 15-day free trial...",
-      duration: 3000,
-    })
-    setTimeout(() => {
-      document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })
-    }, 1000)
+  const handleSignIn = () => {
+    setIsLoginModalOpen(true)
   }
 
   const navItems = [
@@ -196,8 +189,8 @@ export default function Navbar() {
                   size="sm"
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Get Started
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Sign Up
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </motion.div>
@@ -294,8 +287,8 @@ export default function Navbar() {
                       }}
                       className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
                     >
-                      <Zap className="h-4 w-4 mr-2" />
-                      Get Started
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Sign Up
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </motion.div>
@@ -308,6 +301,9 @@ export default function Navbar() {
 
       {/* GitHub Integration Dialog */}
       <GitHubIntegration isOpen={isGitHubOpen} onOpenChange={setIsGitHubOpen} />
+      
+      {/* Login Modal */}
+      <LoginModal isOpen={isLoginModalOpen} onOpenChange={setIsLoginModalOpen} />
     </>
   )
 }

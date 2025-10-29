@@ -221,12 +221,20 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
   )
 }
 
-export default function Hero() {
+interface HeroProps {
+  onOpenLoginModal?: () => void
+}
+
+export default function Hero({ onOpenLoginModal }: HeroProps) {
   const handleStartTrial = () => {
-    toast.success("🎉 Trial Started!", {
-      description: "Welcome to Saanify! Your 15-day free trial has begun.",
-      duration: 5000,
-    })
+    if (onOpenLoginModal) {
+      onOpenLoginModal()
+    } else {
+      toast.success("🎉 Trial Started!", {
+        description: "Welcome to Saanify! Your 15-day free trial has begun.",
+        duration: 5000,
+      })
+    }
   }
 
   const handleWatchDemo = () => {
