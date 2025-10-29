@@ -49,7 +49,7 @@ function PricingCard({ title, price, period, description, features, highlighted,
       <Card className={`h-full p-8 relative cursor-pointer transition-all duration-500 rounded-2xl ${
         highlighted 
           ? 'border-2 border-blue-500 shadow-2xl bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/50 dark:to-indigo-950/50' 
-          : 'border-0 shadow-xl bg-white dark:bg-gray-900 hover:shadow-2xl hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30 dark:hover:from-gray-900 dark:hover:to-blue-950/30'
+          : 'border-0 shadow-xl bg-white dark:bg-gray-900/90 hover:shadow-2xl hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30 dark:hover:from-gray-900/90 dark:hover:to-blue-900/40'
       } ${isHovered ? 'transform -translate-y-2' : ''}`}>
         <CardContent className="p-0">
           <div className="text-center mb-8">
@@ -204,7 +204,7 @@ export default function Pricing() {
   ]
 
   return (
-    <section id="pricing" className="py-24 bg-gradient-to-br from-gray-50/50 to-blue-50/30 dark:from-gray-900/50 dark:to-blue-950/30">
+    <section id="pricing" className="py-24 bg-gradient-to-br from-gray-50/50 to-blue-50/30 dark:from-black dark:to-gray-900/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

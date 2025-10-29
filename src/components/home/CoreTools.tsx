@@ -30,7 +30,7 @@ function CoreFeature({ icon, title, description, features, delay, onExplore }: C
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
     >
-      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg bg-gradient-to-br from-card to-muted/10 relative overflow-hidden group">
+      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 shadow-lg bg-gradient-to-br from-card to-muted/10 dark:from-gray-900 dark:to-gray-800/50 relative overflow-hidden group">
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
@@ -161,7 +161,7 @@ export default function CoreTools() {
   ]
 
   return (
-    <section id="about" className="py-20 bg-background">
+    <section id="about" className="py-20 bg-background dark:bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
