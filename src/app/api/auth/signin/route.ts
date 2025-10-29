@@ -2,29 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { z } from 'zod'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-// Validation schema
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-  userType: z.enum(['client', 'admin']).optional(),
-  rememberMe: z.boolean().optional()
-})
-
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
-    // Validate input
-    const validatedData = loginSchema.parse(body)
+    const { email, password } = await request.json()
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      )
+    }
 
     // Find user by email
     const user = await db.user.findUnique({
-      where: { email: validatedData.email },
-      include: { societyAccount: true, createdSocieties: true }
+      where: { email },
+      include: { societyAccount: true }
     })
 
     if (!user) {
@@ -43,28 +38,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(validatedData.password, user.password)
+    const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       )
-    }
-
-    // Check role compatibility
-    if (validatedData.userType) {
-      if (validatedData.userType === 'admin' && user.role !== 'SUPER_ADMIN') {
-        return NextResponse.json(
-          { error: 'Access denied. Admin privileges required.' },
-          { status: 403 }
-        )
-      }
-      if (validatedData.userType === 'client' && user.role !== 'CLIENT') {
-        return NextResponse.json(
-          { error: 'Access denied. Client privileges required.' },
-          { status: 403 }
-        )
-      }
     }
 
     // Update last login
@@ -88,16 +67,13 @@ export async function POST(request: NextRequest) {
     // Create response with cookie
     const response = NextResponse.json({
       success: true,
-      message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
-        societyAccount: user.societyAccount,
-        createdSocieties: user.createdSocieties
-      },
-      token
+        societyAccount: user.societyAccount
+      }
     })
 
     // Set HTTP-only cookie
@@ -105,25 +81,11 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: validatedData.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60 // 30 days or 1 day
+      maxAge: 7 * 24 * 60 * 60 // 7 days
     })
 
     return response
-
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { 
-          error: 'Validation failed',
-          details: error.errors.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        },
-        { status: 400 }
-      )
-    }
-
     console.error('Login error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

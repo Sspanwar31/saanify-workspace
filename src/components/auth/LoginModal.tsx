@@ -23,30 +23,89 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      toast.success("🎉 Welcome Back!", {
-        description: "Successfully signed in to your account.",
+    const formData = new FormData(e.currentTarget as HTMLFormElement)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, userType: 'client' })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success("🎉 Welcome Back!", {
+          description: "Successfully signed in to your account.",
+          duration: 3000,
+        })
+        
+        // Redirect based on user role
+        if (data.user.role === 'SUPER_ADMIN') {
+          window.location.href = '/admin/dashboard'
+        } else {
+          window.location.href = '/client/dashboard'
+        }
+        
+        onOpenChange(false)
+      } else {
+        toast.error(data.error || "Login failed", {
+          description: "Please check your credentials and try again.",
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      toast.error("Login failed", {
+        description: "An error occurred. Please try again.",
         duration: 3000,
       })
-      onOpenChange(false)
-    }, 2000)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      toast.success("🎉 Account Created!", {
-        description: "Your account has been created successfully.",
+    const formData = new FormData(e.currentTarget as HTMLFormElement)
+    const name = formData.get('name') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success("🎉 Account Created!", {
+          description: "Your account has been created successfully.",
+          duration: 3000,
+        })
+        
+        // Switch to sign in tab
+        setActiveTab('signin')
+      } else {
+        toast.error(data.error || "Signup failed", {
+          description: "Please check your information and try again.",
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      toast.error("Signup failed", {
+        description: "An error occurred. Please try again.",
         duration: 3000,
       })
-      onOpenChange(false)
-    }, 2000)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleTrial = () => {
@@ -134,6 +193,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
                             id="signin-email"
+                            name="email"
                             type="email"
                             placeholder="Enter your email"
                             className="pl-10"
@@ -148,6 +208,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
                             id="signin-password"
+                            name="password"
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
                             className="pl-10 pr-10"
@@ -208,6 +269,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                           <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
                             id="signup-name"
+                            name="name"
                             type="text"
                             placeholder="Enter your full name"
                             className="pl-10"
@@ -222,6 +284,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
                             id="signup-email"
+                            name="email"
                             type="email"
                             placeholder="Enter your email"
                             className="pl-10"
@@ -236,6 +299,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
                             id="signup-password"
+                            name="password"
                             type={showPassword ? "text" : "password"}
                             placeholder="Create a password"
                             className="pl-10 pr-10"

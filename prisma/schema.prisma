@@ -14,19 +14,66 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String           @id @default(cuid())
+  email            String           @unique
+  name             String?
+  phone            String?
+  password         String
+  role             UserRole         @default(CLIENT)
+  societyAccountId String?
+  isActive         Boolean          @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  societyAccount SocietyAccount? @relation(fields: [societyAccountId], references: [id])
+  createdSocieties SocietyAccount[] @relation("SocietyCreator")
+
+  @@map("users")
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model SocietyAccount {
+  id                String            @id @default(cuid())
+  name              String
+  adminEmail        String
+  adminPhone        String?
+  status            SocietyStatus     @default(TRIAL)
+  subscriptionPlan  SubscriptionPlan  @default(TRIAL)
+  trialEndsAt       DateTime?
+  subscriptionEndsAt DateTime?
+  address           String?
+  city              String?
+  state             String?
+  postalCode        String?
+  totalMembers      Int               @default(0)
+  isActive          Boolean           @default(true)
+  createdBy         String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  creator User? @relation("SocietyCreator", fields: [createdBy], references: [id])
+  users User[]
+
+  @@map("society_accounts")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  CLIENT
+}
+
+enum SocietyStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  LOCKED
+}
+
+enum SubscriptionPlan {
+  TRIAL
+  BASIC
+  PRO
+  ENTERPRISE
 }

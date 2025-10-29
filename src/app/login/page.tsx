@@ -13,13 +13,13 @@ import { toast } from 'sonner'
 
 export default function LoginPage() {
   const [clientData, setClientData] = useState({
-    email: '',
-    password: '',
+    email: 'client@saanify.com',
+    password: 'client123',
     rememberMe: false
   })
   const [adminData, setAdminData] = useState({
-    email: '',
-    password: '',
+    email: 'superadmin@saanify.com',
+    password: 'admin123',
     rememberMe: false
   })
   const [showClientPassword, setShowClientPassword] = useState(false)
@@ -72,8 +72,28 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      console.log('Attempting client login with:', clientData.email)
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: clientData.email,
+          password: clientData.password,
+          userType: 'client',
+          rememberMe: clientData.rememberMe
+        }),
+      })
+
+      console.log('Response status:', response.status)
+      const data = await response.json()
+      console.log('Response data:', data)
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
       
       toast.success('🎉 Login successful!', {
         description: 'Welcome back to Saanify!',
@@ -82,12 +102,13 @@ export default function LoginPage() {
 
       // Redirect to client dashboard
       setTimeout(() => {
-        window.location.href = '/dashboard/client'
+        window.location.href = '/client/dashboard'
       }, 1500)
 
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login error:', error)
       toast.error('❌ Login failed', {
-        description: 'Invalid email or password. Please try again.',
+        description: error.message || 'Invalid email or password. Please try again.',
         duration: 3000,
       })
     } finally {
@@ -105,8 +126,28 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      console.log('Attempting admin login with:', adminData.email)
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: adminData.email,
+          password: adminData.password,
+          userType: 'admin',
+          rememberMe: adminData.rememberMe
+        }),
+      })
+
+      console.log('Response status:', response.status)
+      const data = await response.json()
+      console.log('Response data:', data)
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
       
       toast.success('🎉 Admin login successful!', {
         description: 'Welcome to Saanify Admin Panel',
@@ -115,12 +156,13 @@ export default function LoginPage() {
 
       // Redirect to admin dashboard
       setTimeout(() => {
-        window.location.href = '/dashboard/admin'
+        window.location.href = '/admin/dashboard'
       }, 1500)
 
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Admin login error:', error)
       toast.error('❌ Admin login failed', {
-        description: 'Invalid admin credentials. Please try again.',
+        description: error.message || 'Invalid admin credentials. Please try again.',
         duration: 3000,
       })
     } finally {
@@ -140,6 +182,31 @@ export default function LoginPage() {
     if (errors[`admin${field.charAt(0).toUpperCase() + field.slice(1)}`]) {
       setErrors(prev => ({ ...prev, [`admin${field.charAt(0).toUpperCase() + field.slice(1)}`]: '' }))
     }
+  }
+
+  // Quick demo login functions
+  const handleQuickClientLogin = () => {
+    setClientData({
+      email: 'client@saanify.com',
+      password: 'client123',
+      rememberMe: false
+    })
+    setActiveTab('client')
+    setTimeout(() => {
+      document.getElementById('clientLoginForm')?.requestSubmit()
+    }, 100)
+  }
+
+  const handleQuickAdminLogin = () => {
+    setAdminData({
+      email: 'superadmin@saanify.com',
+      password: 'admin123',
+      rememberMe: false
+    })
+    setActiveTab('admin')
+    setTimeout(() => {
+      document.getElementById('adminLoginForm')?.requestSubmit()
+    }, 100)
   }
 
   return (
@@ -183,6 +250,31 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
+            {/* Quick Demo Buttons */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">Quick Demo Access</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleQuickClientLogin}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                >
+                  <Users className="w-3 h-3 mr-1" />
+                  Client Demo
+                </Button>
+                <Button
+                  onClick={handleQuickAdminLogin}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs bg-white dark:bg-gray-800 border-amber-200 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                >
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin Demo
+                </Button>
+              </div>
+            </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="client" className="flex items-center gap-2">
@@ -198,6 +290,7 @@ export default function LoginPage() {
               {/* Client Login */}
               <TabsContent value="client">
                 <motion.form
+                  id="clientLoginForm"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4 }}
@@ -297,6 +390,7 @@ export default function LoginPage() {
               {/* Admin Login */}
               <TabsContent value="admin">
                 <motion.form
+                  id="adminLoginForm"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4 }}
