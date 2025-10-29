@@ -248,11 +248,11 @@ export default function Hero() {
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-gray-950">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-black">
       {/* Modern Blurred Light Orbs for Depth */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-emerald-400/20 to-teal-300/20 rounded-full blur-3xl animate-pulse-slow dark:from-emerald-400/10 dark:to-teal-300/10" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-300/20 rounded-full blur-3xl animate-pulse-slow dark:from-cyan-400/10 dark:to-blue-300/10" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-green-400/15 to-emerald-300/15 rounded-full blur-3xl animate-pulse-slow dark:from-green-400/8 dark:to-emerald-300/8" style={{ animationDelay: '4s' }} />
+      <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-emerald-400/15 to-teal-300/15 rounded-full blur-3xl animate-pulse-slow dark:from-emerald-500/8 dark:to-teal-400/8" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-cyan-400/15 to-blue-300/15 rounded-full blur-3xl animate-pulse-slow dark:from-cyan-500/8 dark:to-blue-400/8" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-green-400/12 to-emerald-300/12 rounded-full blur-3xl animate-pulse-slow dark:from-green-500/6 dark:to-emerald-400/6" style={{ animationDelay: '4s' }} />
       
       {/* Floating Elements */}
       <motion.div
@@ -265,7 +265,7 @@ export default function Hero() {
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute top-32 right-32 w-4 h-4 bg-emerald-400/40 rounded-full blur-sm dark:bg-emerald-400/20"
+        className="absolute top-32 right-32 w-4 h-4 bg-emerald-400/30 rounded-full blur-sm dark:bg-emerald-500/15"
       />
       <motion.div
         animate={{ 
@@ -278,7 +278,7 @@ export default function Hero() {
           ease: "easeInOut",
           delay: 1
         }}
-        className="absolute bottom-40 left-40 w-3 h-3 bg-teal-400/40 rounded-full blur-sm dark:bg-teal-400/20"
+        className="absolute bottom-40 left-40 w-3 h-3 bg-teal-400/30 rounded-full blur-sm dark:bg-teal-500/15"
       />
       <motion.div
         animate={{ 
@@ -291,11 +291,11 @@ export default function Hero() {
           ease: "easeInOut",
           delay: 2
         }}
-        className="absolute top-60 left-60 w-5 h-5 bg-cyan-400/40 rounded-full blur-sm dark:bg-cyan-400/20"
+        className="absolute top-60 left-60 w-5 h-5 bg-cyan-400/30 rounded-full blur-sm dark:bg-cyan-500/15"
       />
       
       {/* Modern Gradient Mesh Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white via-emerald-50/40 to-cyan-50/30 dark:from-gray-950 dark:via-emerald-950/40 dark:to-cyan-950/30" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-emerald-50/40 to-cyan-50/30 dark:from-black dark:via-emerald-950/60 dark:to-cyan-950/60" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">

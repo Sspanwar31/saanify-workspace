@@ -29,7 +29,7 @@ function FeatureCard({ icon, title, description, delay, onLearnMore }: FeatureCa
       onHoverEnd={() => setIsHovered(false)}
       onClick={() => onLearnMore?.(title)}
     >
-      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-500 cursor-pointer border-0 shadow-lg bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/50 dark:hover:from-gray-900 dark:hover:to-blue-950/50 relative overflow-hidden group rounded-2xl">
+      <Card className="h-full p-8 hover:shadow-2xl transition-all duration-500 cursor-pointer border-0 shadow-lg bg-white dark:bg-gray-900/90 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/50 dark:hover:from-gray-900/90 dark:hover:to-blue-900/40 relative overflow-hidden group rounded-2xl">
         {/* Animated background pattern */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:from-white/5" />
@@ -111,7 +111,7 @@ export default function Features() {
   ]
 
   return (
-    <section id="features" className="py-24 bg-gradient-to-br from-gray-50/50 to-blue-50/30 dark:from-gray-900/50 dark:to-blue-950/30">
+    <section id="features" className="py-24 bg-gradient-to-br from-gray-50/50 to-blue-50/30 dark:from-black dark:to-gray-900/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
