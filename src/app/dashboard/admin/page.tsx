@@ -228,29 +228,134 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5" />
-                    System Settings
+                    Client Management
                   </CardTitle>
                   <CardDescription>
-                    Configure platform settings and preferences
+                    Manage client accounts and access
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button className="w-full justify-start" variant="outline">
-                    <Settings className="h-4 w-4 mr-2" />
-                    General Settings
+                    <Users className="h-4 w-4 mr-2" />
+                    All Clients
                   </Button>
                   <Button className="w-full justify-start" variant="outline">
                     <Shield className="h-4 w-4 mr-2" />
-                    Security Settings
+                    Client Permissions
                   </Button>
                   <Button className="w-full justify-start" variant="outline">
                     <BarChart3 className="h-4 w-4 mr-2" />
-                    Analytics & Reports
+                    Client Analytics
                   </Button>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
+
+          {/* Client Management Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Client Accounts Management
+                </CardTitle>
+                <CardDescription>
+                  Manage all client accounts registered on the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Demo Client Accounts */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">Demo Client Accounts</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                        <div>
+                          <p className="font-medium">client@saanify.com</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Status: Active</p>
+                          <p className="text-xs text-gray-500">Projects: 12 | Last Login: Today</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">View</Button>
+                          <Button size="sm" variant="outline">Edit</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                        <div>
+                          <p className="font-medium">john.doe@company.com</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Status: Active</p>
+                          <p className="text-xs text-gray-500">Projects: 8 | Last Login: 2 days ago</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">View</Button>
+                          <Button size="sm" variant="outline">Edit</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                        <div>
+                          <p className="font-medium">jane.smith@corp.com</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Status: Active</p>
+                          <p className="text-xs text-gray-500">Projects: 15 | Last Login: 1 week ago</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">View</Button>
+                          <Button size="sm" variant="outline">Edit</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                        <div>
+                          <p className="font-medium">mike.wilson@startup.com</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Status: Pending</p>
+                          <p className="text-xs text-gray-500">Projects: 3 | Last Login: Never</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">View</Button>
+                          <Button size="sm" variant="outline">Approve</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Client Statistics */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">24</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Clients</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-600">3</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">2</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Suspended</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">156</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Projects</p>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex justify-between items-center p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <div>
+                      <h4 className="font-medium text-amber-900 dark:text-amber-100">Quick Actions</h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">Manage client access and permissions</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button size="sm">Add New Client</Button>
+                      <Button size="sm" variant="outline">Export List</Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Recent Activity */}
           <motion.div

@@ -92,138 +92,66 @@ export default function ClientDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Welcome Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome back, {userData?.name || 'User'}! 👋
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Here's what's happening with your projects today.
-            </p>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">12</div>
-                  <p className="text-xs text-muted-foreground">
-                    +2 from last month
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">24</div>
-                  <p className="text-xs text-muted-foreground">
-                    +4 from last week
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-                  <User className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">8</div>
-                  <p className="text-xs text-muted-foreground">
-                    2 online now
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">87%</div>
-                  <p className="text-xs text-muted-foreground">
-                    +5% from last month
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-
-          {/* Recent Projects */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
-            <Card>
+          {/* Coming Soon Section */}
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Card className="w-full max-w-2xl text-center">
               <CardHeader>
-                <CardTitle>Recent Projects</CardTitle>
-                <CardDescription>
-                  Your most recent project activities
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
+                  <User className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Client Dashboard
+                </CardTitle>
+                <CardDescription className="text-lg text-gray-600 dark:text-gray-400">
+                  Coming Soon! 🚀
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { name: 'E-commerce Platform', status: 'In Progress', progress: 75 },
-                    { name: 'Mobile App Design', status: 'Review', progress: 90 },
-                    { name: 'Marketing Website', status: 'Completed', progress: 100 },
-                    { name: 'API Integration', status: 'Planning', progress: 25 }
-                  ].map((project, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{project.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{project.status}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
-                            style={{ width: `${project.progress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {project.progress}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              <CardContent className="space-y-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  We're working hard to bring you an amazing client dashboard experience. 
+                  This feature is currently under development and will be available soon.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100">Project Management</h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">Track and manage your projects</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <BarChart3 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-medium text-green-900 dark:text-green-100">Analytics</h4>
+                    <p className="text-sm text-green-700 dark:text-green-300">Detailed insights and reports</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                    <h4 className="font-medium text-purple-900 dark:text-purple-100">Team Collaboration</h4>
+                    <p className="text-sm text-purple-700 dark:text-purple-300">Work together seamlessly</p>
+                  </div>
+                </div>
+
+                <div className="mt-8 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="text-amber-800 dark:text-amber-200 font-medium">
+                    👋 Welcome {userData?.name || 'Client'}! Your account is active and ready.
+                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                    You'll be notified as soon as the client dashboard is live.
+                  </p>
+                </div>
+
+                <div className="flex justify-center space-x-4 mt-6">
+                  <Button onClick={() => window.location.href = '/'} variant="outline">
+                    <Home className="h-4 w-4 mr-2" />
+                    Back to Home
+                  </Button>
+                  <Button onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </motion.div>
       </main>
     </div>
