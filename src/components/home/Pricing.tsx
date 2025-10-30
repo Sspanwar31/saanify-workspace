@@ -6,7 +6,6 @@ import { Check, Star, ArrowRight, Zap, Shield, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
-import LoginModal from '@/components/auth/LoginModal'
 
 interface PricingCardProps {
   title: string
@@ -114,30 +113,34 @@ function PricingCard({ title, price, period, description, features, highlighted,
 }
 
 export default function Pricing() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-
   const handleSelectPlan = (planTitle: string) => {
     if (planTitle === "Free Trial") {
       toast.success("Free Trial Started!", {
         description: "Welcome to Saanify! Your 15-day free trial has begun.",
         duration: 5000,
       })
-      // Open login modal for trial users
-      setIsLoginModalOpen(true)
+      // Redirect to signup page for trial users
+      setTimeout(() => {
+        window.location.href = '/signup'
+      }, 1000)
     } else if (planTitle === "Pro") {
       toast.success("Pro Plan Selected!", {
-        description: "Redirecting to payment setup...",
+        description: "Redirecting to signup for Pro plan...",
         duration: 3000,
       })
-      // Open login modal for pro users
-      setIsLoginModalOpen(true)
+      // Redirect to signup page for pro users
+      setTimeout(() => {
+        window.location.href = '/signup'
+      }, 1000)
     } else if (planTitle === "Enterprise") {
       toast.success("Enterprise Plan!", {
         description: "Our sales team will contact you within 24 hours.",
         duration: 3000,
       })
-      // Open login modal for enterprise users
-      setIsLoginModalOpen(true)
+      // Redirect to signup page for enterprise users
+      setTimeout(() => {
+        window.location.href = '/signup'
+      }, 1000)
     }
   }
 
@@ -261,9 +264,6 @@ export default function Pricing() {
             </Button>
           </motion.div>
         </motion.div>
-        
-        {/* Login Modal */}
-        <LoginModal isOpen={isLoginModalOpen} onOpenChange={setIsLoginModalOpen} />
       </div>
     </section>
   )

@@ -1,11 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Phone, Mail, MapPin, Linkedin, Twitter, Youtube, Facebook, Instagram, ArrowUpRight, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function Footer() {
   const handleLinkClick = (linkName: string, category: string) => {
+    if (linkName === "Admin Login") {
+      window.location.href = '/login'
+      return
+    }
     toast.success(`🔗 ${linkName}`, {
       description: `${category} section coming soon!`,
       duration: 3000,

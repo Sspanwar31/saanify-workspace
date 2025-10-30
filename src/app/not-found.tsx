@@ -4,10 +4,15 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Home, Search, ArrowLeft } from 'lucide-react'
-import LoginModal from '@/components/auth/LoginModal'
 
 export default function NotFound() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const handleLoginClick = () => {
+    window.location.href = '/login'
+  }
+
+  const handleSignupClick = () => {
+    window.location.href = '/signup'
+  }
 
   return (
     <>
@@ -58,7 +63,7 @@ export default function NotFound() {
                 variant="ghost" 
                 size="sm" 
                 className="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-                onClick={() => setIsLoginModalOpen(true)}
+                onClick={handleSignupClick}
               >
                 Sign Up
               </Button>
@@ -66,7 +71,7 @@ export default function NotFound() {
                 variant="ghost" 
                 size="sm" 
                 className="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-                onClick={() => setIsLoginModalOpen(true)}
+                onClick={handleLoginClick}
               >
                 Login
               </Button>
@@ -79,9 +84,6 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-
-      {/* Login Modal */}
-      <LoginModal isOpen={isLoginModalOpen} onOpenChange={setIsLoginModalOpen} />
     </>
   )
 }

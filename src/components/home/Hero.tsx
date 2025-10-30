@@ -5,7 +5,6 @@ import { motion, useMotionValue, useTransform, useSpring, useInView } from 'fram
 import { Play, ArrowRight, TrendingUp, Users, Shield, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import LoginModal from '@/components/auth/LoginModal'
 
 interface CounterProps {
   value: number
@@ -194,15 +193,15 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
 }
 
 export default function Hero() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-
   const handleStartTrial = () => {
     toast.success("🎉 Trial Started!", {
       description: "Welcome to Saanify! Your 15-day free trial has begun.",
       duration: 5000,
     })
-    // Open login modal for trial users
-    setIsLoginModalOpen(true)
+    // Redirect to signup page for trial users
+    setTimeout(() => {
+      window.location.href = '/signup'
+    }, 1000)
   }
 
   const handleWatchDemo = () => {
@@ -221,8 +220,10 @@ export default function Hero() {
       description: "Learn more about this feature in our dashboard.",
       duration: 3000,
     })
-    // Open login modal to explore features
-    setIsLoginModalOpen(true)
+    // Redirect to signup to explore features
+    setTimeout(() => {
+      window.location.href = '/signup'
+    }, 1000)
   }
 
   return (
@@ -296,7 +297,7 @@ export default function Hero() {
                 whileTap={{ scale: 0.95 }}
               >
                 <Button 
-                  onClick={() => setIsLoginModalOpen(true)}
+                  onClick={() => window.location.href = '/login'}
                   variant="outline" 
                   size="lg" 
                   className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
@@ -394,9 +395,6 @@ export default function Hero() {
             </div>
           </motion.div>
         </div>
-        
-        {/* Login Modal */}
-        <LoginModal isOpen={isLoginModalOpen} onOpenChange={setIsLoginModalOpen} />
       </div>
     </section>
   )

@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/button'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { toast } from 'sonner'
-import LoginModal from '@/components/auth/LoginModal'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isGitHubOpen, setIsGitHubOpen] = useState(false)
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
@@ -53,7 +51,7 @@ export default function Navbar() {
   }
 
   const handleSignIn = () => {
-    setIsLoginModalOpen(true)
+    window.location.href = '/login'
   }
 
   const handleGetStarted = () => {
@@ -62,7 +60,7 @@ export default function Navbar() {
       duration: 3000,
     })
     setTimeout(() => {
-      setIsLoginModalOpen(true)
+      window.location.href = '/signup'
     }, 1000)
   }
 
@@ -177,7 +175,7 @@ export default function Navbar() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => window.location.href = '/login'}
+                  onClick={handleSignIn}
                   className={`font-medium ${
                     isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
                   }`}
@@ -274,7 +272,7 @@ export default function Navbar() {
                       variant="ghost" 
                       className="w-full justify-start font-medium text-foreground hover:text-foreground"
                       onClick={() => {
-                        window.location.href = '/login'
+                        handleSignIn()
                         setIsMobileMenuOpen(false)
                       }}
                     >
@@ -307,9 +305,6 @@ export default function Navbar() {
 
       {/* GitHub Integration Dialog */}
       <GitHubIntegration isOpen={isGitHubOpen} onOpenChange={setIsGitHubOpen} />
-      
-      {/* Login Modal */}
-      <LoginModal isOpen={isLoginModalOpen} onOpenChange={setIsLoginModalOpen} />
     </>
   )
 }
