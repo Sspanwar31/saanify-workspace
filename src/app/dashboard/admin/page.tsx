@@ -22,6 +22,11 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu'
 import { useEffect, useState } from 'react'
+import { ActivityMonitor } from '@/components/activity-monitor'
+import { DataCharts } from '@/components/data-charts'
+import { RealTimeNotifications } from '@/components/real-time-notifications'
+import { AnalyticsDashboard } from '@/components/analytics-dashboard'
+import { AdminSettings } from '@/components/admin-settings'
 
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
@@ -89,6 +94,8 @@ export default function AdminDashboard() {
     { id: 'clients', label: 'Client Management', icon: Users },
     { id: 'billing', label: 'Subscription & Billing', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: Activity },
+    { id: 'activity', label: 'Activity Monitor', icon: Shield },
+    { id: 'data-charts', label: 'Data Visualization', icon: BarChart3 },
     { id: 'automation', label: 'Automation', icon: Zap },
     { id: 'settings', label: 'System Settings', icon: Settings }
   ]
@@ -101,6 +108,10 @@ export default function AdminDashboard() {
         return <SubscriptionBilling />
       case 'analytics':
         return <AnalyticsDashboard />
+      case 'activity':
+        return <ActivityMonitor />
+      case 'data-charts':
+        return <DataCharts />
       case 'automation':
         return <AutomationNotifications />
       case 'settings':
@@ -145,6 +156,8 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex items-center space-x-4">
+              <RealTimeNotifications />
+              
               <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-teal-500/20 rounded-full border border-cyan-500/30">
                 <Shield className="h-4 w-4 text-cyan-400" />
                 <span className="text-sm font-medium text-cyan-300">Super Admin</span>
