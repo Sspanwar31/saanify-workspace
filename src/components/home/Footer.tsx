@@ -84,10 +84,10 @@ export default function Footer() {
   return (
     <>
       {/* Wave SVG Divider */}
-      <div className="relative bg-muted dark:bg-black">
+      <div className="relative bg-muted">
         <svg 
           viewBox="0 0 1440 320" 
-          className="w-full h-20 fill-current text-muted dark:text-black"
+          className="w-full h-20 fill-current text-muted"
           preserveAspectRatio="none"
         >
           <path 
@@ -97,7 +97,7 @@ export default function Footer() {
         </svg>
       </div>
 
-      <footer className="bg-foreground text-background dark:bg-black dark:text-gray-300">
+      <footer className="bg-foreground text-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Footer Content */}
           <div className="py-16">
@@ -111,8 +111,8 @@ export default function Footer() {
                 className="lg:col-span-2"
               >
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-background mb-2 dark:text-gray-100">Saanify</h3>
-                  <p className="text-gray-300 text-sm leading-relaxed dark:text-gray-400">
+                  <h3 className="text-2xl font-bold text-background mb-2">Saanify</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     Premium society management solution for modern residential communities. 
                     Streamline operations, enhance engagement, and drive growth.
                   </p>
@@ -120,32 +120,32 @@ export default function Footer() {
 
                 <div className="space-y-3">
                   <motion.div 
-                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200 dark:text-gray-400 dark:hover:text-sky-300"
+                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                     onClick={() => handleContactClick('phone', '+91 98765 43210')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Phone className="h-4 w-4 mr-3 text-sky-400 dark:text-sky-500" />
+                    <Phone className="h-4 w-4 mr-3 text-primary" />
                     <span className="text-sm">+91 98765 43210</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
                   <motion.div 
-                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200 dark:text-gray-400 dark:hover:text-sky-300"
+                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                     onClick={() => handleContactClick('email', 'contact@saanify.com')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Mail className="h-4 w-4 mr-3 text-sky-400 dark:text-sky-500" />
+                    <Mail className="h-4 w-4 mr-3 text-primary" />
                     <span className="text-sm">contact@saanify.com</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
                   <motion.div 
-                    className="flex items-center text-gray-300 cursor-pointer hover:text-sky-400 transition-colors duration-200 dark:text-gray-400 dark:hover:text-sky-300"
+                    className="flex items-center text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200"
                     onClick={() => handleContactClick('location', 'Mumbai, India')}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <MapPin className="h-4 w-4 mr-3 text-sky-400 dark:text-sky-500" />
+                    <MapPin className="h-4 w-4 mr-3 text-primary" />
                     <span className="text-sm">Mumbai, India</span>
                     <ArrowUpRight className="h-3 w-3 ml-auto" />
                   </motion.div>
@@ -161,7 +161,7 @@ export default function Footer() {
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                   viewport={{ once: true }}
                 >
-                  <h4 className="text-lg font-semibold text-background mb-4 capitalize dark:text-gray-100">
+                  <h4 className="text-lg font-semibold text-background mb-4 capitalize">
                     {category === 'product' ? 'Product' : category === 'company' ? 'Company' : category === 'support' ? 'Support' : 'Legal'}
                   </h4>
                   <ul className="space-y-2">
@@ -173,7 +173,7 @@ export default function Footer() {
                       >
                         <button
                           onClick={() => handleLinkClick(link.name, category)}
-                          className="text-gray-300 hover:text-sky-400 text-sm transition-colors duration-200 flex items-center group dark:text-gray-400 dark:hover:text-sky-300"
+                          className="text-muted-foreground hover:text-primary text-sm transition-colors duration-200 flex items-center group"
                         >
                           {link.name}
                           <ArrowUpRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -187,14 +187,14 @@ export default function Footer() {
           </div>
 
           {/* Social Links & Copyright */}
-          <div className="border-t border-gray-700 py-8 dark:border-gray-800">
+          <div className="border-t border-gray-800 py-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
-                className="text-gray-300 text-sm dark:text-gray-400"
+                className="text-gray-400 text-sm"
               >
                 ©2025 Saanify. All rights reserved. | Stay updated with our latest features and releases.
               </motion.div>
@@ -211,11 +211,11 @@ export default function Footer() {
                     key={index}
                     onClick={() => handleSocialClick(social.label)}
                     aria-label={social.label}
-                    className="w-10 h-10 bg-gray-800 hover:bg-sky-600 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 group dark:bg-gray-900 dark:hover:bg-sky-700"
+                    className="w-10 h-10 bg-gray-800 hover:bg-sky-600 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 group"
                     whileHover={{ y: -5, rotate: 360 }}
                     whileTap={{ scale: 0.9 }}
                   >
-                    <social.icon className="h-5 w-5 text-gray-400 group-hover:text-white transition-colors duration-200 dark:text-gray-500" />
+                    <social.icon className="h-5 w-5 group-hover:text-white transition-colors duration-200" />
                   </motion.button>
                 ))}
                 
@@ -223,11 +223,11 @@ export default function Footer() {
                 <motion.button
                   onClick={handleScrollToTop}
                   aria-label="Back to top"
-                  className="w-10 h-10 bg-sky-600 hover:bg-sky-700 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 dark:bg-sky-700 dark:hover:bg-sky-600"
+                  className="w-10 h-10 bg-sky-600 hover:bg-sky-700 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
                   whileHover={{ y: -5 }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  <ArrowUpRight className="h-5 w-5 text-white" />
+                  <ArrowUpRight className="h-5 w-5" />
                 </motion.button>
               </motion.div>
             </div>

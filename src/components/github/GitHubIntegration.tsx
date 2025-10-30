@@ -83,9 +83,6 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
   const [autoBackup, setAutoBackup] = useState(false)
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
-  const [userRepos, setUserRepos] = useState<GitHubRepo[]>([])
-  const [showRepoSearch, setShowRepoSearch] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
 
   // Load config from localStorage
   useEffect(() => {
@@ -122,144 +119,7 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
     }
   }, [autoBackup, isConfigured])
 
-  // Load user repositories
-  const loadUserRepositories = async () => {
-    if (!config.token) {
-      setMessage({ type: 'error', text: '⚠️ Please enter your GitHub token first' })
-      return
-    }
-
-    // Check for demo values
-    if (config.token.includes('demo') || config.token.includes('your-')) {
-      setMessage({ type: 'error', text: '⚠️ Please enter a real GitHub token, not demo values' })
-      return
-    }
-
-    try {
-      setMessage({ type: 'info', text: '🔍 Loading your repositories...' })
-      
-      const response = await fetch('/api/github/repos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: config.token })
-      })
-
-      const data = await response.json()
-      
-      if (data.success) {
-        const formattedRepos: GitHubRepo[] = data.repositories.map((repo: any) => ({
-          id: repo.id,
-          name: repo.name,
-          fullName: repo.fullName,
-          private: repo.private,
-          url: repo.url,
-          description: repo.description || '',
-          createdAt: repo.createdAt,
-          updatedAt: repo.updatedAt
-        }))
-        
-        setUserRepos(formattedRepos)
-        setShowRepoSearch(true)
-        setMessage({ 
-          type: 'success', 
-          text: `✅ Found ${formattedRepos.length} repositories for ${data.user.login}` 
-        })
-      } else {
-        // Handle specific error messages
-        let errorMessage = data.error || '❌ Failed to load repositories'
-        
-        if (data.code === 'INVALID_TOKEN') {
-          errorMessage = '❌ Token is invalid or expired. Please generate a new token.'
-        } else if (data.code === 'INSUFFICIENT_PERMISSIONS') {
-          errorMessage = '❌ Token lacks required permissions. Please ensure it has the "repo" scope.'
-        } else if (data.details) {
-          errorMessage = `❌ ${data.details}`
-        }
-        
-        setMessage({ type: 'error', text: errorMessage })
-      }
-    } catch (error) {
-      console.error('Repository loading error:', error)
-      setMessage({ type: 'error', text: '❌ Network error. Please check your internet connection.' })
-    }
-  }
-
-  // Search repositories with query
-  const searchRepositories = async (query: string) => {
-    if (!config.token) {
-      setMessage({ type: 'error', text: '⚠️ Please enter your GitHub token first' })
-      return
-    }
-
-    if (!query.trim()) {
-      setMessage({ type: 'error', text: '⚠️ Please enter a search query' })
-      return
-    }
-
-    try {
-      setMessage({ type: 'info', text: `🔍 Searching for "${query}"...` })
-      
-      const response = await fetch(`/api/github/repos?q=${encodeURIComponent(query)}&token=${encodeURIComponent(config.token)}`)
-      
-      const data = await response.json()
-      
-      if (data.success) {
-        const formattedRepos: GitHubRepo[] = data.data.repositories.map((repo: any) => ({
-          id: repo.id,
-          name: repo.name,
-          fullName: repo.fullName,
-          private: repo.private,
-          url: repo.url,
-          description: repo.description || '',
-          createdAt: repo.createdAt,
-          updatedAt: repo.updatedAt
-        }))
-        
-        setUserRepos(formattedRepos)
-        setShowRepoSearch(true)
-        setMessage({ 
-          type: 'success', 
-          text: `✅ Found ${formattedRepos.length} repositories matching "${query}"` 
-        })
-      } else {
-        let errorMessage = data.error || '❌ Search failed'
-        
-        if (data.code === 'INVALID_TOKEN') {
-          errorMessage = '❌ Token is invalid or expired. Please generate a new token.'
-        } else if (data.code === 'INSUFFICIENT_PERMISSIONS') {
-          errorMessage = '❌ Token lacks required permissions. Please ensure it has the "repo" scope.'
-        } else if (data.code === 'INVALID_QUERY') {
-          errorMessage = '❌ Search query is too short or contains invalid characters.'
-        } else if (data.details) {
-          errorMessage = `❌ ${data.details}`
-        }
-        
-        setMessage({ type: 'error', text: errorMessage })
-      }
-    } catch (error) {
-      console.error('Repository search error:', error)
-      setMessage({ type: 'error', text: '❌ Network error. Please check your internet connection.' })
-    }
-  }
-
-  // Select repository from search
-  const selectRepository = (repo: GitHubRepo) => {
-    const [owner, repoName] = repo.fullName.split('/')
-    setConfig({ ...config, owner, repo: repoName })
-    setShowRepoSearch(false)
-    setMessage({ type: 'success', text: `✅ Selected "${repo.fullName}"` })
-  }
-
-  // Test with a sample repository
-  const testWithSampleRepo = () => {
-    setConfig({
-      ...config,
-      owner: 'octocat',
-      repo: 'Hello-World',
-      branch: 'main'
-    })
-    setMessage({ type: 'info', text: '🧪 Using sample repository: octocat/Hello-World' })
-  }
+  // Reset configuration
   const resetConfig = () => {
     if (window.confirm('⚠️ Are you sure you want to reset all GitHub configuration?')) {
       setConfig({
@@ -290,188 +150,57 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
       return
     }
 
-    // Check for demo values
-    if (config.token.includes('demo') || config.token.includes('your-') || 
-        config.owner.includes('your-') || config.repo.includes('your-repo')) {
-      setMessage({ type: 'error', text: '⚠️ Please configure real GitHub credentials, not demo values' })
-      return
-    }
-
     setIsValidatingConfig(true)
     try {
-      // Use the new validation API
-      setMessage({ type: 'info', text: '🔍 Validating configuration...' })
+      // Determine token type and use appropriate auth method
+      const isClassicToken = config.token.startsWith('ghp_')
+      const isFineGrainedToken = config.token.startsWith('github_pat_')
       
-      const response = await fetch('/api/github/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          token: config.token,
-          repository: `${config.owner}/${config.repo}`
+      if (!isClassicToken && !isFineGrainedToken) {
+        setMessage({ 
+          type: 'error', 
+          text: '❌ Invalid token format. Token should start with "ghp_" (classic) or "github_pat_" (fine-grained)' 
         })
+        return
+      }
+
+      const repoResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}`, {
+        headers: {
+          'Authorization': `${isClassicToken ? 'token' : 'Bearer'} ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        }
       })
 
-      const data = await response.json()
-      
-      if (data.isValid) {
+      if (repoResponse.ok) {
+        const repoData = await repoResponse.json()
         setMessage({ 
           type: 'success', 
-          text: `✅ Validation successful! Found "${config.owner}/${config.repo}" (Access: ${data.permissions?.canWrite ? 'Read/Write' : 'Read only'})` 
+          text: `✅ Validation successful! Found "${repoData.full_name}" repository` 
         })
         localStorage.setItem('github-config', JSON.stringify(config))
         setIsConfigured(true)
       } else {
-        // Handle specific error messages
-        let errorMessage = data.error || '❌ Validation failed'
+        const errorData = await repoResponse.json().catch(() => ({}))
+        let errorMessage = errorData.message || 'Repository access denied'
         
-        if (data.code === 'REPO_NOT_FOUND') {
-          errorMessage = `❌ Repository "${config.owner}/${config.repo}" not found. Logged in as: ${data.username || 'Unknown'}`
-          
-          // Offer to load user's repositories
-          setTimeout(() => {
-            setMessage({ 
-              type: 'info', 
-              text: '💡 Click "Search My Repos" to find your correct repositories' 
-            })
-          }, 3000)
-        } else if (data.code === 'INVALID_TOKEN') {
-          errorMessage = '❌ Token is invalid or expired. Please generate a new token.'
-        } else if (data.code === 'INSUFFICIENT_PERMISSIONS') {
-          errorMessage = '❌ Token lacks required permissions. Please ensure it has the "repo" scope.'
-        } else if (data.code === 'DEMO_VALUE') {
-          errorMessage = '⚠️ Please configure real GitHub credentials, not demo values.'
-        } else if (data.details) {
-          errorMessage = `❌ ${data.details}`
+        // Provide more specific error messages
+        if (repoResponse.status === 401) {
+          errorMessage = '❌ Invalid or expired token. Please check your GitHub personal access token'
+        } else if (repoResponse.status === 403) {
+          errorMessage = '❌ Token lacks required permissions. Please ensure the token has "repo" scope'
+        } else if (repoResponse.status === 404) {
+          errorMessage = `❌ Repository "${config.owner}/${config.repo}" not found or you don\'t have access`
         }
         
-        setMessage({ type: 'error', text: errorMessage })
+        setMessage({ 
+          type: 'error', 
+          text: `❌ Validation failed: ${errorMessage}` 
+        })
       }
     } catch (error) {
       console.error('GitHub validation error:', error)
-      
-      // Fallback to manual validation if API fails
-      try {
-        const isClassicToken = config.token.startsWith('ghp_')
-        const isFineGrainedToken = config.token.startsWith('github_pat_')
-        
-        if (!isClassicToken && !isFineGrainedToken) {
-          setMessage({ 
-            type: 'error', 
-            text: '❌ Invalid token format. Token should start with "ghp_" (classic) or "github_pat_" (fine-grained)' 
-          })
-          return
-        }
-
-        // First validate token by checking user info
-        setMessage({ type: 'info', text: '🔍 Validating token...' })
-        const userResponse = await fetch('https://api.github.com/user', {
-          headers: {
-            'Authorization': `${isClassicToken ? 'token' : 'Bearer'} ${config.token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          }
-        })
-
-        if (!userResponse.ok) {
-          if (userResponse.status === 401) {
-            setMessage({ 
-              type: 'error', 
-              text: '❌ Invalid or expired token. Please generate a new token from GitHub settings' 
-            })
-            return
-          } else {
-            throw new Error(`Token validation failed: ${userResponse.status}`)
-          }
-        }
-
-        const userData = await userResponse.json()
-        console.log('GitHub User:', userData.login)
-
-        // Now validate repository
-        setMessage({ type: 'info', text: `🔍 Checking repository "${config.owner}/${config.repo}"...` })
-        const repoResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}`, {
-          headers: {
-            'Authorization': `${isClassicToken ? 'token' : 'Bearer'} ${config.token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          }
-        })
-
-        if (repoResponse.ok) {
-          const repoData = await repoResponse.json()
-          console.log('Repository found:', repoData.full_name)
-          
-          // Check if user has write access
-          const permissionsResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/collaborators/${userData.login}/permission`, {
-            headers: {
-              'Authorization': `${isClassicToken ? 'token' : 'Bearer'} ${config.token}`,
-              'Accept': 'application/vnd.github.v3+json',
-              'X-GitHub-Api-Version': '2022-11-28'
-            }
-          })
-
-          let accessLevel = 'read'
-          if (permissionsResponse.ok) {
-            const permData = await permissionsResponse.json()
-            accessLevel = permData.permission
-            console.log('User permission:', accessLevel)
-          }
-
-          setMessage({ 
-            type: 'success', 
-            text: `✅ Validation successful! Found "${repoData.full_name}" (Access: ${accessLevel})` 
-          })
-          localStorage.setItem('github-config', JSON.stringify(config))
-          setIsConfigured(true)
-        } else {
-          const errorData = await repoResponse.json().catch(() => ({}))
-          let errorMessage = errorData.message || 'Repository access denied'
-          
-          // Provide more specific error messages
-          if (repoResponse.status === 401) {
-            errorMessage = '❌ Invalid or expired token. Please check your GitHub personal access token'
-          } else if (repoResponse.status === 403) {
-            errorMessage = '❌ Token lacks required permissions. Please ensure the token has "repo" scope'
-          } else if (repoResponse.status === 404) {
-            // Try to help user find the correct repository
-            errorMessage = `❌ Repository "${config.owner}/${config.repo}" not found. Logged in as: ${userData.login}`
-            
-            // Try to list user's repositories
-            try {
-              const reposResponse = await fetch(`https://api.github.com/user/repos?per_page=10&sort=updated`, {
-                headers: {
-                  'Authorization': `${isClassicToken ? 'token' : 'Bearer'} ${config.token}`,
-                  'Accept': 'application/vnd.github.v3+json',
-                  'X-GitHub-Api-Version': '2022-11-28'
-                }
-              })
-              
-              if (reposResponse.ok) {
-                const reposData = await reposResponse.json()
-                const repoNames = reposData.map((repo: any) => repo.full_name).join(', ')
-                console.log('Your repositories:', repoNames)
-                
-                setTimeout(() => {
-                  setMessage({ 
-                    type: 'info', 
-                    text: `💡 Your repositories: ${repoNames.substring(0, 100)}${repoNames.length > 100 ? '...' : ''}` 
-                  })
-                }, 2000)
-              }
-            } catch (e) {
-              console.error('Failed to fetch user repos:', e)
-            }
-          }
-          
-          setMessage({ 
-            type: 'error', 
-            text: errorMessage 
-          })
-        }
-      } catch (fallbackError) {
-        console.error('Fallback validation error:', fallbackError)
-        setMessage({ type: 'error', text: '🌐 Network error - please check your internet connection' })
-      }
+      setMessage({ type: 'error', text: '🌐 Network error - please check your internet connection' })
     } finally {
       setIsValidatingConfig(false)
     }
@@ -500,27 +229,13 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
 
     if (!silent) setIsLoading(true)
     try {
-      // Validate config before making request
-      if (!config.token || !config.owner || !config.repo) {
-        if (!silent) setMessage({ type: 'error', text: '⚠️ Invalid configuration. Please check your settings.' })
-        return
-      }
-
-      // Check for demo values
-      if (config.token.includes('demo') || config.owner.includes('demo') || config.repo.includes('demo')) {
-        if (!silent) setMessage({ type: 'error', text: '⚠️ Please configure real GitHub credentials. Demo values are not allowed.' })
-        return
-      }
-
       const response = await fetch('/api/github/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           action: 'backup', 
           config,
-          message: `🚀 Auto Backup: ${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`,
-          useGit: true,
-          pushToGitHub: true
+          message: `🚀 Auto Backup: ${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}`
         })
       })
 
@@ -534,33 +249,17 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
         if (!silent) {
           setMessage({ 
             type: 'success', 
-            text: `✅ Backup complete! ${data.filesCount || 'All'} files backed up to GitHub` 
+            text: `✅ Backup complete! ${data.filesCount || 0} files uploaded to GitHub` 
           })
         }
         if (showHistory) {
           loadBackupHistory()
         }
       } else {
-        if (!silent) {
-          // Provide more specific error messages
-          let errorMessage = data.error || '❌ Backup failed'
-          
-          if (errorMessage.includes('Invalid or expired')) {
-            errorMessage = '❌ Token expired. Please generate a new GitHub token.'
-          } else if (errorMessage.includes('Insufficient permissions')) {
-            errorMessage = '❌ No write access. Ensure token has "repo" scope and you have write permissions.'
-          } else if (errorMessage.includes('not found')) {
-            errorMessage = '❌ Repository not found. Use "Search My Repos" to find the correct repository.'
-          } else if (errorMessage.includes('Demo values')) {
-            errorMessage = '❌ Please configure real GitHub credentials first.'
-          }
-          
-          setMessage({ type: 'error', text: errorMessage })
-        }
+        if (!silent) setMessage({ type: 'error', text: data.error || '❌ Backup failed' })
       }
     } catch (error) {
-      console.error('Backup error:', error)
-      if (!silent) setMessage({ type: 'error', text: '❌ Network error. Please check your internet connection.' })
+      if (!silent) setMessage({ type: 'error', text: '❌ Error creating backup' })
     } finally {
       if (!silent) setIsLoading(false)
     }
@@ -579,18 +278,6 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
 
     setIsRestoring(true)
     try {
-      // Validate config before making request
-      if (!config.token || !config.owner || !config.repo) {
-        setMessage({ type: 'error', text: '⚠️ Invalid configuration. Please check your settings.' })
-        return
-      }
-
-      // Check for demo values
-      if (config.token.includes('demo') || config.owner.includes('demo') || config.repo.includes('demo')) {
-        setMessage({ type: 'error', text: '⚠️ Please configure real GitHub credentials. Demo values are not allowed.' })
-        return
-      }
-
       const response = await fetch('/api/github/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -611,24 +298,10 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
           window.location.reload()
         }, 2000)
       } else {
-        // Provide more specific error messages
-        let errorMessage = data.error || '❌ Restore failed'
-        
-        if (errorMessage.includes('Invalid or expired')) {
-          errorMessage = '❌ Token expired. Please generate a new GitHub token.'
-        } else if (errorMessage.includes('Insufficient permissions')) {
-          errorMessage = '❌ No read access. Ensure token has "repo" scope and you have access to this repository.'
-        } else if (errorMessage.includes('not found')) {
-          errorMessage = '❌ Repository not found. Use "Search My Repos" to find the correct repository.'
-        } else if (errorMessage.includes('Demo values')) {
-          errorMessage = '❌ Please configure real GitHub credentials first.'
-        }
-        
-        setMessage({ type: 'error', text: errorMessage })
+        setMessage({ type: 'error', text: data.error || '❌ Restore failed' })
       }
     } catch (error) {
-      console.error('Restore error:', error)
-      setMessage({ type: 'error', text: '❌ Network error. Please check your internet connection.' })
+      setMessage({ type: 'error', text: '❌ Error restoring from backup' })
     } finally {
       setIsRestoring(false)
     }
@@ -835,20 +508,6 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
 
                   <Button
                     variant="outline"
-                    onClick={validateConfig}
-                    disabled={isValidatingConfig}
-                    className="w-full"
-                  >
-                    {isValidatingConfig ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Shield className="h-4 w-4 mr-2" />
-                    )}
-                    Check Permissions
-                  </Button>
-
-                  <Button
-                    variant="outline"
                     onClick={() => window.open(`https://github.com/${config.owner}/${config.repo}`, '_blank')}
                     className="w-full"
                   >
@@ -899,86 +558,6 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
                         />
                       </div>
                     </div>
-
-                    {/* Repository Search and Quick Actions */}
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={loadUserRepositories}
-                        disabled={!config.token}
-                        className="flex-1"
-                      >
-                        <Database className="h-4 w-4 mr-2" />
-                        Search My Repos
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={testWithSampleRepo}
-                        className="flex-1"
-                      >
-                        <Zap className="h-4 w-4 mr-2" />
-                        Test Sample
-                      </Button>
-                    </div>
-
-                    {/* Repository Search Results */}
-                    {showRepoSearch && (
-                      <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Your Repositories:</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowRepoSearch(false)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <Input
-                          placeholder="Search repositories..."
-                          value={searchQuery}
-                          onChange={(e) => {
-                            setSearchQuery(e.target.value)
-                            if (e.target.value.trim()) {
-                              searchRepositories(e.target.value)
-                            } else {
-                              loadUserRepositories()
-                            }
-                          }}
-                          className="mb-2"
-                        />
-                        <div className="space-y-1">
-                          {userRepos
-                            .filter(repo => 
-                              repo.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              repo.name.toLowerCase().includes(searchQuery.toLowerCase())
-                            )
-                            .slice(0, 10)
-                            .map((repo) => (
-                              <div
-                                key={repo.id}
-                                onClick={() => selectRepository(repo)}
-                                className="p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center justify-between"
-                              >
-                                <div>
-                                  <div className="font-medium text-sm">{repo.fullName}</div>
-                                  {repo.description && (
-                                    <div className="text-xs text-gray-500 truncate">
-                                      {repo.description}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {repo.private && (
-                                    <Shield className="h-3 w-3 text-orange-500" />
-                                  )}
-                                  <Check className="h-4 w-4 text-green-500" />
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
 
                     <div>
                       <Label htmlFor="token">GitHub Personal Access Token</Label>
@@ -1052,18 +631,6 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
                         <RotateCcw className="h-4 w-4 mr-2" />
                         Reset
                       </Button>
-                    </div>
-
-                    {/* Troubleshooting Guide */}
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-medium text-blue-900 mb-2">🔧 Troubleshooting:</p>
-                      <ul className="text-xs text-blue-700 space-y-1">
-                        <li>• Use "Search My Repos" to find your correct repositories</li>
-                        <li>• Check repository name spelling (case-sensitive)</li>
-                        <li>• Ensure token has "repo" permissions</li>
-                        <li>• For private repos, you need collaborator access</li>
-                        <li>• Try "Test Sample" to verify your token works</li>
-                      </ul>
                     </div>
                   </CardContent>
                 </Card>

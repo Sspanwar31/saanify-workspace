@@ -105,7 +105,7 @@ export default function Testimonials() {
     {
       name: "Rajesh Kumar",
       role: "Society Secretary",
-      society: "Emerald Heights",
+      society: "Green Valley Gardens",
       content: "Saanify has transformed how we manage our society. The automated features have saved us countless hours, and members love the transparency.",
       rating: 5,
       delay: 0.1
@@ -113,7 +113,7 @@ export default function Testimonials() {
     {
       name: "Priya Sharma",
       role: "Treasurer",
-      society: "Azure Paradise",
+      society: "Sunset Apartments",
       content: "The financial tracking and reporting features are exceptional. We've improved our collection rate by 40% since implementing Saanify.",
       rating: 5,
       delay: 0.2
@@ -121,7 +121,7 @@ export default function Testimonials() {
     {
       name: "Amit Patel",
       role: "Managing Committee",
-      society: "Sunset Boulevard",
+      society: "Ocean View Residency",
       content: "Best decision we made for our society management. The support team is amazing, and the platform keeps getting better with new features.",
       rating: 5,
       delay: 0.3
@@ -166,18 +166,18 @@ export default function Testimonials() {
   }
 
   const trustedSocieties = [
-    { name: "Emerald Heights", initials: "EH", color: "from-emerald-500 to-teal-600" },
-    { name: "Azure Paradise", initials: "AP", color: "from-blue-500 to-cyan-600" }, 
-    { name: "Sunset Boulevard", initials: "SB", color: "from-orange-500 to-red-600" },
-    { name: "Royal Gardens", initials: "RG", color: "from-purple-500 to-pink-600" },
-    { name: "Golden Gateway", initials: "GG", color: "from-yellow-500 to-amber-600" },
-    { name: "Crystal Springs", initials: "CS", color: "from-cyan-500 to-blue-600" },
-    { name: "Diamond Plaza", initials: "DP", color: "from-gray-500 to-slate-600" },
-    { name: "Silver Oasis", initials: "SO", color: "from-indigo-500 to-purple-600" }
+    "Green Valley Gardens",
+    "Sunset Apartments", 
+    "Ocean View Residency",
+    "Maple Heights",
+    "Royal Palm Estates",
+    "Blue Haven Society",
+    "Golden Gate Community",
+    "Silver Oak Residency"
   ]
 
   return (
-    <section id="testimonials" className="py-20 bg-background dark:bg-black">
+    <section id="testimonials" className="py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Testimonials Section */}
         <motion.div
@@ -275,7 +275,7 @@ export default function Testimonials() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {trustedSocieties.map((society, index) => (
               <motion.div
                 key={index}
@@ -283,24 +283,19 @@ export default function Testimonials() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -8, scale: 1.05 }}
-                onClick={() => handleSocietyClick(society.name)}
-                className="flex items-center justify-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-200 dark:border-gray-700 group"
+                whileHover={{ y: -5, scale: 1.05 }}
+                onClick={() => handleSocietyClick(society)}
+                className="flex items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted hover:shadow-lg transition-all duration-300 cursor-pointer"
               >
                 <div className="text-center">
                   <motion.div 
-                    className={`w-16 h-16 bg-gradient-to-r ${society.color} rounded-2xl flex items-center justify-center text-white font-bold text-lg mx-auto mb-3 shadow-lg group-hover:shadow-xl transition-all duration-300`}
-                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center text-primary-foreground font-bold text-xs mx-auto mb-2"
+                    whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.6 }}
                   >
-                    {society.initials}
+                    {society.substring(0, 2).toUpperCase()}
                   </motion.div>
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors duration-300">
-                    {society.name}
-                  </p>
-                  <div className="mt-2 flex justify-center">
-                    <div className={`h-1 w-8 bg-gradient-to-r ${society.color} rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                  </div>
+                  <p className="text-sm font-medium text-foreground">{society}</p>
                 </div>
               </motion.div>
             ))}

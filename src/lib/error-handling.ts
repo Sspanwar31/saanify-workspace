@@ -1,6 +1,8 @@
+import { NextRequest, NextResponse } from 'next/server'
+
 export class ApiError extends Error {
   constructor(
-    message: string,
+    public message: string,
     public statusCode: number = 500,
     public code?: string
   ) {
@@ -9,119 +11,107 @@ export class ApiError extends Error {
   }
 }
 
-export interface RetryConfig {
-  maxRetries: number
-  baseDelay: number
-  maxDelay: number
-}
-
-export const GITHUB_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000
-}
-
-export class RetryHandler {
-  static async executeWithRetry<T>(
-    operation: () => Promise<T>,
-    config: RetryConfig = GITHUB_RETRY_CONFIG
-  ): Promise<T> {
-    let lastError: Error
-    
-    for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
-      try {
-        return await operation()
-      } catch (error) {
-        lastError = error as Error
-        
-        if (attempt === config.maxRetries) {
-          throw lastError
-        }
-        
-        const delay = Math.min(
-          config.baseDelay * Math.pow(2, attempt),
-          config.maxDelay
-        )
-        
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
-    }
-    
-    throw lastError!
+export class AuthenticationError extends ApiError {
+  constructor(message: string = 'Authentication required') {
+    super(message, 401, 'AUTHENTICATION_ERROR')
   }
 }
 
-export class ErrorHandler {
-  static handle(error: unknown): ApiError {
-    if (error instanceof ApiError) {
-      return error
-    }
-    
-    if (error instanceof Error) {
-      return new ApiError(error.message, 500, 'UNKNOWN_ERROR')
-    }
-    
-    return new ApiError('An unknown error occurred', 500, 'UNKNOWN_ERROR')
+export class AuthorizationError extends ApiError {
+  constructor(message: string = 'Access denied') {
+    super(message, 403, 'AUTHORIZATION_ERROR')
   }
+}
 
-  static handleGitHubError(error: any): ApiError {
-    if (error?.status === 401) {
-      return new ApiError('Invalid GitHub token', 401, 'INVALID_TOKEN')
-    }
-    if (error?.status === 403) {
-      return new ApiError('GitHub API rate limit exceeded', 403, 'RATE_LIMIT')
-    }
-    if (error?.status === 404) {
-      return new ApiError('Repository not found', 404, 'NOT_FOUND')
-    }
-    return this.handle(error)
+export class ValidationError extends ApiError {
+  constructor(message: string, public details?: any) {
+    super(message, 400, 'VALIDATION_ERROR')
+    this.details = details
   }
+}
 
-  static validateRequired(value: any, fieldName: string): void {
-    if (!value) {
-      throw new ApiError(`${fieldName} is required`, 400, 'MISSING_FIELD')
-    }
+export class NotFoundError extends ApiError {
+  constructor(message: string = 'Resource not found') {
+    super(message, 404, 'NOT_FOUND_ERROR')
   }
+}
 
-  static validateGitHubToken(token: string): void {
-    if (!token) {
-      throw new ApiError('GitHub token is required', 400, 'MISSING_TOKEN')
-    }
-    
-    const isClassicToken = token.startsWith('ghp_')
-    const isFineGrainedToken = token.startsWith('github_pat_')
-    
-    if (!isClassicToken && !isFineGrainedToken) {
-      throw new ApiError('Invalid GitHub token format. Token should start with "ghp_" (classic) or "github_pat_" (fine-grained)', 400, 'INVALID_TOKEN_FORMAT')
-    }
-  }
+export function handleApiError(error: any): NextResponse {
+  console.error('API Error:', error)
 
-  static validateRepository(repo: string): void {
-    if (!repo || !repo.includes('/')) {
-      throw new ApiError('Invalid repository format. Use "owner/repo"', 400, 'INVALID_REPO')
-    }
-  }
-
-  static logError(error: Error, context?: string): void {
-    console.error(`[Error${context ? ` - ${context}` : ''}]:`, error.message)
-  }
-  
-  static createErrorResponse(error: ApiError) {
-    return Response.json(
-      { 
-        success: false, 
+  if (error instanceof ApiError) {
+    const response = NextResponse.json(
+      {
         error: error.message,
-        code: error.code 
+        code: error.code,
+        ...(error.details && { details: error.details })
       },
       { status: error.statusCode }
     )
+    
+    return response
   }
+
+  // Handle Prisma errors
+  if (error.code === 'P2002') {
+    return NextResponse.json(
+      { 
+        error: 'Resource already exists',
+        code: 'DUPLICATE_ERROR'
+      },
+      { status: 409 }
+    )
+  }
+
+  if (error.code === 'P2025') {
+    return NextResponse.json(
+      { 
+        error: 'Resource not found',
+        code: 'NOT_FOUND_ERROR'
+      },
+      { status: 404 }
+    )
+  }
+
+  // Handle JWT errors
+  if (error.name === 'JsonWebTokenError') {
+    return NextResponse.json(
+      { 
+        error: 'Invalid token',
+        code: 'INVALID_TOKEN'
+      },
+      { status: 401 }
+    )
+  }
+
+  if (error.name === 'TokenExpiredError') {
+    return NextResponse.json(
+      { 
+        error: 'Token expired',
+        code: 'TOKEN_EXPIRED'
+      },
+      { status: 401 }
+    )
+  }
+
+  // Generic error
+  return NextResponse.json(
+    { 
+      error: 'Internal server error',
+      code: 'INTERNAL_ERROR'
+    },
+    { status: 500 }
+  )
 }
 
-export function handleApiError(error: unknown): ApiError {
-  return ErrorHandler.handle(error)
-}
-
-export function createErrorResponse(error: ApiError) {
-  return ErrorHandler.createErrorResponse(error)
+export function asyncHandler<T extends any[]>(
+  fn: (...args: T) => Promise<NextResponse>
+) {
+  return async (...args: T): Promise<NextResponse> => {
+    try {
+      return await fn(...args)
+    } catch (error) {
+      return handleApiError(error)
+    }
+  }
 }

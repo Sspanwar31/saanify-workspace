@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
+import { generateTokens } from '@/lib/tokens'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check role compatibility
+    // Check role compatibility with strict validation
     if (validatedData.userType) {
       if (validatedData.userType === 'admin' && user.role !== 'SUPER_ADMIN') {
         return NextResponse.json(
@@ -73,19 +74,15 @@ export async function POST(request: NextRequest) {
       data: { lastLoginAt: new Date() }
     })
 
-    // Create JWT token
-    const token = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email, 
-        role: user.role,
-        societyAccountId: user.societyAccountId
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    )
+    // Generate tokens
+    const tokens = generateTokens({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      societyAccountId: user.societyAccountId
+    })
 
-    // Create response with cookie
+    // Create response with cookies
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
@@ -97,15 +94,24 @@ export async function POST(request: NextRequest) {
         societyAccount: user.societyAccount,
         createdSocieties: user.createdSocieties
       },
-      token
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
     })
 
-    // Set HTTP-only cookie
-    response.cookies.set('auth-token', token, {
+    // Set access token cookie (short-lived)
+    response.cookies.set('auth-token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: validatedData.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60 // 30 days or 1 day
+      maxAge: 15 * 60 // 15 minutes
+    })
+
+    // Set refresh token cookie (long-lived)
+    response.cookies.set('refresh-token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: validatedData.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60 // 30 days or 7 days
     })
 
     return response

@@ -5,21 +5,53 @@ import { ArrowLeft, Home, Users, Settings, BarChart3, Shield, Crown, LogOut, Ale
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
 
 export default function AdminDashboard() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [userData, setUserData] = useState<any>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { checkSession } = await import('@/lib/auth')
+        const session = await checkSession()
+        
+        if (!session.authenticated || session.user?.role !== 'SUPER_ADMIN') {
+          window.location.href = '/'
+          return
+        }
+        
+        setUserData(session.user)
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        window.location.href = '/'
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [])
+
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        window.location.href = '/login'
-      }
+      const { logout } = await import('@/lib/auth')
+      await logout()
     } catch (error) {
       console.error('Logout failed:', error)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-950 dark:to-amber-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Mail, Lock, User, Eye, EyeOff, UserPlus, LogIn, ArrowRight, Check } from 'lucide-react'
+import { X, Mail, Lock, User, Eye, EyeOff, UserPlus, LogIn, ArrowRight, Check, Shield, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 
 interface LoginModalProps {
@@ -18,6 +19,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('signin')
+  const [userType, setUserType] = useState<'client' | 'admin'>('client')
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,22 +33,31 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, userType: 'client' })
+        body: JSON.stringify({ email, password, userType })
       })
 
       const data = await response.json()
 
       if (response.ok) {
         toast.success("🎉 Welcome Back!", {
-          description: "Successfully signed in to your account.",
+          description: `Successfully signed in as ${data.user.role === 'SUPER_ADMIN' ? 'Administrator' : 'Client'}.`,
           duration: 3000,
         })
         
+        // Store tokens using the enhanced auth utility
+        if (data.accessToken && data.refreshToken) {
+          const { setAuthTokens } = await import('@/lib/auth')
+          setAuthTokens({
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken
+          })
+        }
+        
         // Redirect based on user role
         if (data.user.role === 'SUPER_ADMIN') {
-          window.location.href = '/admin/dashboard'
+          window.location.href = '/dashboard/admin'
         } else {
-          window.location.href = '/client/dashboard'
+          window.location.href = '/dashboard/client'
         }
         
         onOpenChange(false)
@@ -187,6 +198,31 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                   {/* Sign In Form */}
                   <TabsContent value="signin">
                     <form onSubmit={handleSignIn} className="space-y-4">
+                      {/* User Type Selection */}
+                      <div className="space-y-2">
+                        <Label>Account Type</Label>
+                        <RadioGroup 
+                          value={userType} 
+                          onValueChange={(value) => setUserType(value as 'client' | 'admin')}
+                          className="flex space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="client" id="client" />
+                            <Label htmlFor="client" className="flex items-center gap-2 cursor-pointer">
+                              <Users className="h-4 w-4" />
+                              Client
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="admin" id="admin" />
+                            <Label htmlFor="admin" className="flex items-center gap-2 cursor-pointer">
+                              <Shield className="h-4 w-4" />
+                              Admin
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label htmlFor="signin-email">Email</Label>
                         <div className="relative">
@@ -252,7 +288,7 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
                           </div>
                         ) : (
                           <>
-                            Sign In
+                            Sign In as {userType === 'admin' ? 'Administrator' : 'Client'}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </>
                         )}

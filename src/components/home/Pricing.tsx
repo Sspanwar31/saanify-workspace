@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { Check, Star, ArrowRight, Zap, Shield, Crown, Sparkles, Rocket, Building } from 'lucide-react'
+import { Check, Star, ArrowRight, Zap, Shield, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
+import LoginModal from '@/components/auth/LoginModal'
 
 interface PricingCardProps {
   title: string
@@ -39,41 +40,35 @@ function PricingCard({ title, price, period, description, features, highlighted,
           animate={{ scale: isHovered ? 1.1 : 1 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg">
+          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
             <Star className="h-4 w-4 fill-current" />
             Most Popular
           </div>
         </motion.div>
       )}
       
-      <Card className={`h-full p-8 relative cursor-pointer transition-all duration-500 rounded-2xl ${
+      <Card className={`h-full p-8 relative cursor-pointer transition-all duration-300 ${
         highlighted 
-          ? 'border-2 border-blue-500 shadow-2xl bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/50 dark:to-indigo-950/50' 
-          : 'border-0 shadow-xl bg-white dark:bg-gray-900/90 hover:shadow-2xl hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30 dark:hover:from-gray-900/90 dark:hover:to-blue-900/40'
+          ? 'border-2 border-primary shadow-2xl bg-gradient-to-br from-primary/5 to-primary/10' 
+          : 'border-0 shadow-lg bg-card hover:shadow-xl'
       } ${isHovered ? 'transform -translate-y-2' : ''}`}>
         <CardContent className="p-0">
           <div className="text-center mb-8">
             <motion.div 
-              className="mb-6 flex justify-center"
+              className="mb-4 flex justify-center"
               animate={{ rotate: isHovered ? 360 : 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className={`p-4 rounded-2xl ${
-                title === "Free Trial" ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
-                title === "Pro" ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
-                'bg-gradient-to-br from-purple-500 to-pink-600'
-              } text-white shadow-xl`}>
-                {title === "Free Trial" && <Sparkles className="h-8 w-8" />}
-                {title === "Pro" && <Rocket className="h-8 w-8" />}
-                {title === "Enterprise" && <Building className="h-8 w-8" />}
-              </div>
+              {title === "Free Trial" && <Zap className="h-8 w-8 text-green-500" />}
+              {title === "Pro" && <Shield className="h-8 w-8 text-blue-500" />}
+              {title === "Enterprise" && <Crown className="h-8 w-8 text-purple-500" />}
             </motion.div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{title}</h3>
+            <h3 className="text-2xl font-bold text-foreground mb-2">{title}</h3>
             <div className="mb-4">
-              <span className="text-5xl font-bold text-gray-900 dark:text-white">{price}</span>
-              {period && <span className="text-gray-600 dark:text-gray-400 ml-2 text-lg">{period}</span>}
+              <span className="text-4xl font-bold text-foreground">{price}</span>
+              {period && <span className="text-muted-foreground ml-2">{period}</span>}
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed">{description}</p>
+            <p className="text-muted-foreground text-sm">{description}</p>
           </div>
 
           <ul className="space-y-4 mb-8">
@@ -88,13 +83,10 @@ function PricingCard({ title, price, period, description, features, highlighted,
                 <motion.div
                   animate={{ scale: isHovered ? 1.2 : 1 }}
                   transition={{ duration: 0.3 }}
-                  className="flex-shrink-0 mt-0.5"
                 >
-                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                 </motion.div>
-                <span className="text-gray-700 dark:text-gray-300 text-sm ml-3 leading-relaxed">{feature}</span>
+                <span className="text-foreground text-sm">{feature}</span>
               </motion.li>
             ))}
           </ul>
@@ -105,14 +97,14 @@ function PricingCard({ title, price, period, description, features, highlighted,
           >
             <Button 
               onClick={() => onSelectPlan(title)}
-              className={`w-full py-4 rounded-xl font-bold text-base transition-all duration-300 shadow-lg hover:shadow-xl ${
+              className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${
                 highlighted
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                  : 'bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl'
+                  : 'bg-foreground hover:bg-foreground/90 text-background'
               }`}
             >
               {cta}
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </motion.div>
         </CardContent>
@@ -122,22 +114,30 @@ function PricingCard({ title, price, period, description, features, highlighted,
 }
 
 export default function Pricing() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+
   const handleSelectPlan = (planTitle: string) => {
     if (planTitle === "Free Trial") {
       toast.success("Free Trial Started!", {
         description: "Welcome to Saanify! Your 15-day free trial has begun.",
         duration: 5000,
       })
+      // Open login modal for trial users
+      setIsLoginModalOpen(true)
     } else if (planTitle === "Pro") {
       toast.success("Pro Plan Selected!", {
         description: "Redirecting to payment setup...",
         duration: 3000,
       })
+      // Open login modal for pro users
+      setIsLoginModalOpen(true)
     } else if (planTitle === "Enterprise") {
       toast.success("Enterprise Plan!", {
         description: "Our sales team will contact you within 24 hours.",
         duration: 3000,
       })
+      // Open login modal for enterprise users
+      setIsLoginModalOpen(true)
     }
   }
 
@@ -204,19 +204,19 @@ export default function Pricing() {
   ]
 
   return (
-    <section id="pricing" className="py-24 bg-gradient-to-br from-gray-50/50 to-blue-50/30 dark:from-black dark:to-gray-900/80">
+    <section id="pricing" className="py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mb-20"
+          className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Plans & Pricing
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Choose the perfect plan for your society. Scale as you grow with our flexible pricing options.
           </p>
         </motion.div>
@@ -243,9 +243,9 @@ export default function Pricing() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
           viewport={{ once: true }}
-          className="text-center mt-16"
+          className="text-center mt-12"
         >
-          <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
+          <p className="text-muted-foreground mb-4">
             Need a custom solution? We offer tailored plans for specific requirements.
           </p>
           <motion.div
@@ -255,12 +255,15 @@ export default function Pricing() {
             <Button 
               onClick={handleContactSales}
               variant="outline" 
-              className="border-2 border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white font-bold px-8 py-4 rounded-xl transition-all duration-300 text-base shadow-lg hover:shadow-xl"
+              className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-8 py-3 rounded-lg transition-all duration-300"
             >
               Talk to Sales Team
             </Button>
           </motion.div>
         </motion.div>
+        
+        {/* Login Modal */}
+        <LoginModal isOpen={isLoginModalOpen} onOpenChange={setIsLoginModalOpen} />
       </div>
     </section>
   )

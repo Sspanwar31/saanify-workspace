@@ -348,132 +348,15 @@ export async function POST(request: NextRequest) {
   try {
     const { action, config, commitSha, useGit, pushToGitHub } = await request.json()
     
-    // Enhanced GitHub configuration validation
-    if (!config || !config.token || !config.owner || !config.repo) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid GitHub configuration. Please provide token, owner, and repository.' 
-        },
-        { status: 400 }
-      )
-    }
-
-    // Check for demo/placeholder values
-    const isDemoConfig = 
-      config.token === 'demo-token' || 
-      config.owner === 'demo-user' || 
-      config.repo === 'demo-repo' ||
-      config.token.includes('your-personal-access-token') ||
-      config.owner.includes('your-username') ||
-      config.repo.includes('your-repo-name') ||
-      config.token.length < 20
-
-    if (isDemoConfig) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Please configure valid GitHub credentials. Demo values are not allowed for actual operations.' 
-        },
-        { status: 400 }
-      )
-    }
-
-    // Validate token format
-    const isClassicToken = config.token.startsWith('ghp_')
-    const isFineGrainedToken = config.token.startsWith('github_pat_')
-    
-    if (!isClassicToken && !isFineGrainedToken) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid token format. Token should start with "ghp_" (classic) or "github_pat_" (fine-grained).' 
-        },
-        { status: 400 }
-      )
-    }
-
-    // Test repository access before proceeding
-    try {
-      const authMethod = isClassicToken ? 'token' : 'Bearer'
-      const testResponse = await fetch(
-        `https://api.github.com/repos/${config.owner}/${config.repo}`,
-        {
-          headers: {
-            'Authorization': `${authMethod} ${config.token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          }
-        }
-      )
-
-      if (!testResponse.ok) {
-        if (testResponse.status === 401) {
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Invalid or expired GitHub token. Please generate a new token from GitHub settings.' 
-            },
-            { status: 401 }
-          )
-        } else if (testResponse.status === 403) {
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Token lacks required permissions. Please ensure your token has "repo" scope enabled.' 
-            },
-            { status: 403 }
-          )
-        } else if (testResponse.status === 404) {
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: `Repository "${config.owner}/${config.repo}" not found or you don\'t have access. Check the repository name and your permissions.` 
-            },
-            { status: 404 }
-          )
-        } else {
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: `GitHub API error: ${testResponse.status}. Please check your configuration.` 
-            },
-            { status: testResponse.status }
-          )
-        }
-      }
-
-      // Test write permissions
-      const writeTestResponse = await fetch(
-        `https://api.github.com/repos/${config.owner}/${config.repo}/contents/.gitignore`,
-        {
-          headers: {
-            'Authorization': `${authMethod} ${config.token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          }
-        }
-      )
-
-      if (writeTestResponse.status === 403) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Insufficient permissions. Your token can read the repository but cannot write to it. Please ensure you have write access or the token has "repo" scope.' 
-          },
-          { status: 403 }
-        )
-      }
-
-    } catch (networkError) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Network error while validating GitHub access. Please check your internet connection.' 
-        },
-        { status: 500 }
-      )
-    }
+    // Check if we have valid GitHub configuration (not demo values) - DO THIS FIRST
+    const isDemoConfig = !config || 
+                        !config.token || 
+                        config.token === 'demo-token' || 
+                        config.owner === 'demo-user' || 
+                        config.repo === 'demo-repo' ||
+                        config.token.includes('your-personal-access-token') ||
+                        config.owner.includes('your-username') ||
+                        config.repo.includes('your-repo-name')
     
     // Handle quick git backup (no GitHub API required)
     if (action === 'quick-backup' && useGit) {

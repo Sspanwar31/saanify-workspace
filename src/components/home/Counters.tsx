@@ -122,7 +122,7 @@ export default function Counters() {
   }
 
   return (
-    <section className="py-16 bg-muted/30 dark:bg-muted/10 dark:bg-black">
+    <section className="py-16 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
