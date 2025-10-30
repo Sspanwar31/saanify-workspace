@@ -4,92 +4,229 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Users, 
-  Building, 
+  Building2, 
   TrendingUp, 
   AlertCircle, 
   Plus, 
   Search,
   Filter,
   MoreHorizontal,
+  Eye,
   Lock,
   Unlock,
   Trash2,
-  Eye,
   Settings,
   LogOut,
-  Menu,
-  X
+  User,
+  ChevronDown,
+  BarChart3,
+  CreditCard,
+  Calendar,
+  FileText,
+  HelpCircle,
+  Bell,
+  Download,
+  Upload,
+  RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { AddClientModal } from '@/components/admin/AddClientModal'
+import { ClientsTable } from '@/components/admin/ClientsTable'
 import { toast } from 'sonner'
-import ClientsTable from '@/components/admin/ClientsTable'
-import AddClientModal from '@/components/admin/AddClientModal'
 
-interface SocietyAccount {
+interface Client {
   id: string
   name: string
-  adminEmail: string
-  adminPhone: string | null
+  adminName: string
+  email: string
+  phone: string
   status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'LOCKED'
   subscriptionPlan: 'TRIAL' | 'BASIC' | 'PRO' | 'ENTERPRISE'
-  trialEndsAt: string | null
-  subscriptionEndsAt: string | null
-  totalMembers: number
+  trialEndsAt?: string
+  subscriptionEndsAt?: string
   createdAt: string
-  city: string | null
-  state: string | null
 }
 
-interface Stats {
-  totalClients: number
-  activeClients: number
-  trialClients: number
-  expiredClients: number
-  lockedClients: number
+interface KPICard {
+  title: string
+  value: number
+  change: string
+  icon: React.ReactNode
+  gradient: string
 }
 
 export default function AdminDashboard() {
-  const [clients, setClients] = useState<SocietyAccount[]>([])
-  const [stats, setStats] = useState<Stats>({
-    totalClients: 0,
-    activeClients: 0,
-    trialClients: 0,
-    expiredClients: 0,
-    lockedClients: 0
-  })
+  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [activeSection, setActiveSection] = useState('dashboard')
+  const [userData, setUserData] = useState<any>(null)
 
-  useEffect(() => {
+  // Navigation items
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Building2 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'help', label: 'Help', icon: HelpCircle }
+  ]
+
+  // Fetch user data
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/auth/check-session')
+      if (response.ok) {
+        const data = await response.json()
+        setUserData(data.user)
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+    }
+  }
+
+  // Navigation handlers
+  const handleNavigation = (section: string) => {
+    setActiveSection(section)
+    toast.success(`Navigated to ${section}`, {
+      description: `You are now viewing the ${section} section`,
+      duration: 2000,
+    })
+  }
+
+  const handleLogout = async () => {
+    try {
+      const { logout } = await import('@/lib/auth')
+      await logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Fallback logout
+      window.location.href = '/'
+    }
+  }
+
+  const handleProfile = () => {
+    toast.info('Profile', {
+      description: 'Profile management coming soon!',
+      duration: 3000,
+    })
+  }
+
+  const handleSettings = () => {
+    setActiveSection('settings')
+    toast.info('Settings', {
+      description: 'Opening settings panel...',
+      duration: 2000,
+    })
+  }
+
+  const handleExportData = () => {
+    toast.success('Export Started', {
+      description: 'Exporting client data to CSV...',
+      duration: 3000,
+    })
+    // Simulate export
+    setTimeout(() => {
+      const csvContent = 'data:text/csv;charset=utf-8,' + 
+        'Name,Email,Phone,Status,Plan,Created\n' +
+        clients.map(c => `${c.name},${c.email},${c.phone},${c.status},${c.subscriptionPlan},${c.createdAt}`).join('\n')
+      
+      const encodedUri = encodeURI(csvContent)
+      const link = document.createElement('a')
+      link.setAttribute('href', encodedUri)
+      link.setAttribute('download', 'clients_export.csv')
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }, 1000)
+  }
+
+  const handleRefreshData = () => {
+    setLoading(true)
     fetchClients()
-  }, [])
+    toast.info('Refreshing', {
+      description: 'Fetching latest data...',
+      duration: 2000,
+    })
+  }
 
+  const handleNotifications = () => {
+    toast.info('Notifications', {
+      description: 'You have 3 new notifications',
+      duration: 3000,
+    })
+  }
+
+  const handleKpiClick = (kpiTitle: string) => {
+    let section = 'dashboard'
+    switch (kpiTitle) {
+      case 'Total Clients':
+        section = 'clients'
+        break
+      case 'Active':
+        section = 'analytics'
+        break
+      case 'Trial':
+        section = 'billing'
+        break
+      case 'Expired':
+        section = 'reports'
+        break
+    }
+    setActiveSection(section)
+    toast.info(`Viewing ${kpiTitle}`, {
+      description: `Showing detailed ${kpiTitle.toLowerCase()} information`,
+      duration: 2000,
+    })
+  }
+  const kpiCards: KPICard[] = [
+    {
+      title: 'Total Clients',
+      value: clients.length,
+      change: '+12%',
+      icon: <Building2 className="h-5 w-5" />,
+      gradient: 'from-blue-500 to-blue-600'
+    },
+    {
+      title: 'Active',
+      value: clients.filter(c => c.status === 'ACTIVE').length,
+      change: '+8%',
+      icon: <TrendingUp className="h-5 w-5" />,
+      gradient: 'from-emerald-500 to-emerald-600'
+    },
+    {
+      title: 'Trial',
+      value: clients.filter(c => c.status === 'TRIAL').length,
+      change: '+3',
+      icon: <Users className="h-5 w-5" />,
+      gradient: 'from-amber-500 to-amber-600'
+    },
+    {
+      title: 'Expired',
+      value: clients.filter(c => c.status === 'EXPIRED').length,
+      change: '-2',
+      icon: <AlertCircle className="h-5 w-5" />,
+      gradient: 'from-red-500 to-red-600'
+    }
+  ]
+
+  // Fetch clients
   const fetchClients = async () => {
     try {
       const response = await fetch('/api/clients')
       if (response.ok) {
         const data = await response.json()
-        setClients(data.clients)
-        setStats(data.stats)
+        setClients(data.clients || [])
       }
     } catch (error) {
       console.error('Failed to fetch clients:', error)
@@ -98,6 +235,20 @@ export default function AdminDashboard() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchClients()
+    fetchUserData()
+  }, [])
+
+  // Filter clients
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.adminName?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = selectedStatus === 'all' || client.status === selectedStatus
+    return matchesSearch && matchesStatus
+  })
 
   const handleClientAction = async (action: string, clientId: string) => {
     try {
@@ -111,309 +262,306 @@ export default function AdminDashboard() {
         toast.success(`Client ${action} successfully`)
         fetchClients()
       } else {
-        toast.error('Failed to update client')
+        toast.error(`Failed to ${action} client`)
       }
     } catch (error) {
-      console.error('Failed to update client:', error)
-      toast.error('Failed to update client')
+      toast.error('An error occurred')
     }
   }
 
   const handleDeleteClient = async (clientId: string) => {
-    if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
-      return
-    }
+    if (confirm('Are you sure you want to delete this client?')) {
+      try {
+        const response = await fetch(`/api/clients/${clientId}`, {
+          method: 'DELETE'
+        })
 
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        toast.success('Client deleted successfully')
-        fetchClients()
-      } else {
-        toast.error('Failed to delete client')
+        if (response.ok) {
+          toast.success('Client deleted successfully')
+          fetchClients()
+        } else {
+          toast.error('Failed to delete client')
+        }
+      } catch (error) {
+        toast.error('An error occurred')
       }
-    } catch (error) {
-      console.error('Failed to delete client:', error)
-      toast.error('Failed to delete client')
     }
   }
-
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.adminEmail.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
-      case 'TRIAL': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-      case 'EXPIRED': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-      case 'LOCKED': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-    }
-  }
-
-  const getPlanColor = (plan: string) => {
-    switch (plan) {
-      case 'ENTERPRISE': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-      case 'PRO': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
-      case 'BASIC': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-      case 'TRIAL': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-    }
-  }
-
-  const sidebarItems = [
-    { icon: Building, label: 'Dashboard', active: true },
-    { icon: Users, label: 'Clients', active: false },
-    { icon: Settings, label: 'Settings', active: false },
-  ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
-      {/* Sidebar */}
-      <motion.div
-        initial={false}
-        animate={{ width: isSidebarOpen ? 280 : 80 }}
-        className="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300"
-      >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-8">
-            <div className={`flex items-center space-x-3 ${!isSidebarOpen && 'justify-center'}`}>
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
-                <Building className="w-5 h-5 text-white" />
-              </div>
-              {isSidebarOpen && (
-                <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  Saanify
-                </span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              {isSidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="flex">
+        {/* Sidebar */}
+        <motion.div
+          initial={{ x: -300 }}
+          animate={{ x: 0 }}
+          className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-screen p-6"
+        >
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Saanify</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Super Admin Panel</p>
           </div>
 
           <nav className="space-y-2">
-            {sidebarItems.map((item, index) => (
-              <motion.button
-                key={item.label}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  item.active
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                {isSidebarOpen && <span>{item.label}</span>}
-              </motion.button>
-            ))}
+            {navigationItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Button
+                  key={item.id}
+                  variant={activeSection === item.id ? "default" : "ghost"}
+                  className={`w-full justify-start ${
+                    activeSection === item.id 
+                      ? 'bg-sky-500 hover:bg-sky-600 text-white' 
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  onClick={() => handleNavigation(item.id)}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </Button>
+              )
+            })}
           </nav>
-        </div>
+        </motion.div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 dark:border-gray-700">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-            onClick={() => {
-              // Handle logout
-              window.location.href = '/login'
-            }}
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Topbar */}
+          <motion.header
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4"
           >
-            <LogOut className="w-5 h-5 mr-3" />
-            {isSidebarOpen && 'Logout'}
-          </Button>
-        </div>
-      </motion.div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white capitalize">
+                  {activeSection === 'dashboard' ? 'Client Management' : activeSection}
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {activeSection === 'dashboard' 
+                    ? 'Manage your society accounts and subscriptions' 
+                    : `Manage your ${activeSection} settings and information`
+                  }
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshData}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNotifications}
+                  className="flex items-center gap-2 relative"
+                >
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-bold">3</span>
+                  </span>
+                </Button>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Top Bar */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Super Admin Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Manage all society accounts and clients
-              </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportData}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+
+                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add New Client
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Client</DialogTitle>
+                    </DialogHeader>
+                    <AddClientModal 
+                      onClose={() => setIsAddModalOpen(false)}
+                      onSuccess={() => {
+                        setIsAddModalOpen(false)
+                        fetchClients()
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 flex items-center justify-center">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleProfile}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSettings}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleNotifications}>
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Client
-            </Button>
-          </div>
-        </div>
+          </motion.header>
 
-        <div className="p-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[
-              { label: 'Total Clients', value: stats.totalClients, icon: Building, color: 'from-blue-600 to-cyan-600' },
-              { label: 'Active', value: stats.activeClients, icon: TrendingUp, color: 'from-emerald-600 to-teal-600' },
-              { label: 'Trial', value: stats.trialClients, icon: AlertCircle, color: 'from-amber-600 to-orange-600' },
-              { label: 'Expired', value: stats.expiredClients, icon: Lock, color: 'from-red-600 to-pink-600' },
-            ].map((stat, index) => (
+          {/* Main Content Area */}
+          <main className="p-8">
+            {/* Dynamic Content Based on Active Section */}
+            {activeSection !== 'dashboard' && (
               <motion.div
-                key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                className="mb-8"
               >
                 <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                          {stat.label}
-                        </p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                          {stat.value}
-                        </p>
-                      </div>
-                      <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-lg flex items-center justify-center`}>
-                        <stat.icon className="w-6 h-6 text-white" />
-                      </div>
+                  <CardContent className="p-8 text-center">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 capitalize">
+                      {activeSection} Section
+                    </h2>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">
+                      This section is under development. Full {activeSection} functionality coming soon!
+                    </p>
+                    <div className="flex justify-center gap-4">
+                      <Button onClick={() => setActiveSection('dashboard')}>
+                        Back to Dashboard
+                      </Button>
+                      <Button variant="outline" onClick={() => toast.info(`Coming Soon`, {
+                        description: `${activeSection} features will be available soon!`,
+                        duration: 3000,
+                      })}>
+                        Notify Me When Ready
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
-            ))}
-          </div>
+            )}
 
-          {/* Clients Table */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Client Management</CardTitle>
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            {/* Dashboard Content */}
+            {activeSection === 'dashboard' && (
+              <>
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {kpiCards.map((kpi, index) => (
+                    <motion.div
+                      key={kpi.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      whileHover={{ scale: 1.02, cursor: 'pointer' }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleKpiClick(kpi.title)}
+                    >
+                      <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                        <div className={`absolute inset-0 bg-gradient-to-r ${kpi.gradient} opacity-5`} />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                            {kpi.title}
+                          </CardTitle>
+                          <div className={`p-2 rounded-lg bg-gradient-to-r ${kpi.gradient} text-white`}>
+                            {kpi.icon}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-slate-900 dark:text-white">{kpi.value}</div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <span className={kpi.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
+                              {kpi.change}
+                            </span>{' '}
+                            from last month
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Filters and Search */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="flex flex-col sm:flex-row gap-4 mb-6"
+                >
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                       placeholder="Search clients..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-10"
                     />
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filter
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Society Name</TableHead>
-                      <TableHead>Admin Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Subscription</TableHead>
-                      <TableHead>Members</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredClients.map((client, index) => (
-                      <motion.tr
-                        key={client.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <TableCell className="font-medium">
-                          {client.name}
-                        </TableCell>
-                        <TableCell>{client.adminEmail}</TableCell>
-                        <TableCell>{client.adminPhone || '-'}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(client.status)}>
-                            {client.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getPlanColor(client.subscriptionPlan)}>
-                            {client.subscriptionPlan}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{client.totalMembers}</TableCell>
-                        <TableCell>
-                          {client.city && client.state ? `${client.city}, ${client.state}` : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              {client.status === 'ACTIVE' ? (
-                                <DropdownMenuItem onClick={() => handleClientAction('lock', client.id)}>
-                                  <Lock className="w-4 h-4 mr-2" />
-                                  Lock
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem onClick={() => handleClientAction('unlock', client.id)}>
-                                  <Unlock className="w-4 h-4 mr-2" />
-                                  Unlock
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteClient(client.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="TRIAL">Trial</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="EXPIRED">Expired</option>
+                    <option value="LOCKED">Locked</option>
+                  </select>
+                </motion.div>
+
+                {/* Clients Table */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Society Accounts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {loading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+                        </div>
+                      ) : (
+                        <ClientsTable
+                          clients={filteredClients}
+                          onAction={handleClientAction}
+                          onDelete={handleDeleteClient}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </>
+            )}
+          </main>
         </div>
       </div>
-
-      {/* Add Client Modal */}
-      <AddClientModal
-        isOpen={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
-        onClientAdded={fetchClients}
-      />
     </div>
   )
 }

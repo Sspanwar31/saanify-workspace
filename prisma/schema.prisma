@@ -14,37 +14,42 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  name            String?
-  password        String
-  role            String    @default("CLIENT") // CLIENT, SUPER_ADMIN
-  isActive        Boolean   @default(true)
-  lastLoginAt     DateTime?
-  societyAccountId String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  password          String
+  role              String    @default("CLIENT") // CLIENT, SUPER_ADMIN
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  societyAccountId  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   
   // Relations
-  societyAccount  SocietyAccount? @relation(fields: [societyAccountId], references: [id])
-  createdSocieties Society[]
+  societyAccount    SocietyAccount? @relation(fields: [societyAccountId], references: [id])
+  createdSocieties  Society[]
   
   @@map("users")
 }
 
 model SocietyAccount {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  address     String?
-  phone       String?
-  email       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  adminName           String?
+  email               String   @unique
+  phone               String?
+  address             String?
+  subscriptionPlan    String   @default("TRIAL") // TRIAL, BASIC, PRO, ENTERPRISE
+  status              String   @default("TRIAL") // TRIAL, ACTIVE, EXPIRED, LOCKED
+  trialEndsAt         DateTime?
+  subscriptionEndsAt  DateTime?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
   
   // Relations
-  users       User[]
-  societies   Society[]
+  users               User[]
+  societies           Society[]
   
   @@map("society_accounts")
 }

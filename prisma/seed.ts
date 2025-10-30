@@ -30,69 +30,82 @@ async function main() {
     console.log('✅ Super admin already exists:', existingAdmin.email)
   }
 
-  // Create some sample customers for testing
-  const sampleCustomers = [
+  // Create dummy society accounts as requested
+  const dummySocieties = [
     {
-      email: 'john.doe@example.com',
-      name: 'John Doe',
-      company: 'Doe Enterprises',
-      plan: 'PROFESSIONAL',
-      status: 'active',
-      revenue: 999
+      name: 'Green Valley Society',
+      adminName: 'Robert Johnson',
+      email: 'admin@greenvalley.com',
+      phone: '+91 98765 43210',
+      address: '123 Green Valley Road, Bangalore',
+      subscriptionPlan: 'PRO' as const,
+      status: 'ACTIVE' as const,
+      trialEndsAt: null,
+      subscriptionEndsAt: new Date('2024-12-31')
     },
     {
-      email: 'jane.smith@example.com',
-      name: 'Jane Smith',
-      company: 'Smith Consulting',
-      plan: 'STARTER',
-      status: 'trial',
-      revenue: 0
+      name: 'Sunset Apartments',
+      adminName: 'Maria Garcia',
+      email: 'admin@sunsetapartments.com',
+      phone: '+91 98765 43211',
+      address: '456 Sunset Boulevard, Mumbai',
+      subscriptionPlan: 'TRIAL' as const,
+      status: 'TRIAL' as const,
+      trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      subscriptionEndsAt: null
     },
     {
-      email: 'mike.wilson@example.com',
-      name: 'Mike Wilson',
-      company: 'Wilson Tech',
-      plan: 'ENTERPRISE',
-      status: 'active',
-      revenue: 2499
+      name: 'Royal Residency',
+      adminName: 'William Chen',
+      email: 'admin@royalresidency.com',
+      phone: '+91 98765 43212',
+      address: '789 Royal Street, Delhi',
+      subscriptionPlan: 'BASIC' as const,
+      status: 'EXPIRED' as const,
+      trialEndsAt: null,
+      subscriptionEndsAt: new Date('2024-01-31')
     },
     {
-      email: 'sarah.jones@example.com',
-      name: 'Sarah Jones',
-      company: 'Jones Media',
-      plan: 'PROFESSIONAL',
-      status: 'expired',
-      revenue: 599
-    },
-    {
-      email: 'alex.brown@example.com',
-      name: 'Alex Brown',
-      company: 'Brown Studios',
-      plan: 'STARTER',
-      status: 'locked',
-      revenue: 99
+      name: 'Blue Sky Heights',
+      adminName: 'Patricia Williams',
+      email: 'admin@blueskyheights.com',
+      phone: '+91 98765 43213',
+      address: '321 Blue Sky Avenue, Pune',
+      subscriptionPlan: 'ENTERPRISE' as const,
+      status: 'LOCKED' as const,
+      trialEndsAt: null,
+      subscriptionEndsAt: new Date('2024-06-30')
     }
   ]
 
-  for (const customer of sampleCustomers) {
-    const existingCustomer = await prisma.user.findUnique({
-      where: { email: customer.email }
+  for (const society of dummySocieties) {
+    const existingSociety = await prisma.societyAccount.findUnique({
+      where: { email: society.email }
     })
 
-    if (!existingCustomer) {
-      const hashedPassword = await bcrypt.hash('password123', 12)
+    if (!existingSociety) {
+      // Create society account
+      const createdSociety = await prisma.societyAccount.create({
+        data: society
+      })
+
+      // Create admin user for the society
+      const hashedPassword = await bcrypt.hash('Saanify@123', 12)
       
       await prisma.user.create({
         data: {
-          email: customer.email,
-          name: customer.name,
+          email: society.email,
+          name: society.adminName,
           password: hashedPassword,
           role: 'CLIENT',
-          isActive: customer.status !== 'locked'
+          societyAccountId: createdSociety.id,
+          isActive: society.status !== 'LOCKED'
         }
       })
       
-      console.log(`✅ Sample customer created: ${customer.email}`)
+      console.log(`✅ Dummy society created: ${society.name}`)
+    } else {
+      console.log(`✅ Society already exists: ${society.name}`)
     }
   }
 

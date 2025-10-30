@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+// PATCH /api/clients/[id] - Update client status or other properties
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -9,19 +10,12 @@ export async function PATCH(
     const { action } = await request.json()
     const clientId = params.id
 
-    if (!action) {
-      return NextResponse.json(
-        { error: 'Action is required' },
-        { status: 400 }
-      )
-    }
-
-    // Find the society account
-    const society = await db.societyAccount.findUnique({
+    // Find the client
+    const client = await db.societyAccount.findUnique({
       where: { id: clientId }
     })
 
-    if (!society) {
+    if (!client) {
       return NextResponse.json(
         { error: 'Client not found' },
         { status: 404 }
@@ -34,21 +28,33 @@ export async function PATCH(
       case 'lock':
         updateData = { status: 'LOCKED' }
         break
+      
       case 'unlock':
         updateData = { status: 'ACTIVE' }
         break
+      
       case 'activate':
-        updateData = { 
+        updateData = {
           status: 'ACTIVE',
-          subscriptionEndsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+          subscriptionEndsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+          trialEndsAt: null
         }
         break
+      
+      case 'expire':
+        updateData = { status: 'EXPIRED' }
+        break
+      
       case 'extend_trial':
+        const { days } = await request.json()
+        const newTrialEnd = new Date()
+        newTrialEnd.setDate(newTrialEnd.getDate() + days)
         updateData = {
           status: 'TRIAL',
-          trialEndsAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) // 15 days
+          trialEndsAt: newTrialEnd
         }
         break
+      
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -56,19 +62,24 @@ export async function PATCH(
         )
     }
 
-    const updatedSociety = await db.societyAccount.update({
+    const updatedClient = await db.societyAccount.update({
       where: { id: clientId },
       data: updateData
     })
 
     return NextResponse.json({
-      success: true,
       message: `Client ${action} successfully`,
-      society: updatedSociety
+      client: {
+        id: updatedClient.id,
+        name: updatedClient.name,
+        status: updatedClient.status,
+        subscriptionPlan: updatedClient.subscriptionPlan,
+        trialEndsAt: updatedClient.trialEndsAt?.toISOString(),
+        subscriptionEndsAt: updatedClient.subscriptionEndsAt?.toISOString()
+      }
     })
-
   } catch (error) {
-    console.error('Failed to update client:', error)
+    console.error('Error updating client:', error)
     return NextResponse.json(
       { error: 'Failed to update client' },
       { status: 500 }
@@ -76,6 +87,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/clients/[id] - Delete a client
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -83,38 +95,42 @@ export async function DELETE(
   try {
     const clientId = params.id
 
-    // Find the society account
-    const society = await db.societyAccount.findUnique({
+    // Find the client
+    const client = await db.societyAccount.findUnique({
       where: { id: clientId },
-      include: { users: true }
+      include: {
+        users: true,
+        societies: true
+      }
     })
 
-    if (!society) {
+    if (!client) {
       return NextResponse.json(
         { error: 'Client not found' },
         { status: 404 }
       )
     }
 
-    // Soft delete by setting isActive to false
-    await db.societyAccount.update({
-      where: { id: clientId },
-      data: { isActive: false }
+    // Delete all related users
+    await db.user.deleteMany({
+      where: { societyAccountId: clientId }
     })
 
-    // Also deactivate all users associated with this society
-    await db.user.updateMany({
-      where: { societyAccountId: clientId },
-      data: { isActive: false }
+    // Delete all related societies
+    await db.society.deleteMany({
+      where: { societyAccountId: clientId }
+    })
+
+    // Delete the society account
+    await db.societyAccount.delete({
+      where: { id: clientId }
     })
 
     return NextResponse.json({
-      success: true,
       message: 'Client deleted successfully'
     })
-
   } catch (error) {
-    console.error('Failed to delete client:', error)
+    console.error('Error deleting client:', error)
     return NextResponse.json(
       { error: 'Failed to delete client' },
       { status: 500 }

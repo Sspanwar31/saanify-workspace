@@ -177,7 +177,7 @@ export default function Navbar() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={handleSignIn}
+                  onClick={() => window.location.href = '/login'}
                   className={`font-medium ${
                     isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
                   }`}
@@ -274,7 +274,7 @@ export default function Navbar() {
                       variant="ghost" 
                       className="w-full justify-start font-medium text-foreground hover:text-foreground"
                       onClick={() => {
-                        handleSignIn()
+                        window.location.href = '/login'
                         setIsMobileMenuOpen(false)
                       }}
                     >

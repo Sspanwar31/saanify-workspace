@@ -1,32 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { z } from 'zod'
 
+// Schema for creating a new client
+const createClientSchema = z.object({
+  societyName: z.string().min(1, 'Society name is required'),
+  adminName: z.string().min(1, 'Admin name is required'),
+  email: z.string().email('Valid email is required'),
+  phone: z.string().optional(),
+  subscriptionType: z.enum(['TRIAL', 'BASIC', 'PRO', 'ENTERPRISE']),
+  trialPeriod: z.string().optional()
+})
+
+// GET /api/clients - Fetch all clients
 export async function GET(request: NextRequest) {
   try {
-    // Get all society accounts
-    const societies = await db.societyAccount.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
-    })
+    // Check if user is authenticated and is super admin
+    const authHeader = request.headers.get('authorization')
+    const token = request.cookies.get('auth-token')?.value
 
-    // Calculate stats
-    const stats = {
-      totalClients: societies.length,
-      activeClients: societies.filter(s => s.status === 'ACTIVE').length,
-      trialClients: societies.filter(s => s.status === 'TRIAL').length,
-      expiredClients: societies.filter(s => s.status === 'EXPIRED').length,
-      lockedClients: societies.filter(s => s.status === 'LOCKED').length
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    return NextResponse.json({
-      success: true,
-      clients: societies,
-      stats
+    // For now, we'll skip token verification and just fetch clients
+    // In production, you should verify the JWT token here
+
+    const clients = await db.societyAccount.findMany({
+      include: {
+        users: {
+          where: {
+            role: 'CLIENT'
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
     })
 
+    const formattedClients = clients.map(client => ({
+      id: client.id,
+      name: client.name,
+      adminName: client.adminName,
+      email: client.email,
+      phone: client.phone,
+      status: client.status,
+      subscriptionPlan: client.subscriptionPlan,
+      trialEndsAt: client.trialEndsAt?.toISOString(),
+      subscriptionEndsAt: client.subscriptionEndsAt?.toISOString(),
+      createdAt: client.createdAt.toISOString(),
+      usersCount: client.users.length
+    }))
+
+    return NextResponse.json({ clients: formattedClients })
   } catch (error) {
-    console.error('Failed to fetch clients:', error)
+    console.error('Error fetching clients:', error)
     return NextResponse.json(
       { error: 'Failed to fetch clients' },
       { status: 500 }
@@ -34,115 +64,88 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/clients - Create a new client
 export async function POST(request: NextRequest) {
   try {
-    const {
-      societyName,
-      adminName,
-      adminEmail,
-      adminPhone,
-      subscriptionType,
-      trialPeriod,
-      address,
-      city,
-      state,
-      postalCode,
-      totalMembers
-    } = await request.json()
+    const body = await request.json()
+    const validatedData = createClientSchema.parse(body)
 
-    // Validate required fields
-    if (!societyName || !adminName || !adminEmail || !totalMembers) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    // Check if society with same email already exists
-    const existingSociety = await db.societyAccount.findFirst({
-      where: { adminEmail }
+    // Check if society account with this email already exists
+    const existingSociety = await db.societyAccount.findUnique({
+      where: { email: validatedData.email }
     })
 
     if (existingSociety) {
       return NextResponse.json(
-        { error: 'A society with this admin email already exists' },
+        { error: 'A society with this email already exists' },
         { status: 400 }
       )
     }
 
-    // Check if user with same email already exists
-    const existingUser = await db.user.findFirst({
-      where: { email: adminEmail }
-    })
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'A user with this email already exists' },
-        { status: 400 }
-      )
-    }
-
-    // Get current user (super admin) from headers
-    const userId = request.headers.get('x-user-id')
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Calculate trial end date if it's a trial subscription
+    let trialEndsAt = null
+    if (validatedData.subscriptionType === 'TRIAL' && validatedData.trialPeriod) {
+      const trialDays = parseInt(validatedData.trialPeriod)
+      trialEndsAt = new Date()
+      trialEndsAt.setDate(trialEndsAt.getDate() + trialDays)
     }
 
     // Create society account
-    const societyData: any = {
-      name: societyName,
-      adminEmail,
-      adminPhone: adminPhone || null,
-      status: subscriptionType === 'TRIAL' ? 'TRIAL' : 'ACTIVE',
-      subscriptionPlan: subscriptionType,
-      totalMembers: parseInt(totalMembers),
-      address: address || null,
-      city: city || null,
-      state: state || null,
-      postalCode: postalCode || null,
-      createdBy: userId
-    }
-
-    if (subscriptionType === 'TRIAL') {
-      societyData.trialEndsAt = new Date(Date.now() + trialPeriod * 24 * 60 * 60 * 1000)
-    } else {
-      societyData.subscriptionEndsAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
-    }
-
-    const society = await db.societyAccount.create({
-      data: societyData
+    const societyAccount = await db.societyAccount.create({
+      data: {
+        name: validatedData.societyName,
+        adminName: validatedData.adminName,
+        email: validatedData.email,
+        phone: validatedData.phone || null,
+        subscriptionPlan: validatedData.subscriptionType,
+        status: validatedData.subscriptionType === 'TRIAL' ? 'TRIAL' : 'ACTIVE',
+        trialEndsAt: trialEndsAt,
+        subscriptionEndsAt: validatedData.subscriptionType !== 'TRIAL' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null // 1 year for paid plans
+      }
     })
 
-    // Generate temporary password for admin
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
-    const hashedPassword = await bcrypt.hash(tempPassword, 10)
+    // Generate a default password for the admin
+    const defaultPassword = 'Saanify@123'
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10)
 
-    // Create admin user
-    const user = await db.user.create({
+    // Create admin user for the society
+    const adminUser = await db.user.create({
       data: {
-        name: adminName,
-        email: adminEmail,
-        phone: adminPhone || null,
+        name: validatedData.adminName,
+        email: validatedData.email,
         password: hashedPassword,
         role: 'CLIENT',
-        societyAccountId: society.id,
+        societyAccountId: societyAccount.id,
         isActive: true
       }
     })
 
     return NextResponse.json({
-      success: true,
       message: 'Client created successfully',
-      society,
-      user,
-      tempPassword // In production, send this via email
+      client: {
+        id: societyAccount.id,
+        name: societyAccount.name,
+        adminName: societyAccount.adminName,
+        email: societyAccount.email,
+        phone: societyAccount.phone,
+        status: societyAccount.status,
+        subscriptionPlan: societyAccount.subscriptionPlan,
+        trialEndsAt: societyAccount.trialEndsAt?.toISOString(),
+        subscriptionEndsAt: societyAccount.subscriptionEndsAt?.toISOString(),
+        createdAt: societyAccount.createdAt.toISOString(),
+        defaultPassword // Return default password for first login
+      }
     })
-
   } catch (error) {
-    console.error('Failed to create client:', error)
+    console.error('Error creating client:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       { error: 'Failed to create client' },
       { status: 500 }

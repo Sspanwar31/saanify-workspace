@@ -55,9 +55,9 @@ export default function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
         
         // Redirect based on user role
         if (data.user.role === 'SUPER_ADMIN') {
-          window.location.href = '/dashboard/admin'
+          window.location.href = '/admin/dashboard'
         } else {
-          window.location.href = '/dashboard/client'
+          window.location.href = '/client/dashboard'
         }
         
         onOpenChange(false)
