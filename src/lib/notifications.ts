@@ -21,8 +21,6 @@ export class NotificationService {
     data?: any
   }) {
     try {
-      // For now, we'll store notifications in memory
-      // In production, you'd want to store this in the database
       const notification = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: data.userId,
@@ -34,13 +32,11 @@ export class NotificationService {
         data: data.data
       }
 
-      // Store in memory (you could also use Redis or database)
       if (!global.notifications) {
         global.notifications = []
       }
       global.notifications.push(notification)
 
-      // Keep only last 100 notifications per user
       global.notifications = global.notifications.filter(
         (n: any) => n.userId !== data.userId || 
         global.notifications.filter((x: any) => x.userId === data.userId).length <= 100
@@ -53,7 +49,6 @@ export class NotificationService {
     }
   }
 
-  // Get user notifications
   static async getUserNotifications(userId: string, limit: number = 50) {
     try {
       if (!global.notifications) {
@@ -72,7 +67,6 @@ export class NotificationService {
     }
   }
 
-  // Mark notification as read
   static async markAsRead(notificationId: string, userId: string) {
     try {
       if (!global.notifications) {
@@ -95,7 +89,6 @@ export class NotificationService {
     }
   }
 
-  // Mark all notifications as read for user
   static async markAllAsRead(userId: string) {
     try {
       if (!global.notifications) {
@@ -115,7 +108,6 @@ export class NotificationService {
     }
   }
 
-  // Delete notification
   static async deleteNotification(notificationId: string, userId: string) {
     try {
       if (!global.notifications) {
@@ -138,7 +130,6 @@ export class NotificationService {
     }
   }
 
-  // Get unread count
   static async getUnreadCount(userId: string) {
     try {
       if (!global.notifications) {
@@ -154,7 +145,6 @@ export class NotificationService {
     }
   }
 
-  // Create system notifications for common events
   static async createSystemNotification(userId: string, event: string, data?: any) {
     const notifications = {
       'customer_added': {
@@ -197,7 +187,6 @@ export class NotificationService {
   }
 }
 
-// Extend global type for notifications
 declare global {
   var notifications: Notification[] | undefined
 }
