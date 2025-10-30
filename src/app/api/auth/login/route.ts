@@ -24,8 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     const user = await db.user.findUnique({
-      where: { email: validatedData.email },
-      include: { societyAccount: true, createdSocieties: true }
+      where: { email: validatedData.email }
     })
 
     if (!user) {
@@ -90,9 +89,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
-        societyAccount: user.societyAccount,
-        createdSocieties: user.createdSocieties
+        role: user.role
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken

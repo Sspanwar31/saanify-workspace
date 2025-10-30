@@ -39,15 +39,7 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         isActive: true,
-        lastLoginAt: true,
-        societyAccount: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
-            subscriptionPlan: true
-          }
-        }
+        lastLoginAt: true
       }
     })
 
@@ -68,8 +60,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
-        lastLoginAt: user.lastLoginAt,
-        societyAccount: user.societyAccount
+        lastLoginAt: user.lastLoginAt
       }
     })
 

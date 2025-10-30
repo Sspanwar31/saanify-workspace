@@ -2,18 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Create response and clear the auth cookie
+    // Create response that clears cookies
     const response = NextResponse.json({
       success: true,
-      message: 'Logout successful'
+      message: 'Logged out successfully'
     })
 
-    // Clear the auth cookie
+    // Clear auth cookies
     response.cookies.set('auth-token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 0 // Immediately expire the cookie
+      maxAge: 0, // Immediately expire
+      path: '/'
+    })
+
+    response.cookies.set('refresh-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0, // Immediately expire
+      path: '/'
     })
 
     return response
@@ -21,7 +30,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Logout error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Logout failed' },
       { status: 500 }
     )
   }

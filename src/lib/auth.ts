@@ -135,7 +135,15 @@ export const makeAuthenticatedRequest = async (
 
 export const checkSession = async (): Promise<{ authenticated: boolean; user?: UserInfo }> => {
   try {
-    const response = await fetch('/api/auth/check-session')
+    // Get access token and send it with the request
+    const accessToken = getAccessToken()
+    
+    const response = await fetch('/api/auth/check-session', {
+      headers: accessToken ? {
+        'Authorization': `Bearer ${accessToken}`
+      } : {}
+    })
+    
     const data = await response.json()
     
     if (data.authenticated && data.user) {
