@@ -108,15 +108,24 @@ class GitHubAPI {
     return response.json()
   }
 
-  async updateReference(sha: string) {
-    const response = await this.makeRequest(
-      `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/git/refs/heads/${this.config.branch}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ sha })
+  async updateReference(sha: string, force: boolean = false) {
+    try {
+      const response = await this.makeRequest(
+        `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/git/refs/heads/${this.config.branch}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ sha, force })
+        }
+      )
+      return response.json()
+    } catch (error: any) {
+      // If fast-forward error and force is not enabled, try with force
+      if (!force && error.message?.includes('Update is not a fast forward')) {
+        console.log('Fast-forward update failed, attempting force push...')
+        return this.updateReference(sha, true)
       }
-    )
-    return response.json()
+      throw error
+    }
   }
 
   async getRepository() {
