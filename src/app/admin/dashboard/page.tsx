@@ -27,17 +27,21 @@ import {
   Bell,
   Download,
   Upload,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AddClientModal } from '@/components/admin/AddClientModal'
 import { ClientsTable } from '@/components/admin/ClientsTable'
+import { ClientStats } from '@/components/admin/ClientStats'
+import { RevenueToggle } from '@/components/ui/RevenueToggle'
+import { AnalyticsCharts } from '@/components/admin/AnalyticsCharts'
 import { toast } from 'sonner'
 
 interface Client {
@@ -53,22 +57,17 @@ interface Client {
   createdAt: string
 }
 
-interface KPICard {
-  title: string
-  value: number
-  change: string
-  icon: React.ReactNode
-  gradient: string
-}
-
 export default function AdminDashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedPlan, setSelectedPlan] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<string>('name')
   const [activeSection, setActiveSection] = useState('dashboard')
   const [userData, setUserData] = useState<any>(null)
+  const [showRevenue, setShowRevenue] = useState(false)
 
   // Navigation items
   const navigationItems = [
@@ -138,8 +137,8 @@ export default function AdminDashboard() {
     // Simulate export
     setTimeout(() => {
       const csvContent = 'data:text/csv;charset=utf-8,' + 
-        'Name,Email,Phone,Status,Plan,Created\n' +
-        clients.map(c => `${c.name},${c.email},${c.phone},${c.status},${c.subscriptionPlan},${c.createdAt}`).join('\n')
+        'Name,Email,Phone,Status,Plan,Created,Trial Ends,Subscription Ends\n' +
+        clients.map(c => `${c.name},${c.email},${c.phone},${c.status},${c.subscriptionPlan},${c.createdAt},${c.trialEndsAt || ''},${c.subscriptionEndsAt || ''}`).join('\n')
       
       const encodedUri = encodeURI(csvContent)
       const link = document.createElement('a')
@@ -167,59 +166,6 @@ export default function AdminDashboard() {
     })
   }
 
-  const handleKpiClick = (kpiTitle: string) => {
-    let section = 'dashboard'
-    switch (kpiTitle) {
-      case 'Total Clients':
-        section = 'clients'
-        break
-      case 'Active':
-        section = 'analytics'
-        break
-      case 'Trial':
-        section = 'billing'
-        break
-      case 'Expired':
-        section = 'reports'
-        break
-    }
-    setActiveSection(section)
-    toast.info(`Viewing ${kpiTitle}`, {
-      description: `Showing detailed ${kpiTitle.toLowerCase()} information`,
-      duration: 2000,
-    })
-  }
-  const kpiCards: KPICard[] = [
-    {
-      title: 'Total Clients',
-      value: clients.length,
-      change: '+12%',
-      icon: <Building2 className="h-5 w-5" />,
-      gradient: 'from-blue-500 to-blue-600'
-    },
-    {
-      title: 'Active',
-      value: clients.filter(c => c.status === 'ACTIVE').length,
-      change: '+8%',
-      icon: <TrendingUp className="h-5 w-5" />,
-      gradient: 'from-emerald-500 to-emerald-600'
-    },
-    {
-      title: 'Trial',
-      value: clients.filter(c => c.status === 'TRIAL').length,
-      change: '+3',
-      icon: <Users className="h-5 w-5" />,
-      gradient: 'from-amber-500 to-amber-600'
-    },
-    {
-      title: 'Expired',
-      value: clients.filter(c => c.status === 'EXPIRED').length,
-      change: '-2',
-      icon: <AlertCircle className="h-5 w-5" />,
-      gradient: 'from-red-500 to-red-600'
-    }
-  ]
-
   // Fetch clients
   const fetchClients = async () => {
     try {
@@ -241,14 +187,30 @@ export default function AdminDashboard() {
     fetchUserData()
   }, [])
 
-  // Filter clients
-  const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.adminName?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = selectedStatus === 'all' || client.status === selectedStatus
-    return matchesSearch && matchesStatus
-  })
+  // Filter and sort clients
+  const filteredClients = clients
+    .filter(client => {
+      const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           client.adminName?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = selectedStatus === 'all' || client.status === selectedStatus
+      const matchesPlan = selectedPlan === 'all' || client.subscriptionPlan === selectedPlan
+      return matchesSearch && matchesStatus && matchesPlan
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'status':
+          return a.status.localeCompare(b.status)
+        case 'plan':
+          return a.subscriptionPlan.localeCompare(b.subscriptionPlan)
+        case 'created':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        default:
+          return 0
+      }
+    })
 
   const handleClientAction = async (action: string, clientId: string) => {
     try {
@@ -270,22 +232,48 @@ export default function AdminDashboard() {
   }
 
   const handleDeleteClient = async (clientId: string) => {
-    if (confirm('Are you sure you want to delete this client?')) {
-      try {
-        const response = await fetch(`/api/clients/${clientId}`, {
-          method: 'DELETE'
-        })
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE'
+      })
 
-        if (response.ok) {
-          toast.success('Client deleted successfully')
-          fetchClients()
-        } else {
-          toast.error('Failed to delete client')
-        }
-      } catch (error) {
-        toast.error('An error occurred')
+      if (response.ok) {
+        toast.success('Client deleted successfully')
+        fetchClients()
+      } else {
+        toast.error('Failed to delete client')
       }
+    } catch (error) {
+      toast.error('An error occurred')
     }
+  }
+
+  const calculateTotalRevenue = () => {
+    const planPrices = {
+      TRIAL: 0,
+      BASIC: 99,
+      PRO: 299,
+      ENTERPRISE: 999
+    }
+    
+    return clients.reduce((total, client) => {
+      return total + (planPrices[client.subscriptionPlan as keyof typeof planPrices] || 0)
+    }, 0)
+  }
+
+  const calculateClientRevenue = () => {
+    const planPrices = {
+      TRIAL: 0,
+      BASIC: 99,
+      PRO: 299,
+      ENTERPRISE: 999
+    }
+    
+    const revenue: Record<string, number> = {}
+    clients.forEach(client => {
+      revenue[client.id] = planPrices[client.subscriptionPlan as keyof typeof planPrices] || 0
+    })
+    return revenue
   }
 
   return (
@@ -295,10 +283,10 @@ export default function AdminDashboard() {
         <motion.div
           initial={{ x: -300 }}
           animate={{ x: 0 }}
-          className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-screen p-6"
+          className="w-64 bg-white/80 backdrop-blur-sm dark:bg-slate-800/80 border-r border-slate-200/50 dark:border-slate-700/50 min-h-screen p-6 sticky top-0"
         >
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Saanify</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">Saanify</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">Super Admin Panel</p>
           </div>
 
@@ -306,19 +294,24 @@ export default function AdminDashboard() {
             {navigationItems.map((item) => {
               const Icon = item.icon
               return (
-                <Button
+                <motion.div
                   key={item.id}
-                  variant={activeSection === item.id ? "default" : "ghost"}
-                  className={`w-full justify-start ${
-                    activeSection === item.id 
-                      ? 'bg-sky-500 hover:bg-sky-600 text-white' 
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  onClick={() => handleNavigation(item.id)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {item.label}
-                </Button>
+                  <Button
+                    variant={activeSection === item.id ? "default" : "ghost"}
+                    className={`w-full justify-start transition-all duration-200 ${
+                      activeSection === item.id 
+                        ? 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white shadow-lg' 
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                    onClick={() => handleNavigation(item.id)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </motion.div>
               )
             })}
           </nav>
@@ -330,7 +323,7 @@ export default function AdminDashboard() {
           <motion.header
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4"
+            className="bg-white/80 backdrop-blur-sm dark:bg-slate-800/80 border-b border-slate-200/50 dark:border-slate-700/50 px-8 py-4 sticky top-0 z-10"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -350,7 +343,7 @@ export default function AdminDashboard() {
                   variant="outline"
                   size="sm"
                   onClick={handleRefreshData}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   <RefreshCw className="h-4 w-4" />
                   Refresh
@@ -360,7 +353,7 @@ export default function AdminDashboard() {
                   variant="outline"
                   size="sm"
                   onClick={handleNotifications}
-                  className="flex items-center gap-2 relative"
+                  className="flex items-center gap-2 relative hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   <Bell className="h-4 w-4" />
                   Notifications
@@ -373,7 +366,7 @@ export default function AdminDashboard() {
                   variant="outline"
                   size="sm"
                   onClick={handleExportData}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   <Download className="h-4 w-4" />
                   Export
@@ -381,10 +374,12 @@ export default function AdminDashboard() {
 
                 <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                   <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add New Client
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 shadow-lg">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Client
+                      </Button>
+                    </motion.div>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
@@ -402,7 +397,7 @@ export default function AdminDashboard() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
                       <div className="h-8 w-8 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 flex items-center justify-center">
                         <User className="h-4 w-4 text-white" />
                       </div>
@@ -467,91 +462,136 @@ export default function AdminDashboard() {
             {/* Dashboard Content */}
             {activeSection === 'dashboard' && (
               <>
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  {kpiCards.map((kpi, index) => (
-                    <motion.div
-                      key={kpi.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      whileHover={{ scale: 1.02, cursor: 'pointer' }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleKpiClick(kpi.title)}
-                    >
-                      <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                        <div className={`absolute inset-0 bg-gradient-to-r ${kpi.gradient} opacity-5`} />
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                            {kpi.title}
-                          </CardTitle>
-                          <div className={`p-2 rounded-lg bg-gradient-to-r ${kpi.gradient} text-white`}>
-                            {kpi.icon}
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-slate-900 dark:text-white">{kpi.value}</div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            <span className={kpi.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
-                              {kpi.change}
-                            </span>{' '}
-                            from last month
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Filters and Search */}
+                {/* Revenue Toggle */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex flex-col sm:flex-row gap-4 mb-6"
+                  className="mb-8"
                 >
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      placeholder="Search clients..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="TRIAL">Trial</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="EXPIRED">Expired</option>
-                    <option value="LOCKED">Locked</option>
-                  </select>
+                  <RevenueToggle
+                    showRevenue={showRevenue}
+                    onToggle={setShowRevenue}
+                    totalRevenue={calculateTotalRevenue()}
+                    clientRevenue={calculateClientRevenue()}
+                  />
+                </motion.div>
+
+                {/* Animated Stats Cards */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="mb-8"
+                >
+                  <ClientStats clients={clients} showRevenue={showRevenue} />
+                </motion.div>
+
+                {/* Analytics Charts Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <AnalyticsCharts clients={clients} showRevenue={showRevenue} />
+                </motion.div>
+
+                {/* Filter Bar */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="mb-6"
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row gap-4">
+                        <div className="flex-1">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                            <Input
+                              placeholder="Search clients by name, email, or admin..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3">
+                          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                            <SelectTrigger className="w-40">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Status</SelectItem>
+                              <SelectItem value="TRIAL">Trial</SelectItem>
+                              <SelectItem value="ACTIVE">Active</SelectItem>
+                              <SelectItem value="EXPIRED">Expired</SelectItem>
+                              <SelectItem value="LOCKED">Locked</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                            <SelectTrigger className="w-40">
+                              <SelectValue placeholder="Plan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Plans</SelectItem>
+                              <SelectItem value="TRIAL">Trial</SelectItem>
+                              <SelectItem value="BASIC">Basic</SelectItem>
+                              <SelectItem value="PRO">Pro</SelectItem>
+                              <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger className="w-40">
+                              <ArrowUpDown className="h-4 w-4 mr-2" />
+                              <SelectValue placeholder="Sort by" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="name">Name</SelectItem>
+                              <SelectItem value="status">Status</SelectItem>
+                              <SelectItem value="plan">Plan</SelectItem>
+                              <SelectItem value="created">Created</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </motion.div>
 
                 {/* Clients Table */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
+                  transition={{ delay: 0.6 }}
                 >
-                  <Card>
+                  <Card className="border-2 border-slate-200 dark:border-slate-700">
                     <CardHeader>
-                      <CardTitle>Society Accounts</CardTitle>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>Client Management</span>
+                        <Badge variant="outline" className="text-sm">
+                          {filteredClients.length} of {clients.length} clients
+                        </Badge>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {loading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+                        <div className="flex items-center justify-center py-12">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"
+                          />
                         </div>
                       ) : (
                         <ClientsTable
                           clients={filteredClients}
                           onAction={handleClientAction}
                           onDelete={handleDeleteClient}
+                          showRevenue={showRevenue}
                         />
                       )}
                     </CardContent>

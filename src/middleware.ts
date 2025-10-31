@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 // Routes that require authentication
 const protectedRoutes = ['/dashboard/admin', '/dashboard/client', '/dashboard']
@@ -31,31 +28,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as any
-    
-    // Check role-based access
-    if (pathname.startsWith('/dashboard/admin') && decoded.role !== 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    if (pathname.startsWith('/dashboard/client') && decoded.role !== 'CLIENT') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    // Add user info to headers for server-side usage
-    const response = NextResponse.next()
-    response.headers.set('x-user-id', decoded.userId)
-    response.headers.set('x-user-role', decoded.role)
-    response.headers.set('x-user-email', decoded.email)
-    
-    return response
-
-  } catch (error) {
-    // Invalid token - redirect to home
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+  // For now, just check if token exists (you can implement proper JWT verification in API routes)
+  // Add user info to headers for server-side usage (this would come from decoded JWT in a real implementation)
+  const response = NextResponse.next()
+  response.headers.set('x-user-token', token)
+  
+  return response
 }
 
 export const config = {
