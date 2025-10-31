@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Quick Restore Script for Saanify Workspace
+# Quick Restore Script for Saanify Workspace - FIXED VERSION
 # Usage: ./quick-restore.sh [backup-id]
 
 set -e
@@ -16,8 +16,8 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-echo -e "${BLUE}🔄 Saanify Workspace - Quick Restore${NC}"
-echo -e "${BLUE}=======================================${NC}"
+echo -e "${BLUE}🔄 Saanify Workspace - Quick Restore (Fixed)${NC}"
+echo -e "${BLUE}========================================${NC}"
 
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
@@ -60,10 +60,17 @@ for arg in "$@"; do
     esac
 done
 
+# Check if simple-restore.js exists
+if [ ! -f "$SCRIPT_DIR/simple-restore.js" ]; then
+    echo -e "${RED}Error: simple-restore.js not found${NC}"
+    echo -e "${BLUE}Please ensure the backup system is properly installed${NC}"
+    exit 1
+fi
+
 # Warning message
 if [ "$SILENT" = false ]; then
     echo -e "${YELLOW}⚠️  This will restore your project from a backup.${NC}"
-    echo -e "${YELLOW}⚠️  Current project files will be overwritten!${NC}"
+    echo -e "${YELLOW}⚚�️  Current project files will be overwritten!${NC}"
     echo
     
     read -p "Are you sure you want to continue? (y/N): " -n 1 -r
@@ -80,12 +87,13 @@ if [ "$SILENT" = false ]; then
 fi
 
 if [ -n "$BACKUP_ID" ]; then
-    node "$SCRIPT_DIR/restore.js" restore "$BACKUP_ID"
+    echo "node \"$SCRIPT_DIR/simple-restore.js\" restore \"$BACKUP_ID\"" | bash
 else
-    node "$SCRIPT_DIR/restore.js" restore
+    echo "node \"$SCRIPT_DIR/simple-restore.js\" restore" | bash
 fi
 
 if [ "$SILENT" = false ]; then
     echo -e "${GREEN}✅ Restore completed successfully!${NC}"
     echo -e "${BLUE}🚀 Project is ready to use!${NC}"
+    echo -e "${BLUE}📝 Run \"npm run dev\" to start the development server${NC}"
 fi

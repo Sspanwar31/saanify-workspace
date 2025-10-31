@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Building2, 
   Users, 
+  Building2, 
   TrendingUp, 
   CreditCard, 
   Calendar,
@@ -14,13 +14,53 @@ import {
   ChevronDown,
   ArrowUpRight,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  Edit,
+  Trash2,
+  Download,
+  RefreshCw,
+  Activity,
+  DollarSign,
+  FileText,
+  Shield,
+  Menu,
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+
+// Import new components
+import { ClientDashboardStats } from '@/components/client/ClientDashboardStats'
+import { MembersManagement } from '@/components/client/MembersManagement'
+import { PassbookManagement } from '@/components/client/PassbookManagement'
+import { LoansManagement } from '@/components/client/LoansManagement'
+import { MaturityTracking } from '@/components/client/MaturityTracking'
+import { AdminFundManagement } from '@/components/client/AdminFundManagement'
+import { ReportsManagement } from '@/components/client/ReportsManagement'
+import { UserManagement } from '@/components/client/UserManagement'
+import { useClientApi } from '@/lib/useClientApi'
+
+interface SocietyInfo {
+  id: string
+  name: string
+  status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'LOCKED'
+  subscriptionPlan: 'TRIAL' | 'BASIC' | 'PRO' | 'ENTERPRISE'
+  subscriptionEndsAt?: string
+  adminName: string
+  adminEmail: string
+  adminPhone: string
+  address?: string
+  createdAt: string
+  totalMembers?: number
+  totalLoans?: number
+  totalSavings?: number
+}
 
 interface DashboardStats {
   totalMembers: number
@@ -29,55 +69,63 @@ interface DashboardStats {
   monthlyRevenue: number
   eventsThisMonth: number
   pendingApprovals: number
+  totalLoans: number
+  totalSavings: number
+  activeLoans: number
+  pendingLoans: number
+  maturityAmount: number
 }
 
-export default function ClientDashboard() {
+export default function ModernClientDashboard() {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [loading, setLoading] = useState(true)
+  const [societyInfo, setSocietyInfo] = useState<SocietyInfo | null>(null)
   const [stats, setStats] = useState<DashboardStats>({
     totalMembers: 0,
     activeMembers: 0,
     pendingPayments: 0,
     monthlyRevenue: 0,
     eventsThisMonth: 0,
-    pendingApprovals: 0
+    pendingApprovals: 0,
+    totalLoans: 0,
+    totalSavings: 0,
+    activeLoans: 0,
+    pendingLoans: 0,
+    maturityAmount: 0
   })
-  const [societyInfo, setSocietyInfo] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
 
-  // Mock data for demonstration
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setStats({
-        totalMembers: 156,
-        activeMembers: 142,
-        pendingPayments: 8,
-        monthlyRevenue: 245000,
-        eventsThisMonth: 3,
-        pendingApprovals: 5
-      })
-      
-      setSocietyInfo({
-        name: 'Green Valley Society',
-        status: 'ACTIVE',
-        subscriptionPlan: 'PRO',
-        subscriptionEndsAt: '2024-12-31',
-        adminName: 'John Doe'
-      })
-      
+  // Fetch society data
+  const fetchSocietyData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/society/current')
+      if (response.ok) {
+        const data = await response.json()
+        setSocietyInfo(data.society)
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Failed to fetch society data:', error)
+      toast.error('Failed to load society data')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  useEffect(() => {
+    fetchSocietyData()
   }, [])
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      TRIAL: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300',
-      ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300',
-      EXPIRED: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
-      LOCKED: 'bg-slate-100 text-slate-800 dark:bg-slate-900/20 dark:text-slate-300'
+      TRIAL: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 border-amber-200',
+      ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 border-emerald-200',
+      EXPIRED: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300 border-red-200',
+      LOCKED: 'bg-slate-100 text-slate-800 dark:bg-slate-900/20 dark:text-slate-300 border-slate-200'
     }
     
     return (
-      <Badge className={variants[status as keyof typeof variants] || variants.ACTIVE}>
+      <Badge className={cn(variants[status as keyof typeof variants] || variants.ACTIVE, 'font-medium')}>
         {status}
       </Badge>
     )
@@ -85,14 +133,14 @@ export default function ClientDashboard() {
 
   const getPlanBadge = (plan: string) => {
     const variants = {
-      TRIAL: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
-      BASIC: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300',
-      PRO: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300',
-      ENTERPRISE: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300'
+      TRIAL: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200',
+      BASIC: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200',
+      PRO: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300 border-indigo-200',
+      ENTERPRISE: 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300 border-teal-200'
     }
     
     return (
-      <Badge className={variants[plan as keyof typeof variants] || variants.PRO}>
+      <Badge className={cn(variants[plan as keyof typeof variants] || variants.PRO, 'font-medium')}>
         {plan}
       </Badge>
     )
@@ -101,207 +149,242 @@ export default function ClientDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full"
+        />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Topbar */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-900 dark:from-slate-900 dark:to-slate-800">
+      {/* Enhanced Topbar */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4"
+        className="bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 border-b border-slate-200/50 dark:border-slate-700/50 px-8 py-4 sticky top-0 z-50"
       >
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Welcome, {societyInfo?.name}
+              Welcome, {societyInfo?.name || 'Society Dashboard'}
             </h1>
             <div className="flex items-center gap-3 mt-2">
-              {getStatusBadge(societyInfo?.status)}
-              {getPlanBadge(societyInfo?.subscriptionPlan)}
+              {getStatusBadge(societyInfo?.status || 'ACTIVE')}
+              {getPlanBadge(societyInfo?.subscriptionPlan || 'TRIAL')}
               <span className="text-sm text-slate-500 dark:text-slate-400">
-                Admin: {societyInfo?.adminName}
+                Admin: {societyInfo?.adminName || 'Admin'}
               </span>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700">
+            <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700">
               <ArrowUpRight className="mr-2 h-4 w-4" />
               Upgrade Plan
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <LogOut className="mr-2 h-4 w-4 text-red-600" />
+                  Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </div>
-      </motion.header>
+        </motion.header>
 
       {/* Main Content */}
-      <main className="p-8">
-        {/* Coming Soon Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <Card className="bg-gradient-to-r from-sky-500 to-blue-600 text-white border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Client Dashboard Coming Soon</h2>
-                  <p className="text-sky-100">
-                    This panel will display society-specific data including member management, 
-                    financial reports, event scheduling, and more powerful features.
-                  </p>
-                </div>
-                <div className="hidden md:block">
-                  <Building2 className="h-16 w-16 text-sky-200" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {[
-            {
-              title: 'Total Members',
-              value: stats.totalMembers,
-              change: '+12%',
-              icon: <Users className="h-5 w-5" />,
-              gradient: 'from-blue-500 to-blue-600'
-            },
-            {
-              title: 'Active Members',
-              value: stats.activeMembers,
-              change: '+8%',
-              icon: <CheckCircle className="h-5 w-5" />,
-              gradient: 'from-emerald-500 to-emerald-600'
-            },
-            {
-              title: 'Pending Payments',
-              value: stats.pendingPayments,
-              change: '-3',
-              icon: <AlertCircle className="h-5 w-5" />,
-              gradient: 'from-amber-500 to-amber-600'
-            },
-            {
-              title: 'Monthly Revenue',
-              value: `₹${stats.monthlyRevenue.toLocaleString()}`,
-              change: '+15%',
-              icon: <TrendingUp className="h-5 w-5" />,
-              gradient: 'from-purple-500 to-purple-600'
-            },
-            {
-              title: 'Events This Month',
-              value: stats.eventsThisMonth,
-              change: '+2',
-              icon: <Calendar className="h-5 w-5" />,
-              gradient: 'from-indigo-500 to-indigo-600'
-            },
-            {
-              title: 'Pending Approvals',
-              value: stats.pendingApprovals,
-              change: '+1',
-              icon: <CreditCard className="h-5 w-5" />,
-              gradient: 'from-red-500 to-red-600'
-            }
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+      <main className="p-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 border border border-slate-200/50 dark:border-slate-700/50 rounded-lg p-1">
+            <TabsTrigger 
+              value="overview" 
+              className="data-[state=active]:bg-emerald-500 text-white data-[state=active]:text-emerald-700"
             >
-              <Card className="relative overflow-hidden">
-                <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient} opacity-5`} />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {stat.title}
-                  </CardTitle>
-                  <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.gradient} text-white`}>
-                    {stat.icon}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    <span className={stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
-                      {stat.change}
-                    </span>{' '}
-                    from last month
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+              <Building2 className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger 
+              value="members" 
+              className="data-[state=active]:bg-blue-500 text-white data-[state=active]:text-blue-700"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Members
+            </TabsTrigger>
+            <TabsTrigger 
+              value="passbook" 
+              className="data-[state=active]:bg-purple-500 text-white data-[state=active]:text-purple-700"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Passbook
+            </TabsTrigger>
+            <TabsTrigger 
+              value="loans" 
+              className="data-[state=active]:bg-orange-500 text-white data-[state=active]:text-orange-700"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Loans
+            </TabsTrigger>
+            <TabsTrigger 
+              value="maturity" 
+              className="data-[state=active]:bg-indigo-500 text-white data-[state=active]:text-indigo-700"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Maturity
+            </TabsTrigger>
+            <TabsTrigger 
+              value="fund" 
+              className="data-[state=active]:bg-teal-500 text-white data-[state=active]:text-teal-700"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Admin Fund
+            </TabsTrigger>
+            <TabsTrigger 
+              value="reports" 
+              className="data-[state=active]:bg-pink-500 text-white data-[state=active]:text-pink-700"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Reports
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users" 
+              className="data-[state=active]:bg-slate-500 text-white data-[state=active]:text-slate-700"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Users
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex-col"
-                  onClick={() => toast.info('Member management coming soon!')}
-                >
-                  <Users className="h-6 w-6 mb-2" />
-                  Manage Members
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex-col"
-                  onClick={() => toast.info('Payment system coming soon!')}
-                >
-                  <CreditCard className="h-6 w-6 mb-2" />
-                  Payments
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex-col"
-                  onClick={() => toast.info('Event calendar coming soon!')}
-                >
-                  <Calendar className="h-6 w-6 mb-2" />
-                  Events
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex-col"
-                  onClick={() => toast.info('Reports coming soon!')}
-                >
-                  <TrendingUp className="h-6 w-6 mb-2" />
-                  Reports
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <ClientDashboardStats stats={stats} societyInfo={societyInfo} />
+          
+          {/* Recent Activity */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="border-2 border-slate-200 dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Activity className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {[
+                    {
+                      icon: <Users className="h-4 w-4 text-blue-500" />,
+                      title: 'New member joined',
+                      description: 'John Doe joined Green Valley Society',
+                      time: '2 hours ago',
+                      color: 'text-blue-600'
+                    },
+                    {
+                      icon: <CreditCard className="h-4 w-4 text-emerald-500" />,
+                      title: 'Loan approved',
+                      description: 'Business loan for Mary Johnson',
+                      time: '5 hours ago',
+                      color: 'text-emerald-600'
+                    },
+                    {
+                      icon: <DollarSign className="h-4 w-4 text-purple-500" />,
+                      title: 'Payment received',
+                      description: 'Monthly subscription payment',
+                      time: '1 day ago',
+                      color: 'text-purple-600'
+                    }
+                  ].map((activity, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="flex items-start gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <div className={cn(
+                        "p-2 rounded-full",
+                        activity.color === 'text-blue-600' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                        activity.color === 'text-emerald-600' ? 'bg-emerald-100 dark:bg-emerald-900/20' :
+                        activity.color === 'text-purple-600' ? 'bg-purple-100 dark:bg-purple-900/20' : 'bg-slate-100 dark:bg-slate-900/20'
+                      )}>
+                        {activity.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          {activity.title}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {activity.description}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-500">
+                          {activity.time}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        {/* Members Tab */}
+        <TabsContent value="members" className="space-y-6">
+          <MembersManagement societyInfo={societyInfo} />
+        </TabsContent>
+
+        {/* Passbook Tab */}
+        <TabsContent value="passbook" className="space-y-6">
+          <PassbookManagement societyInfo={societyInfo} />
+        </TabsContent>
+
+        {/* Loans Tab */}
+        <TabsContent value="loans" className="space-y-6">
+          <LoansManagement societyInfo={societyInfo} />
+        </TabsContent>
+
+        {/* Maturity Tab */}
+        <TabsContent value="maturity" className="space-y-6">
+          <MaturityTracking societyInfo={societyInfo} />
+        </TabsContent>
+
+        {/* Admin Fund Tab */}
+        <TabsContent value="fund" className="space-y-6">
+          <AdminFundManagement societyInfo={societyInfo} />
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports" className="space-y-6">
+          <ReportsManagement societyInfo={societyInfo} />
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          <UserManagement societyInfo={societyInfo} />
+        </TabsContent>
       </main>
     </div>
   )

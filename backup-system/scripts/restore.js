@@ -3,24 +3,131 @@
 const fs = require('fs');
 const path = require('path');
 const tar = require('tar');
-const chalk = require('chalk');
-const ora = require('ora');
-const inquirer = require('inquirer');
-const { execSync } = require('child_process');
+
+// Simple color functions instead of chalk
+const colors = {
+  red: (text) => `\x1b[31m${text}\x1b[0m`,
+  green: (text) => `\x1b[32m${text}\x1b[0m`,
+  blue: (text) => `\x1b[34m${text}\x1b[0m`,
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`
+};
+
+// Simple spinner replacement
+class SimpleSpinner {
+  constructor(text) {
+    this.text = text;
+    this.chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    this.index = 0;
+    this.interval = null;
+  }
+
+  start() {
+    this.interval = setInterval(() => {
+      process.stdout.write(`\r${this.chars[this.index]} ${this.text}`);
+      this.index = (this.index + 1) % this.chars.length;
+    }, 100);
+  }
+
+  succeed(text) {
+    this.stop();
+    console.log(`\r✅ ${text}`);
+  }
+
+  fail(text) {
+    this.stop();
+    console.log(`\r❌ ${text}`);
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+}
+
+// Simple inquirer replacement
+async function askQuestion(message, type = 'input') {
+  const readline = require('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`${message}: `, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
+async function askList(message, choices) {
+  console.log(`${message}:`);
+  choices.forEach((choice, index) => {
+    console.log(`  ${index + 1}. ${choice.name}`);
+  });
+  
+  const answer = await askQuestion('Enter your choice (number)');
+  const index = parseInt(answer) - 1;
+  
+  if (index >= 0 && index < choices.length) {
+    return choices[index].value;
+  }
+  
+  throw new Error('Invalid choice');
+}
 
 const EncryptionManager = require('../utils/encryption');
 
 class RestoreSystem {
   constructor() {
     this.configPath = path.join(__dirname, '../config/backup-config.json');
-    this.config = JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+    this.config = this.loadConfig();
     this.encryption = new EncryptionManager();
     this.backupDir = path.join(process.cwd(), this.config.storage.local.path);
     this.tempDir = path.join(__dirname, '../temp');
+    
+    // Ensure temp directory exists
+    this.ensureDirectoryExists(this.tempDir);
+  }
+
+  loadConfig() {
+    try {
+      if (fs.existsSync(this.configPath)) {
+        return JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+      }
+    } catch (error) {
+      console.warn(chalk.yellow('Warning: Could not load config, using defaults'));
+    }
+    
+    // Default configuration
+    return {
+      projectName: "saanify-workspace",
+      version: "1.0.0",
+      restore: {
+        autoInstall: true,
+        autoMigrate: true,
+        autoStart: true,
+        requireUserInput: ["GITHUB_TOKEN"]
+      },
+      storage: {
+        local: {
+          path: "./backups"
+        }
+      }
+    };
+  }
+
+  ensureDirectoryExists(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
   }
 
   async restoreFromBackup(backupId) {
-    const spinner = ora('Starting restore process...').start();
+    const spinner = new SimpleSpinner('Starting restore process...');
+    spinner.start();
     
     try {
       // Find backup
@@ -63,12 +170,13 @@ class RestoreSystem {
       spinner.succeed('Restore completed successfully!');
       
       if (this.config.restore.autoStart) {
-        console.log(chalk.blue('Starting project...'));
+        console.log(colors.blue('Starting project...'));
         this.startProject();
       }
       
     } catch (error) {
       spinner.fail(`Restore failed: ${error.message}`);
+      console.error(colors.red('Full error:'), error);
       throw error;
     }
   }
@@ -86,6 +194,15 @@ class RestoreSystem {
       return dirPath;
     }
 
+    // List available backups for user
+    const availableBackups = await this.listBackups();
+    if (availableBackups.length > 0) {
+      console.log(chalk.yellow('Available backups:'));
+      availableBackups.forEach(backup => {
+        console.log(`  ${chalk.green(backup.id)} - ${new Date(backup.created).toLocaleString()}`);
+      });
+    }
+
     return null;
   }
 
@@ -98,18 +215,25 @@ class RestoreSystem {
     }
     
     if (backupPath.endsWith('.tar.gz')) {
-      await tar.extract({
-        file: backupPath,
-        cwd: this.tempDir,
-        strip: 0
-      });
+      try {
+        await tar.extract({
+          file: backupPath,
+          cwd: this.tempDir,
+          strip: 0
+        });
+      } catch (error) {
+        throw new Error(`Failed to extract backup archive: ${error.message}`);
+      }
     } else {
       // Copy directory
       this.copyDirectory(backupPath, extractPath);
     }
     
     // Find the extracted directory
-    const extractedDirs = fs.readdirSync(this.tempDir).filter(name => name.includes('saanify-workspace'));
+    const extractedDirs = fs.readdirSync(this.tempDir).filter(name => 
+      name.includes('saanify-workspace') || name.includes('restore-')
+    );
+    
     if (extractedDirs.length === 0) {
       throw new Error('Backup extraction failed - no directory found');
     }
@@ -142,7 +266,11 @@ class RestoreSystem {
       throw new Error('Invalid backup: metadata not found');
     }
     
-    return JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    try {
+      return JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    } catch (error) {
+      throw new Error(`Failed to read backup metadata: ${error.message}`);
+    }
   }
 
   async validateBackup(metadata) {
@@ -150,9 +278,11 @@ class RestoreSystem {
       throw new Error(`Backup project mismatch: expected ${this.config.projectName}, got ${metadata.projectName}`);
     }
     
-    console.log(chalk.blue(`Restoring backup from: ${new Date(metadata.timestamp).toLocaleString()}`));
-    console.log(chalk.blue(`Backup version: ${metadata.version}`));
-    console.log(chalk.blue(`Files: ${metadata.stats.regular} regular, ${metadata.stats.encrypted} encrypted`));
+    console.log(colors.blue(`Restoring backup from: ${new Date(metadata.timestamp).toLocaleString()}`));
+    console.log(colors.blue(`Backup version: ${metadata.version}`));
+    if (metadata.stats) {
+      console.log(colors.blue(`Files: ${metadata.stats.regular || 0} regular, ${metadata.stats.encrypted || 0} encrypted`));
+    }
   }
 
   async restoreFiles(extractedPath) {
@@ -215,19 +345,15 @@ class RestoreSystem {
     return encrypted;
   }
 
-  ensureDirectoryExists(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
-  }
-
   async installDependencies() {
     if (this.config.restore.autoInstall && fs.existsSync('package.json')) {
       try {
-        execSync('npm install', { stdio: 'inherit' });
+        console.log(chalk.blue('Installing dependencies...'));
+        execSync('npm install', { stdio: 'pipe' });
         console.log(chalk.green('Dependencies installed successfully'));
       } catch (error) {
         console.warn(chalk.yellow('Warning: Could not install dependencies automatically'));
+        console.log(chalk.yellow('Please run "npm install" manually'));
       }
     }
   }
@@ -235,11 +361,13 @@ class RestoreSystem {
   async setupDatabase() {
     if (this.config.restore.autoMigrate && fs.existsSync('prisma')) {
       try {
-        execSync('npx prisma generate', { stdio: 'inherit' });
-        execSync('npm run db:push', { stdio: 'inherit' });
+        console.log(chalk.blue('Setting up database...'));
+        execSync('npx prisma generate', { stdio: 'pipe' });
+        execSync('npm run db:push', { stdio: 'pipe' });
         console.log(chalk.green('Database setup completed'));
       } catch (error) {
         console.warn(chalk.yellow('Warning: Could not setup database automatically'));
+        console.log(chalk.yellow('Please run "npx prisma generate" and "npm run db:push" manually'));
       }
     }
   }
@@ -249,28 +377,38 @@ class RestoreSystem {
       return null;
     }
 
-    const answers = await inquirer.prompt([
-      {
-        type: 'password',
-        name: 'githubToken',
-        message: 'Enter your GitHub token:',
-        validate: (input) => {
-          if (!input) {
-            return 'GitHub token is required';
+    try {
+      const answers = await inquirer.prompt([
+        {
+          type: 'password',
+          name: 'githubToken',
+          message: 'Enter your GitHub token (optional, press Enter to skip):',
+          validate: (input) => {
+            if (!input) {
+              return true; // Optional
+            }
+            if (input.length < 10) {
+              return 'Invalid GitHub token format';
+            }
+            return true;
           }
-          if (input.length < 10) {
-            return 'Invalid GitHub token format';
-          }
-          return true;
         }
-      }
-    ]);
+      ]);
 
-    return answers.githubToken;
+      return answers.githubToken || null;
+    } catch (error) {
+      console.warn(chalk.yellow('Warning: Could not prompt for GitHub token'));
+      return null;
+    }
   }
 
   async configureGitHub(token) {
     try {
+      if (!token) {
+        console.log(chalk.blue('Skipping GitHub configuration (no token provided)'));
+        return;
+      }
+
       // Update .env file with GitHub token
       let envContent = '';
       if (fs.existsSync('.env')) {
@@ -288,17 +426,56 @@ class RestoreSystem {
       }
 
       fs.writeFileSync('.env', envContent);
-      console.log(chalk.green('GitHub integration configured'));
+      console.log(chalk.green('✅ GitHub integration configured successfully'));
+      
+      // Test GitHub integration
+      await this.testGitHubIntegration(token);
       
     } catch (error) {
       console.warn(chalk.yellow('Warning: Could not configure GitHub automatically'));
+      console.log(chalk.yellow('Please add GITHUB_TOKEN to your .env file manually'));
+    }
+  }
+
+  async testGitHubIntegration(token) {
+    try {
+      console.log(chalk.blue('Testing GitHub integration...'));
+      
+      // Simple test using GitHub API
+      const https = require('https');
+      const options = {
+        hostname: 'api.github.com',
+        path: '/user',
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${token}`,
+          'User-Agent': 'Saanify-Restore-Script'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        if (res.statusCode === 200) {
+          console.log(chalk.green('✅ GitHub token is valid'));
+        } else {
+          console.warn(chalk.yellow(`GitHub token test failed with status: ${res.statusCode}`));
+        }
+      });
+
+      req.on('error', (error) => {
+        console.warn(chalk.yellow(`GitHub test failed: ${error.message}`));
+      });
+
+      req.end();
+      
+    } catch (error) {
+      console.warn(chalk.yellow(`Could not test GitHub integration: ${error.message}`));
     }
   }
 
   startProject() {
     try {
       console.log(chalk.blue('Starting Saanify project...'));
-      execSync('npm run dev', { stdio: 'inherit', detached: true });
+      console.log(chalk.blue('Run "npm run dev" to start the development server'));
     } catch (error) {
       console.warn(chalk.yellow('Warning: Could not start project automatically'));
       console.log(chalk.blue('Run "npm run dev" manually to start the project'));
@@ -347,6 +524,7 @@ async function main() {
           const backups = await restoreSystem.listBackups();
           if (backups.length === 0) {
             console.log(chalk.yellow('No backups found.'));
+            console.log(chalk.blue('Create a backup first using: npm run backup'));
             process.exit(1);
           }
 
@@ -356,7 +534,7 @@ async function main() {
               name: 'backupId',
               message: 'Select a backup to restore:',
               choices: backups.map(backup => ({
-                name: `${backup.id} - ${new Date(backup.created).toLocaleString()}`,
+                name: `${backup.id} - ${new Date(backup.created).toLocaleString()} (${backup.type})`,
                 value: backup.id
               }))
             }
@@ -372,6 +550,7 @@ async function main() {
         const backups = await restoreSystem.listBackups();
         if (backups.length === 0) {
           console.log(chalk.yellow('No backups found.'));
+          console.log(chalk.blue('Create a backup first using: npm run backup'));
         } else {
           console.log(chalk.blue('Available backups:'));
           backups.forEach(backup => {
@@ -382,6 +561,10 @@ async function main() {
 
       default:
         console.log(chalk.red('Usage: node restore.js [restore|list] [backup-id]'));
+        console.log(chalk.blue('Examples:'));
+        console.log('  node restore.js list                    # List available backups');
+        console.log('  node restore.js restore                 # Interactive restore');
+        console.log('  node restore.js restore backup-id        # Restore specific backup');
         process.exit(1);
     }
   } catch (error) {
