@@ -28,7 +28,8 @@ import {
   Download,
   Upload,
   RefreshCw,
-  ArrowUpDown
+  ArrowUpDown,
+  Shield
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,11 +39,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AddClientModal } from '@/components/admin/AddClientModal'
-import { ClientsTable } from '@/components/admin/ClientsTable'
-import { ClientStats } from '@/components/admin/ClientStats'
-import { RevenueToggle } from '@/components/ui/RevenueToggle'
+import { EnhancedClientsTable } from '@/components/admin/EnhancedClientsTable'
+import { UnifiedAnalytics } from '@/components/admin/UnifiedAnalytics'
+import { SecureRevenueToggle } from '@/components/admin/SecureRevenueToggle'
 import { AnalyticsCharts } from '@/components/admin/AnalyticsCharts'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface Client {
   id: string
@@ -55,9 +57,11 @@ interface Client {
   trialEndsAt?: string
   subscriptionEndsAt?: string
   createdAt: string
+  startDate?: string
+  expiryDate?: string
 }
 
-export default function AdminDashboard() {
+export default function EnhancedAdminDashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -68,6 +72,10 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard')
   const [userData, setUserData] = useState<any>(null)
   const [showRevenue, setShowRevenue] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Check if user is Super Admin
+  const isAdmin = userData?.role === 'SUPER_ADMIN'
 
   // Navigation items
   const navigationItems = [
@@ -81,6 +89,17 @@ export default function AdminDashboard() {
     { id: 'help', label: 'Help', icon: HelpCircle }
   ]
 
+  // Load preferences from localStorage
+  useEffect(() => {
+    const savedRevenuePreference = localStorage.getItem('revenue-visibility')
+    if (savedRevenuePreference) {
+      const preference = JSON.parse(savedRevenuePreference)
+      if (isAdmin || !preference.requiresAdmin) {
+        setShowRevenue(preference.showRevenue)
+      }
+    }
+  }, [isAdmin])
+
   // Fetch user data
   const fetchUserData = async () => {
     try {
@@ -91,6 +110,23 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Failed to fetch user data:', error)
+    }
+  }
+
+  // Fetch clients with caching
+  const fetchClients = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/clients')
+      if (response.ok) {
+        const data = await response.json()
+        setClients(data.clients || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients:', error)
+      toast.error('Failed to fetch clients')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -109,7 +145,6 @@ export default function AdminDashboard() {
       await logout()
     } catch (error) {
       console.error('Logout failed:', error)
-      // Fallback logout
       window.location.href = '/'
     }
   }
@@ -134,7 +169,7 @@ export default function AdminDashboard() {
       description: 'Exporting client data to CSV...',
       duration: 3000,
     })
-    // Simulate export
+    
     setTimeout(() => {
       const csvContent = 'data:text/csv;charset=utf-8,' + 
         'Name,Email,Phone,Status,Plan,Created,Trial Ends,Subscription Ends\n' +
@@ -151,7 +186,7 @@ export default function AdminDashboard() {
   }
 
   const handleRefreshData = () => {
-    setLoading(true)
+    setRefreshKey(prev => prev + 1)
     fetchClients()
     toast.info('Refreshing', {
       description: 'Fetching latest data...',
@@ -166,26 +201,73 @@ export default function AdminDashboard() {
     })
   }
 
-  // Fetch clients
-  const fetchClients = async () => {
+  // Client actions
+  const handleClientAction = async (action: string, clientId: string) => {
     try {
-      const response = await fetch('/api/clients')
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
+
       if (response.ok) {
-        const data = await response.json()
-        setClients(data.clients || [])
+        toast.success(`Client ${action} successfully`)
+        fetchClients() // Instant refresh
+      } else {
+        toast.error(`Failed to ${action} client`)
       }
     } catch (error) {
-      console.error('Failed to fetch clients:', error)
-      toast.error('Failed to fetch clients')
-    } finally {
-      setLoading(false)
+      toast.error('An error occurred')
+    }
+  }
+
+  const handleDeleteClient = async (clientId: string) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        toast.success('Client deleted successfully')
+        fetchClients() // Instant refresh
+      } else {
+        toast.error('Failed to delete client')
+      }
+    } catch (error) {
+      toast.error('An error occurred')
+    }
+  }
+
+  const handleRenewClient = async (clientId: string, plan: string) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'renew', plan })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const newEndDate = result.client.subscriptionEndsAt
+        
+        toast.success('✅ Subscription renewed successfully', {
+          description: `Subscription renewed till ${new Date(newEndDate).toLocaleDateString()}`,
+          duration: 4000,
+        })
+        
+        fetchClients() // Instant refresh
+      } else {
+        toast.error('Failed to renew subscription')
+      }
+    } catch (error) {
+      toast.error('An error occurred during renewal')
     }
   }
 
   useEffect(() => {
     fetchClients()
     fetchUserData()
-  }, [])
+  }, [refreshKey])
 
   // Filter and sort clients
   const filteredClients = clients
@@ -212,42 +294,6 @@ export default function AdminDashboard() {
       }
     })
 
-  const handleClientAction = async (action: string, clientId: string) => {
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      })
-
-      if (response.ok) {
-        toast.success(`Client ${action} successfully`)
-        fetchClients()
-      } else {
-        toast.error(`Failed to ${action} client`)
-      }
-    } catch (error) {
-      toast.error('An error occurred')
-    }
-  }
-
-  const handleDeleteClient = async (clientId: string) => {
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        toast.success('Client deleted successfully')
-        fetchClients()
-      } else {
-        toast.error('Failed to delete client')
-      }
-    } catch (error) {
-      toast.error('An error occurred')
-    }
-  }
-
   const calculateTotalRevenue = () => {
     const planPrices = {
       TRIAL: 0,
@@ -261,33 +307,25 @@ export default function AdminDashboard() {
     }, 0)
   }
 
-  const calculateClientRevenue = () => {
-    const planPrices = {
-      TRIAL: 0,
-      BASIC: 99,
-      PRO: 299,
-      ENTERPRISE: 999
-    }
-    
-    const revenue: Record<string, number> = {}
-    clients.forEach(client => {
-      revenue[client.id] = planPrices[client.subscriptionPlan as keyof typeof planPrices] || 0
-    })
-    return revenue
-  }
+  const monthlyGrowth = 18 // Mock growth percentage
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="flex">
-        {/* Sidebar */}
+        {/* Enhanced Sidebar */}
         <motion.div
           initial={{ x: -300 }}
           animate={{ x: 0 }}
-          className="w-64 bg-white/80 backdrop-blur-sm dark:bg-slate-800/80 border-r border-slate-200/50 dark:border-slate-700/50 min-h-screen p-6 sticky top-0"
+          className="w-64 bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 border-r border-slate-200/50 dark:border-slate-700/50 min-h-screen p-6 sticky top-0"
         >
           <div className="mb-8">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">Saanify</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Super Admin Panel</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              Super Admin Panel
+              {isAdmin && (
+                <Shield className="h-3 w-3 text-emerald-500" title="Super Admin" />
+              )}
+            </p>
           </div>
 
           <nav className="space-y-2">
@@ -301,11 +339,12 @@ export default function AdminDashboard() {
                 >
                   <Button
                     variant={activeSection === item.id ? "default" : "ghost"}
-                    className={`w-full justify-start transition-all duration-200 ${
+                    className={cn(
+                      "w-full justify-start transition-all duration-200",
                       activeSection === item.id 
                         ? 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white shadow-lg' 
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
+                    )}
                     onClick={() => handleNavigation(item.id)}
                   >
                     <Icon className="mr-2 h-4 w-4" />
@@ -319,11 +358,11 @@ export default function AdminDashboard() {
 
         {/* Main Content */}
         <div className="flex-1">
-          {/* Topbar */}
+          {/* Enhanced Topbar */}
           <motion.header
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-white/80 backdrop-blur-sm dark:bg-slate-800/80 border-b border-slate-200/50 dark:border-slate-700/50 px-8 py-4 sticky top-0 z-10"
+            className="bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 border-b border-slate-200/50 dark:border-slate-700/50 px-8 py-4 sticky top-0 z-10"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -462,44 +501,50 @@ export default function AdminDashboard() {
             {/* Dashboard Content */}
             {activeSection === 'dashboard' && (
               <>
-                {/* Revenue Toggle */}
+                {/* Secure Revenue Toggle */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-8"
                 >
-                  <RevenueToggle
+                  <SecureRevenueToggle
                     showRevenue={showRevenue}
                     onToggle={setShowRevenue}
                     totalRevenue={calculateTotalRevenue()}
-                    clientRevenue={calculateClientRevenue()}
+                    monthlyGrowth={monthlyGrowth}
+                    isAdmin={isAdmin}
                   />
                 </motion.div>
 
-                {/* Animated Stats Cards */}
+                {/* Unified Analytics Overview */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                   className="mb-8"
                 >
-                  <ClientStats clients={clients} showRevenue={showRevenue} />
+                  <UnifiedAnalytics 
+                    clients={clients} 
+                    showRevenue={showRevenue} 
+                    isAdmin={isAdmin}
+                  />
                 </motion.div>
 
-                {/* Analytics Charts Section */}
+                {/* Analytics Charts */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-8"
                 >
-                  <AnalyticsCharts clients={clients} showRevenue={showRevenue} />
+                  <AnalyticsCharts clients={clients} showRevenue={showRevenue && isAdmin} />
                 </motion.div>
 
-                {/* Filter Bar */}
+                {/* Enhanced Filter Bar */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.3 }}
                   className="mb-6"
                 >
                   <Card>
@@ -562,11 +607,11 @@ export default function AdminDashboard() {
                   </Card>
                 </motion.div>
 
-                {/* Clients Table */}
+                {/* Enhanced Clients Table */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.4 }}
                 >
                   <Card className="border-2 border-slate-200 dark:border-slate-700">
                     <CardHeader>
@@ -578,22 +623,14 @@ export default function AdminDashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"
-                          />
-                        </div>
-                      ) : (
-                        <ClientsTable
-                          clients={filteredClients}
-                          onAction={handleClientAction}
-                          onDelete={handleDeleteClient}
-                          showRevenue={showRevenue}
-                        />
-                      )}
+                      <EnhancedClientsTable
+                        clients={filteredClients}
+                        onAction={handleClientAction}
+                        onDelete={handleDeleteClient}
+                        onRenew={handleRenewClient}
+                        showRevenue={showRevenue && isAdmin}
+                        loading={loading}
+                      />
                     </CardContent>
                   </Card>
                 </motion.div>

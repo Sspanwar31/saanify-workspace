@@ -24,7 +24,9 @@ import {
   Mail,
   Phone,
   MapPin,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -64,10 +66,33 @@ export default function ClientDetailPage() {
     description: string
   } | null>(null)
   const [renewDialog, setRenewDialog] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     fetchClient()
+    fetchUserData()
   }, [params.id])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/auth/check-session')
+      if (response.ok) {
+        const data = await response.json()
+        setIsAdmin(data.user?.role === 'SUPER_ADMIN')
+        
+        // Load revenue preference for admins
+        if (data.user?.role === 'SUPER_ADMIN') {
+          const savedPreference = localStorage.getItem('revenue-visibility')
+          if (savedPreference) {
+            const preference = JSON.parse(savedPreference)
+            setShowRevenue(preference.showRevenue)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+    }
+  }
 
   const fetchClient = async () => {
     try {
@@ -112,15 +137,41 @@ export default function ClientDetailPage() {
       })
 
       if (response.ok) {
-        toast.success('Subscription renewed successfully')
+        const result = await response.json()
+        const newEndDate = result.client.subscriptionEndsAt
+        
+        toast.success('✅ Subscription renewed successfully', {
+          description: `Subscription renewed till ${new Date(newEndDate).toLocaleDateString()}`,
+          duration: 4000,
+        })
+        
         setRenewDialog(false)
-        fetchClient()
+        fetchClient() // Instant refresh
       } else {
         toast.error('Failed to renew subscription')
       }
     } catch (error) {
       toast.error('An error occurred')
     }
+  }
+
+  const toggleRevenue = (show: boolean) => {
+    if (!isAdmin && show) {
+      toast.error('Access Denied', {
+        description: 'Only Super Admin can view revenue data.',
+        duration: 3000,
+      })
+      return
+    }
+    
+    setShowRevenue(show)
+    
+    // Save preference
+    localStorage.setItem('revenue-visibility', JSON.stringify({
+      showRevenue: show,
+      requiresAdmin: true,
+      lastUpdated: new Date().toISOString()
+    }))
   }
 
   const getStatusBadge = (status: string) => {
@@ -537,6 +588,81 @@ export default function ClientDetailPage() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            {/* Revenue Toggle for Admins */}
+            {isAdmin && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                whileHover={{ y: -5, scale: 1.01 }}
+                className="group"
+              >
+                <Card className="border-2 border-slate-200 dark:border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5" />
+                      Revenue Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          Show Revenue Details
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {showRevenue ? 'Revenue data is visible' : 'Revenue data is hidden'}
+                        </p>
+                      </div>
+                      
+                      <Button
+                        variant={showRevenue ? "default" : "outline"}
+                        onClick={() => toggleRevenue(!showRevenue)}
+                        className={cn(
+                          "transition-all duration-200",
+                          showRevenue 
+                            ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                            : "text-emerald-600 border-emerald-600 hover:bg-emerald-50"
+                        )}
+                      >
+                        {showRevenue ? (
+                          <>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Hide Revenue
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="h-4 w-4 mr-2" />
+                            Show Revenue
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {showRevenue && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700"
+                      >
+                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                              Monthly Revenue
+                            </span>
+                            <span className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
+                              ${getPlanPrice(client.subscriptionPlan)}
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
             {/* Account Health */}
             <motion.div

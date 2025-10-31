@@ -185,6 +185,23 @@ export async function PATCH(
         }
         break
       
+      case 'edit':
+        const { name, adminName, email, phone, address, subscriptionPlan, status } = body
+        updateData = {
+          name,
+          adminName,
+          email,
+          phone,
+          address,
+          subscriptionPlan,
+          status
+        }
+        break
+      
+      case 'refresh':
+        // Just return the updated client data
+        break
+      
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -192,10 +209,12 @@ export async function PATCH(
         )
     }
 
-    const updatedClient = await db.societyAccount.update({
-      where: { id: clientId },
-      data: updateData
-    })
+    const updatedClient = updateData && Object.keys(updateData).length > 0
+      ? await db.societyAccount.update({
+          where: { id: clientId },
+          data: updateData
+        })
+      : client
 
     return NextResponse.json({
       message: `Client ${action} successfully`,
@@ -205,7 +224,9 @@ export async function PATCH(
         status: updatedClient.status,
         subscriptionPlan: updatedClient.subscriptionPlan,
         trialEndsAt: updatedClient.trialEndsAt?.toISOString(),
-        subscriptionEndsAt: updatedClient.subscriptionEndsAt?.toISOString()
+        subscriptionEndsAt: updatedClient.subscriptionEndsAt?.toISOString(),
+        startDate: updatedClient.createdAt?.toISOString(),
+        expiryDate: updatedClient.subscriptionEndsAt?.toISOString() || updatedClient.trialEndsAt?.toISOString()
       }
     })
   } catch (error) {
