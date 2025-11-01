@@ -1,304 +1,254 @@
-export const loansData = [
+// Mock Loans Data for Saanify Society Management Platform
+
+export interface Loan {
+  id: string
+  member: string
+  memberId: string
+  loanAmount: number
+  interestRate: number
+  totalInstallments: number
+  paidInstallments: number
+  startDate: string
+  endDate: string
+  status: 'PENDING' | 'APPROVED' | 'CLOSED' | 'REJECTED'
+  description?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LoanStats {
+  totalLoans: number
+  activeLoans: number
+  pendingApprovals: number
+  closedLoans: number
+  totalAmount: number
+}
+
+export interface Member {
+  id: string
+  name: string
+  email: string
+  phone: string
+}
+
+// Mock members data for dropdown
+export const membersData: Member[] = [
+  { id: 'M001', name: 'Rajesh Kumar', email: 'rajesh.kumar@email.com', phone: '+91 98765 43210' },
+  { id: 'M002', name: 'Priya Sharma', email: 'priya.sharma@email.com', phone: '+91 98765 43211' },
+  { id: 'M003', name: 'Amit Patel', email: 'amit.patel@email.com', phone: '+91 98765 43212' },
+  { id: 'M004', name: 'Sunita Reddy', email: 'sunita.reddy@email.com', phone: '+91 98765 43213' },
+  { id: 'M005', name: 'Vikram Singh', email: 'vikram.singh@email.com', phone: '+91 98765 43214' },
+  { id: 'M006', name: 'Anjali Gupta', email: 'anjali.gupta@email.com', phone: '+91 98765 43215' },
+  { id: 'M007', name: 'Mahesh Kumar', email: 'mahesh.kumar@email.com', phone: '+91 98765 43216' },
+  { id: 'M008', name: 'Kavita Devi', email: 'kavita.devi@email.com', phone: '+91 98765 43217' },
+]
+
+// Mock loans data
+export const loansData: Loan[] = [
   {
     id: 'L001',
+    member: 'Rajesh Kumar',
     memberId: 'M001',
-    memberName: 'John Doe',
-    memberEmail: 'john.doe@saanify.com',
-    loanType: 'Personal',
     loanAmount: 50000,
-    interestRate: 12.5,
-    tenure: 12, // months
-    startDate: '2024-01-15',
-    endDate: '2025-01-15',
-    nextDueDate: '2024-11-15',
-    status: 'ACTIVE',
-    dueDate: '2024-11-15',
-    totalPaid: 12000,
-    remainingBalance: 38000,
-    tags: ['education', 'personal', 'home improvement'],
-    createdAt: '2024-01-15',
-    updatedAt: '2024-10-28'
+    interestRate: 12,
+    totalInstallments: 12,
+    paidInstallments: 3,
+    startDate: '2024-01-01',
+    endDate: '2024-12-31',
+    status: 'APPROVED',
+    description: 'Personal loan for home renovation',
+    createdAt: '2024-01-01T10:00:00Z',
+    updatedAt: '2024-01-15T14:30:00Z'
   },
   {
     id: 'L002',
+    member: 'Jane Smith',
     memberId: 'M002',
-    memberName: 'Jane Smith',
-    memberEmail: 'jane.smith@saanify.com',
-    loanType: 'Business',
-    loanAmount: 100000,
-    interestRate: 15.5,
-    tenure: 24, // months
-    startDate: '2024-02-01',
-    endDate: '2026-02-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 25000,
-    remainingBalance: 75000,
-    tags: ['business', 'expansion', 'working capital'],
-    createdAt: '2024-02-01',
-    updatedAt: '2024-10-27'
+    loanAmount: 80000,
+    interestRate: 10,
+    totalInstallments: 24,
+    paidInstallments: 10,
+    startDate: '2024-03-01',
+    endDate: '2026-02-28',
+    status: 'APPROVED',
+    description: 'Business expansion loan',
+    createdAt: '2024-02-15T09:30:00Z',
+    updatedAt: '2024-03-01T11:00:00Z'
   },
   {
     id: 'L003',
+    member: 'Amit Patel',
     memberId: 'M003',
-    memberName: 'Robert Johnson',
-    memberEmail: 'robert.johnson@saanify.com',
-    loanType: 'Education',
-    loanAmount: 25000,
-    interestRate: 10.5,
-    tenure: 18, // months
-    startDate: '2024-03-15',
-    endDate: '2025-09-15',
-    nextDueDate: '2024-09-15',
-    status: 'ACTIVE',
-    dueDate: '2024-09-15',
-    totalPaid: 5000,
-    remainingBalance: 20000,
-    tags: ['education', 'tuition fees'],
-    createdAt: '2024-03-15',
-    updatedAt: '2024-10-26'
+    loanAmount: 30000,
+    interestRate: 15,
+    totalInstallments: 6,
+    paidInstallments: 6,
+    startDate: '2024-01-15',
+    endDate: '2024-07-15',
+    status: 'CLOSED',
+    description: 'Emergency medical loan',
+    createdAt: '2024-01-10T16:45:00Z',
+    updatedAt: '2024-07-15T10:20:00Z'
   },
   {
     id: 'L004',
+    member: 'Sunita Reddy',
     memberId: 'M004',
-    memberName: 'Mary Williams',
-    memberEmail: 'mary.williams@saanify.com',
-    loanType: 'Home',
-    loanAmount: 150000,
-    interestRate: 8.5,
-    tenure: 30, // months
+    loanAmount: 120000,
+    interestRate: 8,
+    totalInstallments: 36,
+    paidInstallments: 0,
     startDate: '2024-04-01',
-    endDate: '2027-04-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 10000,
-    remainingBalance: 140000,
-    tags: ['home loan', 'property'],
-    createdAt: '2024-04-01',
-    updatedAt: '2024-10-25'
+    endDate: '2027-03-31',
+    status: 'PENDING',
+    description: 'Education loan for higher studies',
+    createdAt: '2024-03-20T13:15:00Z',
+    updatedAt: '2024-03-20T13:15:00Z'
   },
   {
     id: 'L005',
+    member: 'Vikram Singh',
     memberId: 'M005',
-    memberName: 'David Brown',
-    memberEmail: 'david.brown@saanify.com',
-    loanType: 'Personal',
-    loanAmount: 75000,
-    interestRate: 11.5,
-    tenure: 24, // months
-    startDate: '2024-05-01',
-    endDate: '2026-05-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 15000,
-    remainingBalance: 60000,
-    tags: ['emergency fund'],
-    createdAt: '2024-05-01',
-    updatedAt: '2024-10-26'
+    loanAmount: 60000,
+    interestRate: 11,
+    totalInstallments: 18,
+    paidInstallments: 8,
+    startDate: '2024-02-01',
+    endDate: '2025-07-31',
+    status: 'APPROVED',
+    description: 'Vehicle loan',
+    createdAt: '2024-01-25T12:00:00Z',
+    updatedAt: '2024-02-01T09:30:00Z'
   },
   {
     id: 'L006',
+    member: 'Anjali Gupta',
     memberId: 'M006',
-    memberName: 'Sarah Davis',
-    memberEmail: 'sarah.davis@saanify.com',
-    loanType: 'Personal',
-    loanAmount: 30000,
-    interestRate: 13.5,
-    tenure: 15, // months
-    startDate: '2024-06-01',
-    endDate: '2025-09-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 4500,
-    remainingBalance: 25500,
-    tags: ['savings', 'regular'],
-    createdAt: '2024-06-01',
-    updatedAt: '2024-10-27'
+    loanAmount: 45000,
+    interestRate: 13,
+    totalInstallments: 12,
+    paidInstallments: 2,
+    startDate: '2024-03-15',
+    endDate: '2025-02-28',
+    status: 'APPROVED',
+    description: 'Home appliance loan',
+    createdAt: '2024-03-10T15:30:00Z',
+    updatedAt: '2024-03-15T10:45:00Z'
   },
   {
     id: 'L007',
+    member: 'Mahesh Kumar',
     memberId: 'M007',
-    memberName: 'Emily Martinez',
-    memberEmail: 'emily.martinez@saanify.com',
-    loanType: 'Personal',
-    loanAmount: 20000,
-    interestRate: 14.5,
-    tenure: 18, // months
-    startDate: '2024-07-01',
-    endDate: '2026-01-01',
-    nextDueDate: '2024-11-01',
-    status: 'PENDING',
-    dueDate: '2024-11-01',
-    totalPaid: 0,
-    remainingBalance: 20000,
-    tags: ['new member', 'first payment'],
-    createdAt: '2024-07-01',
-    updatedAt: '2024-10-27'
+    loanAmount: 90000,
+    interestRate: 9,
+    totalInstallments: 30,
+    paidInstallments: 5,
+    startDate: '2024-01-10',
+    endDate: '2026-06-30',
+    status: 'APPROVED',
+    description: 'Agricultural loan',
+    createdAt: '2024-01-05T11:20:00Z',
+    updatedAt: '2024-01-10T14:00:00Z'
   },
   {
     id: 'L008',
+    member: 'Kavita Devi',
     memberId: 'M008',
-    memberName: 'Kevin Harris',
-    memberEmail: 'kevin.harris@saanify.com',
-    loanType: 'Business',
-    loanAmount: 200000,
-    interestRate: 16.5,
-    tenure: 36, // months
-    startDate: '2024-08-01',
-    endDate: '2027-08-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 4000,
-    remainingBalance: 196000,
-    tags: ['expansion', 'working capital'],
-    createdAt: '2024-08-01',
-    updatedAt: '2024-10-26'
-  },
-  {
-    id: 'L009',
-    memberId: 'M009',
-    memberName: 'Lisa Thompson',
-    memberEmail: 'lisa.thompson@saanify.com',
-    loanType: 'Personal',
-    loanAmount: 10000,
-    interestRate: 12.5,
-    tenure: 12, // months
-    startDate: '2024-09-01',
-    endDate: '2025-09-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 1000,
-    remainingBalance: 9000,
-    tags: ['savings', 'regular'],
-    createdAt: '2024-09-01',
-    updatedAt: '2024-10-27'
-  },
-  {
-    id: 'L010',
-    memberId: 'M010',
-    memberName: 'Christopher Garcia',
-    memberEmail: 'christopher.garcia@saanify.com',
-    loanType: 'Home',
-    loanAmount: 80000,
-    interestRate: 15.5,
-    tenure: 24, // months
-    startDate: '2024-10-01',
-    endDate: '2026-10-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 8000,
-    remainingBalance: 72000,
-    tags: ['home improvement', 'family expenses'],
-    createdAt: '2024-10-01',
-    updatedAt: '2024-10-27'
-  },
-  {
-    id: 'L011',
-    memberId: 'M011',
-    memberName: 'Amanda Rodriguez',
-    memberEmail: 'amanda.rodriguez@saanify.com',
-    loanType: 'Personal',
-    loanAmount: 5000,
-    interestRate: 11.5,
-    tenure: 6, // months
-    startDate: '2024-10-23',
-    endDate: '2025-04-23',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 2500,
-    remainingBalance: 2500,
-    tags: ['education', 'course fee'],
-    createdAt: '2024-10-23',
-    updatedAt: '2024-10-27'
-  },
-  {
-    id: 'L012',
-    memberId: 'M012',
-    memberName: 'Michelle White',
-    memberEmail: 'michelle.white@saanify.com',
-    loanType: 'Business',
-    loanAmount: 120000,
-    interestRate: 14.5,
-    tenure: 30, // months
-    startDate: '2024-11-01',
-    endDate: '2027-11-01',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 3000,
-    remainingBalance: 117000,
-    tags: ['business operations', 'working capital'],
-    createdAt: '2024-11-01',
-    updatedAt: '2024-10-27'
-  },
-  {
-    id: 'L013',
-    memberId: 'M013',
-    memberName: 'Kevin Harris',
-    memberEmail: 'kevin.harris@saanify.com',
-    loanType: 'Personal',
-    loanAmount: 15000,
-    interestRate: 13.5,
-    tenure: 18, // months
-    startDate: '2024-10-21',
-    endDate: '2026-04-21',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 3000,
-    remainingBalance: 12000,
-    tags: ['investment', 'emergency fund'],
-    createdAt: '2024-10-21',
-    updatedAt: '2024-10-27'
-  },
-  {
-    id: 'L014',
-    memberId: 'M014',
-    memberName: 'Daniel Lee',
-    memberEmail: 'daniel.lee@saanify.com',
-    loanType: 'Personal',
     loanAmount: 25000,
-    interestRate: 12.5,
-    tenure: 12, // months
-    startDate: '2024-10-22',
-    endDate: '2025-10-22',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 2500,
-    remainingBalance: 22500,
-    tags: ['savings', 'regular'],
-    createdAt: '2024-10-22',
-    updatedAt: '2024-10-27'
-  },
-  {
-    id: 'L015',
-    memberId: 'M015',
-    memberName: 'Priya Sharma',
-    memberEmail: 'priya.sharma@saanify.com',
-    loanType: 'Education',
-    loanAmount: 8000,
-    interestRate: 10.5,
-    tenure: 12, // months
-    startDate: '2024-10-25',
-    endDate: '2025-10-25',
-    nextDueDate: '2024-11-01',
-    status: 'ACTIVE',
-    dueDate: '2024-11-01',
-    totalPaid: 800,
-    remainingBalance: 7200,
-    tags: ['tuition fees', 'library fees'],
-    createdAt: '2024-10-25',
-    updatedAt: '2024-10-27'
+    interestRate: 14,
+    totalInstallments: 9,
+    paidInstallments: 0,
+    startDate: '2024-04-15',
+    endDate: '2025-01-15',
+    status: 'REJECTED',
+    description: 'Personal loan request',
+    createdAt: '2024-04-10T16:00:00Z',
+    updatedAt: '2024-04-12T09:15:00Z'
   }
 ]
+
+// Calculate loan statistics
+export const getLoanStats = (loans: Loan[]): LoanStats => {
+  const totalLoans = loans.length
+  const activeLoans = loans.filter(loan => loan.status === 'APPROVED').length
+  const pendingApprovals = loans.filter(loan => loan.status === 'PENDING').length
+  const closedLoans = loans.filter(loan => loan.status === 'CLOSED').length
+  const totalAmount = loans.reduce((sum, loan) => sum + loan.loanAmount, 0)
+
+  return {
+    totalLoans,
+    activeLoans,
+    pendingApprovals,
+    closedLoans,
+    totalAmount
+  }
+}
+
+// Status color mapping
+export const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'APPROVED':
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+    case 'PENDING':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+    case 'CLOSED':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+    case 'REJECTED':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+  }
+}
+
+// Currency formatter
+export const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+// Date formatter
+export const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+// Generate unique loan ID
+export const generateLoanId = () => {
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
+  return `L${timestamp}${random}`
+}
+
+// Validation functions
+export const validateLoanForm = (loan: Partial<Loan>) => {
+  const errors: string[] = []
+
+  if (!loan.memberId) errors.push('Member is required')
+  if (!loan.loanAmount || loan.loanAmount <= 0) errors.push('Loan amount must be greater than 0')
+  if (!loan.interestRate || loan.interestRate < 0) errors.push('Interest rate must be 0 or greater')
+  if (!loan.totalInstallments || loan.totalInstallments <= 0) errors.push('Total installments must be greater than 0')
+  if (loan.paidInstallments !== undefined && loan.paidInstallments < 0) errors.push('Paid installments cannot be negative')
+  if (!loan.startDate) errors.push('Start date is required')
+  if (!loan.endDate) errors.push('End date is required')
+  
+  if (loan.startDate && loan.endDate) {
+    const start = new Date(loan.startDate)
+    const end = new Date(loan.endDate)
+    if (start >= end) errors.push('End date must be after start date')
+  }
+
+  if (loan.paidInstallments !== undefined && loan.totalInstallments && loan.paidInstallments > loan.totalInstallments) {
+    errors.push('Paid installments cannot exceed total installments')
+  }
+
+  return errors
+}
 
 export default loansData

@@ -2,368 +2,355 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { 
-  BookOpen, 
   Plus, 
-  Download, 
-  RefreshCw, 
-  Filter,
-  DollarSign,
-  CreditCard,
-  FileText,
-  TrendingUp,
-  TrendingDown
+  HandCoins, 
+  Users, 
+  Clock, 
+  CheckCircle, 
+  RefreshCw,
+  Search,
+  TrendingUp
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
+import ClientNavigation from '@/components/client/ClientNavigation'
 import LoansTable from '@/components/client/LoansTable'
 import AddLoanModal from '@/components/client/AddLoanModal'
-import { loansData } from '@/data/loansData'
-import { toast } from 'sonner'
+import { 
+  Loan, 
+  LoanStats, 
+  loansData as initialLoans, 
+  getLoanStats, 
+  formatCurrency 
+} from '@/data/loansData'
 
 export default function LoansPage() {
-  const [loans, setLoans] = useState(loansData)
-  const [filteredLoans, setFilteredLoans] = useState(loansData)
-  const [loading, setLoading] = useState(false)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [editingLoan, setEditingLoan] = useState(null)
+  const [loans, setLoans] = useState<Loan[]>([])
+  const [filteredLoans, setFilteredLoans] = useState<Loan[]>([])
+  const [stats, setStats] = useState<LoanStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingLoan, setEditingLoan] = useState<Loan | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
 
-  // Calculate summary statistics
-  const summary = {
-    totalLoans: loans.length,
-    totalLoanAmount: loans.reduce((sum, loan) => sum + loan.loanAmount, 0),
-    totalInterest: loans.reduce((sum, loan) => sum + (loan.loanAmount * loan.interestRate / 100), 0),
-    totalInstallments: loans.reduce((sum, loan) => sum + loan.totalInstallments, 0),
-    paidInstallments: loans.reduce((sum, loan) => sum + loan.paidInstallments, 0),
-    pendingLoans: loans.filter(loan => loan.status === 'PENDING').length,
-    approvedLoans: loans.filter(loan => loan.status === 'APPROVED').length
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      setLoans(initialLoans)
+      setFilteredLoans(initialLoans)
+      setStats(getLoanStats(initialLoans))
+      setLoading(false)
+    }
+
+    loadData()
+  }, [])
+
+  // Filter loans based on search term
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = loans.filter(loan =>
+        loan.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        loan.member.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        loan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        loan.status.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      setFilteredLoans(filtered)
+    } else {
+      setFilteredLoans(loans)
+    }
+  }, [searchTerm, loans])
+
+  const handleAddLoan = () => {
+    setEditingLoan(null)
+    setIsModalOpen(true)
   }
 
-  // Filter loans based on search
-  const filteredLoans = loans.filter(loan => {
-    const matchesSearch = loan.member.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         loan.id.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
-  })
+  const handleEditLoan = (loan: Loan) => {
+    setEditingLoan(loan)
+    setIsModalOpen(true)
+  }
 
-  const handleAddLoan = (newLoan: any) => {
-    const loanWithId = {
-      ...newLoan,
-      id: `L${String(loans.length + 1).padStart(4, '0')}`,
-      status: 'PENDING',
-      paidInstallments: 0,
-      totalInstallments: Math.floor(newLoan.totalInstallments),
-      joinDate: new Date().toISOString().split('T')[0]
+  const handleSaveLoan = (savedLoan: Loan) => {
+    if (editingLoan) {
+      // Update existing loan
+      setLoans(prev => prev.map(loan => 
+        loan.id === savedLoan.id ? savedLoan : loan
+      ))
+      toast.success('✅ Loan Updated Successfully!', {
+        description: `Loan for ${savedLoan.member} has been updated.`,
+        duration: 3000,
+      })
+    } else {
+      // Add new loan
+      setLoans(prev => [...prev, savedLoan])
+      toast.success('✅ Loan Added Successfully!', {
+        description: `New loan for ${savedLoan.member} has been created.`,
+        duration: 3000,
+      })
     }
     
-    setLoans([loanWithId, ...loans])
-    toast.success('✅ Loan Application Added', {
-      description: `Loan application for ${newLoan.member} has been submitted for review`,
-      duration: 3000
-    })
-  }
-
-  const handleEditLoan = (loan: any) => {
-    setEditingLoan(loan)
-    setIsAddModalOpen(true)
-  }
-
-  const handleUpdateLoan = (updatedLoan: any) => {
-    setLoans(loans.map(l => l.id === updatedLoan.id ? updatedLoan : l))
-    toast.success('✅ Loan Updated', {
-      description: `Loan for ${updatedLoan.member} has been updated`,
-      duration: 3000
-    })
+    // Update stats
+    const updatedLoans = editingLoan 
+      ? loans.map(loan => loan.id === savedLoan.id ? savedLoan : loan)
+      : [...loans, savedLoan]
+    setStats(getLoanStats(updatedLoans))
+    
+    setIsModalOpen(false)
     setEditingLoan(null)
-    setIsAddModalOpen(false)
   }
 
   const handleDeleteLoan = (loanId: string) => {
-    const loan = loans.find(l => l.id === loanId)
-    if (confirm(`Are you sure you want to delete loan ${loan?.id} for ${loan?.member}?`)) {
-      setLoans(loans.filter(l => l.id !== loanId))
-      toast.success('✅ Loan Deleted', {
-        description: `Loan ${loan?.id} has been deleted`,
-        duration: 3000
-      })
-    }
-  }
+    const loanToDelete = loans.find(loan => loan.id === loanId)
+    if (!loanToDelete) return
 
-  const handleRefresh = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      toast.success('🔄 Data Refreshed', {
-        description: 'Loan data has been refreshed',
-        duration: 2000
-      })
-    }, 1000)
-  }
-
-  const handleExport = () => {
-    toast.info('📊 Export Started', {
-      description: 'Loan data is being exported to CSV',
-      duration: 3000
+    // Delete loan
+    setLoans(prev => prev.filter(loan => loan.id !== loanId))
+    setStats(getLoanStats(loans.filter(loan => loan.id !== loanId)))
+    
+    toast.success('✅ Loan Deleted Successfully!', {
+      description: `Loan for ${loanToDelete.member} has been deleted.`,
+      duration: 3000,
     })
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount)
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    toast.info('🔄 Refreshing Data', {
+      description: 'Fetching latest loans data...',
+      duration: 2000,
+    })
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    setLoans(initialLoans)
+    setFilteredLoans(initialLoans)
+    setStats(getLoanStats(initialLoans))
+    setRefreshing(false)
+    
+    toast.success('✅ Data Updated', {
+      description: 'Loans data has been refreshed.',
+      duration: 2000,
+    })
   }
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300',
-      APPROVED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300',
-      ACTIVE: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
     }
-    return (
-      <Badge className={variants[status as keyof typeof variants] || variants.PENDING}>
-        {status}
-      </Badge>
-    )
   }
 
-  const getInterestRateBadge = (rate: number) => {
-    if (rate <= 10) {
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-        {rate}%
-      </Badge>
-    } else if (rate <= 15) {
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-        {rate}%
-      </Badge>
-    } else {
-      return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
-        {rate}%
-      </Badge>
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="mb-8"
-      >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-              <BookOpen className="h-8 w-8 text-emerald-600" />
-              📘 Loan Management
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2">
-              Manage member loans, installments, and financial operations
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-cyan-50/50 dark:from-emerald-950/20 dark:via-teal-950/10 dark:to-cyan-950/20 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Navigation */}
+          <div className="lg:w-64 flex-shrink-0">
+            <ClientNavigation />
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleExport}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-3 rounded-lg"
-            >
-              <Plus className="h-4 w-4" />
-              Add New Loan
-            </Button>
-          </div>
-        </div>
-      </motion.div>
 
-      {/* Summary Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-      >
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+          {/* Main Content */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="flex-1 space-y-6"
+          >
+            {/* Header */}
+            <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Loans</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {summary.totalLoans}
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  Loans Management
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                  Manage and track all society loans efficiently
                 </p>
               </div>
-              <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Approved Loans</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {summary.approvedLoans}
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Pending Loans</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {summary.pendingLoans}
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/20 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Inactive Loans</p>
-                <p className="text-2xl font-bold text-slate-600 dark:text-white">
-                  {summary.inactiveLoans}
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-900/20 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-slate-600 dark:text-slate-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Balance</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {formatCurrency(summary.totalBalance)}
-                </p>
-              </div>
-              <div className={`p-3 rounded-lg ${
-                summary.totalBalance >= 0 
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20' 
-                  : 'bg-red-100 text-red-800 dark:bg-red-900/20'
-                } rounded-lg`}>
-                  {summary.totalBalance >= 0 ? (
-                    <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  )}
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search loans..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full sm:w-64 bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10"
+                  />
                 </div>
+                
+                <Button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  variant="outline"
+                  className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 hover:bg-white/90 dark:hover:bg-black/60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+
+                <Button
+                  onClick={handleAddLoan}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Loan
+                </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </motion.div>
 
-      {/* Filters and Search */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-6"
-      >
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search loans by member or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+            {/* Stats Cards */}
+            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {loading ? (
+                [...Array(4)].map((_, i) => (
+                  <Card key={i} className="border-0 shadow-xl bg-white/80 dark:bg-black/40 backdrop-blur-xl">
+                    <CardContent className="p-6">
+                      <Skeleton className="h-8 w-8 mb-4" />
+                      <Skeleton className="h-6 w-24 mb-2" />
+                      <Skeleton className="h-4 w-16" />
+                    </CardContent>
+                  </Card>
+                ))
+              ) : stats ? (
+                <>
+                  <Card className="border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <HandCoins className="h-8 w-8 text-emerald-100" />
+                        <Badge className="bg-emerald-400 text-emerald-900">
+                          Total
+                        </Badge>
+                      </div>
+                      <div className="text-2xl font-bold mb-1">
+                        {stats.totalLoans}
+                      </div>
+                      <div className="text-emerald-100 text-sm">
+                        Total Loans
+                      </div>
+                      <div className="text-xs text-emerald-200 mt-2">
+                        {formatCurrency(stats.totalAmount)}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <CheckCircle className="h-8 w-8 text-blue-100" />
+                        <Badge className="bg-blue-400 text-blue-900">
+                          Active
+                        </Badge>
+                      </div>
+                      <div className="text-2xl font-bold mb-1">
+                        {stats.activeLoans}
+                      </div>
+                      <div className="text-blue-100 text-sm">
+                        Active Loans
+                      </div>
+                      <div className="text-xs text-blue-200 mt-2">
+                        {stats.totalLoans > 0 ? Math.round((stats.activeLoans / stats.totalLoans) * 100) : 0}% of total
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <Clock className="h-8 w-8 text-amber-100" />
+                        <Badge className="bg-amber-400 text-amber-900">
+                          Pending
+                        </Badge>
+                      </div>
+                      <div className="text-2xl font-bold mb-1">
+                        {stats.pendingApprovals}
+                      </div>
+                      <div className="text-amber-100 text-sm">
+                        Pending Approvals
+                      </div>
+                      <div className="text-xs text-amber-200 mt-2">
+                        Require attention
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-xl bg-gradient-to-br from-gray-500 to-gray-600 text-white">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <TrendingUp className="h-8 w-8 text-gray-100" />
+                        <Badge className="bg-gray-400 text-gray-900">
+                          Closed
+                        </Badge>
+                      </div>
+                      <div className="text-2xl font-bold mb-1">
+                        {stats.closedLoans}
+                      </div>
+                      <div className="text-gray-100 text-sm">
+                        Closed Loans
+                      </div>
+                      <div className="text-xs text-gray-200 mt-2">
+                        Completed successfully
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : null}
+            </motion.div>
+
+            {/* Loans Table */}
+            <motion.div variants={itemVariants}>
+              <LoansTable
+                loans={filteredLoans}
+                loading={loading}
+                onEdit={handleEditLoan}
+                onDelete={handleDeleteLoan}
               />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select value={selectedMember} onValueChange={setSelectedMember}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="All Members" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Members</SelectItem>
-                {Array.from(new Set(loans.map(loan => loan.member)).sort().map(member => (
-                  <SelectItem key={member}>{member}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            </motion.div>
+
+            {/* Summary Info */}
+            {!loading && stats && (
+              <motion.div variants={itemVariants} className="text-center text-sm text-muted-foreground">
+                <p>
+                  Showing {filteredLoans.length} of {stats.totalLoans} total loans
+                </p>
+                <p className="mt-1">
+                  Total value: {formatCurrency(stats.totalAmount)}
+                </p>
+              </motion.div>
+            )}
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Transactions Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        <LoansTable
-          loans={filteredLoans}
-          onEdit={handleEditLoan}
-          onDelete={handleDeleteLoan}
-          formatCurrency={formatCurrency}
-          getStatusBadge={getStatusBadge}
-          getInterestRateBadge={getInterestRateBadge}
-        />
-      </motion.div>
-
-      {/* Add Loan Modal */}
+      {/* Add/Edit Loan Modal */}
       <AddLoanModal
-        isOpen={isAddModalOpen}
+        isOpen={isModalOpen}
         onClose={() => {
-          setIsAddModalOpen(false)
+          setIsModalOpen(false)
           setEditingLoan(null)
         }}
-        onSubmit={editingLoan ? handleUpdateLoan : handleAddLoan}
+        onSave={handleSaveLoan}
         editingLoan={editingLoan}
-        members={Array.from(new Set(loans.map(loan => loan.member)).sort())}
       />
     </div>
   )

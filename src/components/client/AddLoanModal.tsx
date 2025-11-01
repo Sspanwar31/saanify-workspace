@@ -1,512 +1,434 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { X, DollarSign, Percent, Calendar, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { toast } from 'sonner'
 import { 
-  Calendar, 
-  DollarSign, 
-  CreditCard, 
-  FileText,
-  AlertCircle 
-} from 'lucide-react'
-
-interface Loan {
-  id?: string
-  member: string
-  loanType: 'Personal Loan' | 'Business Loan' | 'Education Loan' | 'Home Loan'
-  amount: number
-  interestRate: number
-  tenure: number
-  startDate: string
-  endDate: string
-  status: 'ACTIVE' | 'PAID' | 'CLOSED' | 'OVERDUE'
-  dueDate: string
-  paidAmount: number
-  remainingBalance: number
-  tags: string[]
-  avatar?: string
-  description?: string
-}
+  Loan, 
+  Member, 
+  membersData, 
+  validateLoanForm, 
+  generateLoanId,
+  formatCurrency 
+} from '@/data/loansData'
 
 interface AddLoanModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (loan: Loan) => void
+  onSave: (loan: Loan) => void
   editingLoan?: Loan | null
-  members: string[]
+}
+
+interface LoanFormData {
+  memberId: string
+  loanAmount: string
+  interestRate: string
+  totalInstallments: string
+  paidInstallments: string
+  startDate: string
+  endDate: string
+  status: 'PENDING' | 'APPROVED' | 'CLOSED' | 'REJECTED'
+  description: string
 }
 
 export default function AddLoanModal({ 
   isOpen, 
   onClose, 
-  onSubmit, 
-  editingLoan,
-  members 
+  onSave, 
+  editingLoan 
 }: AddLoanModalProps) {
-  const [formData, setFormData] = useState<Loan>({
-    member: '',
-    loanType: 'Personal Loan',
-    amount: 0,
-    interestRate: 0,
-    tenure: 12, // months
-    startDate: new Date().toISOString().split('T')[0],
+  const [formData, setFormData] = useState<LoanFormData>({
+    memberId: '',
+    loanAmount: '',
+    interestRate: '',
+    totalInstallments: '',
+    paidInstallments: '',
+    startDate: '',
     endDate: '',
-    status: 'ACTIVE',
-    dueDate: '',
-    paidAmount: 0,
-    remainingBalance: 0,
-    tags: [],
+    status: 'PENDING',
     description: ''
   })
-
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  
+  const [errors, setErrors] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Reset form when modal opens/closes or editing loan changes
   useEffect(() => {
-    if (editingLoan) {
-      setFormData({
-        ...editingLoan
-      })
-    } else {
-      setFormData({
-        member: '',
-        loanType: 'Personal Loan',
-        amount: 0,
-        interestRate: 0,
-        tenure: 12,
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: '',
-        status: 'ACTIVE',
-        dueDate: '',
-        paidAmount: 0,
-        remainingBalance: 0,
-        tags: [],
-        description: ''
-      })
+    if (isOpen) {
+      if (editingLoan) {
+        setFormData({
+          memberId: editingLoan.memberId,
+          loanAmount: editingLoan.loanAmount.toString(),
+          interestRate: editingLoan.interestRate.toString(),
+          totalInstallments: editingLoan.totalInstallments.toString(),
+          paidInstallments: editingLoan.paidInstallments.toString(),
+          startDate: editingLoan.startDate,
+          endDate: editingLoan.endDate,
+          status: editingLoan.status,
+          description: editingLoan.description || ''
+        })
+      } else {
+        setFormData({
+          memberId: '',
+          loanAmount: '',
+          interestRate: '',
+          totalInstallments: '',
+          paidInstallments: '',
+          startDate: '',
+          endDate: '',
+          status: 'PENDING',
+          description: ''
+        })
+      }
+      setErrors([])
     }
-    setErrors({})
-  }, [editingLoan, isOpen])
+  }, [isOpen, editingLoan])
+
+  const handleInputChange = (field: keyof LoanFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    // Clear errors when user starts typing
+    if (errors.length > 0) {
+      setErrors([])
+    }
+  }
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.member.trim()) {
-      newErrors.member = 'Member selection is required'
+    const loanData = {
+      ...formData,
+      loanAmount: parseFloat(formData.loanAmount) || 0,
+      interestRate: parseFloat(formData.interestRate) || 0,
+      totalInstallments: parseInt(formData.totalInstallments) || 0,
+      paidInstallments: parseInt(formData.paidInstallments) || 0
     }
 
-    if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = 'Loan amount must be greater than 0'
+    const validationErrors = validateLoanForm(loanData)
+    
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors)
+      validationErrors.forEach(error => {
+        toast.error('❌ Validation Error', {
+          description: error,
+          duration: 3000,
+        })
+      })
+      return false
     }
 
-    if (formData.interestRate < 0) {
-      newErrors.interestRate = 'Interest rate must be 0 or greater'
-    }
-
-    if (formData.tenure < 1) {
-      newErrors.tenure = 'Tenure must be at least 1 month'
-    }
-
-    if (!formData.startDate) {
-      newErrors.startDate = 'Start date is required'
-    }
-
-    if (!formData.endDate || (formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)) {
-      newErrors.endDate = 'End date must be after start date'
-    }
-
-    // Check if at least one field has a value
-    const hasValidAmount = formData.amount > 0 || 
-                          formData.interestRate > 0 || 
-                          formData.fine > 0
-
-    if (!hasValidAmount) {
-      newErrors.amount = 'At least one amount field must be greater than 0'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
-      toast.error('⚠️ Validation Error', {
-        description: 'Please fix the errors in the form',
-        duration: 3000
-      })
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      // Calculate end date based on tenure
-      const startDate = new Date(formData.startDate)
-      const endDate = new Date(startDate)
-      endDate.setMonth(startDate.getMonth() + formData.tenure)
-      
-      const transactionData = {
-        ...formData,
-        endDate: endDate.toISOString().split('T')[0],
-        balance: formData.amount - formData.paidAmount - formData.interest - formData.fine,
-        id: editingLoan?.id || `L${String(members.length + 1).padStart(4, '0')}`
+      const selectedMember = membersData.find(m => m.id === formData.memberId)
+      if (!selectedMember) {
+        toast.error('❌ Error', {
+          description: 'Please select a valid member',
+          duration: 3000,
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      const loanData: Loan = {
+        id: editingLoan ? editingLoan.id : generateLoanId(),
+        member: selectedMember.name,
+        memberId: formData.memberId,
+        loanAmount: parseFloat(formData.loanAmount),
+        interestRate: parseFloat(formData.interestRate),
+        totalInstallments: parseInt(formData.totalInstallments),
+        paidInstallments: parseInt(formData.paidInstallments),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: formData.status,
+        description: formData.description.trim() || undefined,
+        createdAt: editingLoan ? editingLoan.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
+
+      onSave(loanData)
       
-      onSubmit(transactionData)
-      onClose()
-      
-      toast.success('✅ Loan ' + (editingLoan ? 'Updated' : 'Added'), {
-        description: `Loan for ${formData.member} has been ${editingLoan ? 'updated' : 'added'} successfully`,
-        duration: 3000
+      toast.success(editingLoan ? '✅ Loan Updated Successfully!' : '✅ Loan Added Successfully!', {
+        description: `Loan for ${selectedMember.name} has been ${editingLoan ? 'updated' : 'created'}.`,
+        duration: 3000,
       })
+
+      onClose()
     } catch (error) {
       toast.error('❌ Error', {
         description: 'Failed to save loan. Please try again.',
-        duration: 3000
+        duration: 3000,
       })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleInputChange = (field: keyof Loan, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-  }
-
   const calculateEndDate = () => {
-    const startDate = new Date(formData.startDate)
-    const endDate = new Date(startDate)
-    endDate.setMonth(startDate.getMonth() + formData.tenure)
-    return endDate.toISOString().split('T')[0]
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
-  const calculateEMI = (principal: number, rate: number, tenure: number) => {
-    const emi = rate / 100
-    const monthlyRate = (1 + emi) ** 12 / 12
-    return principal * Math.pow(monthlyRate, tenure)
-  }
-
-  const calculateMonthlyPayment = (principal: number, rate: number, tenure: number) => {
-    const emi = rate / 100
-    const monthlyRate = (1 + emi) ** 12 / 12
-    return principal * monthlyRate
-  }
-
-  return {
-    emi: calculateEMI(principal, rate, tenure),
-    monthlyPayment: calculateMonthlyPayment(principal, rate, tenure),
-    totalPayment: calculateMonthlyPayment(principal, rate, tenure) * tenure
-  }
-  }
-
-  const getLoanSummary = () => {
-    const loan = formData
-    const emi = calculateEMI(loan.amount, loan.interestRate, loan.tenure)
-    const monthlyPayment = calculateMonthlyPayment(loan.amount, loan.interestRate, loan.tenure)
-    const totalPayment = monthlyPayment * loan.tenure
-    const totalInterest = emi * loan.tenure
-    const totalBalance = loan.amount - loan.paidAmount - loan.interest - loan.fine
-
-    return {
-      principal: loan.amount,
-      interest: totalInterest,
-      monthlyPayment,
-      totalPayment,
-      totalBalance,
-      emi: `${(emi * 100).toFixed(2)}%`,
-      tenure: `${loan.tenure} months`,
-      rate: `${(rate * 100).toFixed(2)}%`
+    if (formData.startDate && formData.totalInstallments) {
+      const startDate = new Date(formData.startDate)
+      const totalMonths = parseInt(formData.totalInstallments)
+      if (!isNaN(totalMonths)) {
+        const endDate = new Date(startDate)
+        endDate.setMonth(endDate.getMonth() + totalMonths)
+        const endDateStr = endDate.toISOString().split('T')[0]
+        if (formData.endDate !== endDateStr) {
+          setFormData(prev => ({ ...prev, endDate: endDateStr }))
+        }
+      }
     }
   }
+
+  useEffect(() => {
+    calculateEndDate()
+  }, [formData.startDate, formData.totalInstallments])
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                {editingLoan ? 'Edit Loan' : 'Add New Loan'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingLoan ? 'Update loan details below' : 'Fill in the details to add a new loan'}
-              </DialogDescription>
-            </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/20 dark:border-white/10">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            {editingLoan ? 'Edit Loan' : 'Add New Loan'}
+          </DialogTitle>
+        </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Member Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="member" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Member <span className="text-red-500">*</span>
-                  </Label>
-                  <Select 
-                    value={formData.member} 
-                    onValueChange={(value) => handleInputChange('member', value)}
-                  >
-                    <SelectTrigger className={errors.member ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="Select member" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Members</SelectItem>
-                      {members.map(member => (
-                        <SelectItem key={member}>{member}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.member && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.member}
-                    </p>
-                  )}
-                </div>
-
-                {/* Loan Details */}
-                <div className="space-y-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="loanType" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Loan Type <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={formData.loanType} 
-                      onValueChange={(value: 'Personal Loan' | 'Business Loan' | 'Education Loan' | 'Home Loan'}
-                    >
-                      <SelectTrigger className={errors.loanType ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Select loan type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Personal Loan">Personal Loan</SelectItem>
-                        <SelectItem value="Business Loan">Business Loan</SelectItem>
-                        <SelectItem value="Education Loan">Education Loan</SelectItem>
-                        <SelectItem value="Home Loan">Home Loan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Amount and Interest */}
-                <div className="space-y-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Loan Amount (₹) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="0"
-                      value={formData.amount || ''}
-                      onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
-                      className={errors.amount ? 'border-red-500' : ''}
-                    />
-                    {errors.amount && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.amount}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Interest Rate */}
-                <div className="space-y-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="interestRate" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Interest Rate (% per annum) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="interestRate"
-                      type="number"
-                      placeholder="10"
-                      value={formData.interestRate || ''}
-                      onChange={(e) => handleInputChange('interestRate', parseFloat(e.target.value) || 0)}
-                      className={errors.interestRate ? 'border-red-500' : ''}
-                    />
-                    {errors.interestRate && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.interestRate}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Tenure */}
-                <div className="space-y-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="tenure" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Tenure (months) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="tenure"
-                      type="number"
-                      min="1"
-                      max="360"
-                      value={formData.tenure || 12}
-                      onChange={(e) => handleInputChange('tenure', parseInt(e.target.value) || 12)}
-                      className={errors.tenure ? 'border-red-500' : ''}
-                    />
-                    {errors.tenure && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.tenure}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* End Date */}
-                <div className="space-y-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="endDate" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      End Date <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="endDate"
-                      type="date"
-                      value={formData.endDate || ''}
-                      onChange={(e) => {
-                        handleInputChange('endDate', e.target.value)
-                        calculateEndDate()
-                      }}
-                      className={errors.endDate ? 'border-red-500' : ''}
-                    />
-                    {errors.endDate && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.endDate}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Mode */}
-                <div className="space-y-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="mode" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Payment Mode <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={formData.mode} 
-                      onValueChange={(value: 'Cash' | 'Online' | 'Cheque'}
-                    >
-                      <SelectTrigger className={errors.mode ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Select payment mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Online">Online</SelectItem>
-                        <SelectItem value="Cheque">Cheque</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Description <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Monthly fee, loan payment, etc."
-                    value={formData.description || ''}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    className={errors.description ? 'border-red-500' : ''}
-                    rows={3}
-                    className={errors.description ? 'border-red-500' : ''}
-                  />
-                </div>
-
-                {/* Current Balance Preview */}
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                    Balance Preview
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Member Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="memberId" className="text-sm font-medium flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Member *
+            </Label>
+            <Select
+              value={formData.memberId}
+              onValueChange={(value) => handleInputChange('memberId', value)}
+            >
+              <SelectTrigger className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10">
+                <SelectValue placeholder="Select a member" />
+              </SelectTrigger>
+              <SelectContent>
+                {membersData.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400">Deposit:</span>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(formData.depositAmount)}
-                      </p>
+                      <div className="font-medium">{member.name}</div>
+                      <div className="text-xs text-muted-foreground">{member.email}</div>
                     </div>
-                    <div>
-                      <span className="text-slate-500 dark:text-slate-400">Deductions:</span>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(formData.loanInstallment + formData.interest + formData.fine)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 dark:text-slate-400">Balance:</span>
-                      <p className={`font-medium ${
-                        formData.balance >= 0 
-                          ? 'text-emerald-600 dark:text-emerald-400' 
-                          : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        {formatCurrency(formData.balance)}
-                      </p>
-                    </div>
-                  </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Financial Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="loanAmount" className="text-sm font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Loan Amount (₹) *
+              </Label>
+              <Input
+                id="loanAmount"
+                type="number"
+                placeholder="50000"
+                value={formData.loanAmount}
+                onChange={(e) => handleInputChange('loanAmount', e.target.value)}
+                className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
+                min="0"
+                step="1000"
+              />
+              {formData.loanAmount && (
+                <div className="text-sm text-muted-foreground">
+                  {formatCurrency(parseFloat(formData.loanAmount) || 0)}
                 </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="interestRate" className="text-sm font-medium flex items-center gap-2">
+                <Percent className="h-4 w-4" />
+                Interest Rate (%) *
+              </Label>
+              <Input
+                id="interestRate"
+                type="number"
+                placeholder="12"
+                value={formData.interestRate}
+                onChange={(e) => handleInputChange('interestRate', e.target.value)}
+                className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
+                min="0"
+                max="100"
+                step="0.1"
+              />
+            </div>
+          </div>
+
+          {/* Installment Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="totalInstallments" className="text-sm font-medium">
+                Total Installments *
+              </Label>
+              <Input
+                id="totalInstallments"
+                type="number"
+                placeholder="12"
+                value={formData.totalInstallments}
+                onChange={(e) => handleInputChange('totalInstallments', e.target.value)}
+                className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
+                min="1"
+                max="360"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paidInstallments" className="text-sm font-medium">
+                Paid Installments
+              </Label>
+              <Input
+                id="paidInstallments"
+                type="number"
+                placeholder="0"
+                value={formData.paidInstallments}
+                onChange={(e) => handleInputChange('paidInstallments', e.target.value)}
+                className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
+                min="0"
+              />
+            </div>
+          </div>
+
+          {/* Date Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate" className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Start Date *
+              </Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => handleInputChange('startDate', e.target.value)}
+                className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endDate" className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                End Date *
+              </Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => handleInputChange('endDate', e.target.value)}
+                className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
+              />
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-2">
+            <Label htmlFor="status" className="text-sm font-medium">
+              Status *
+            </Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value: any) => handleInputChange('status', value)}
+            >
+              <SelectTrigger className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="APPROVED">Approved</SelectItem>
+                <SelectItem value="CLOSED">Closed</SelectItem>
+                <SelectItem value="REJECTED">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium">
+              Description (Optional)
+            </Label>
+            <Textarea
+              id="description"
+              placeholder="Enter loan description or purpose..."
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              className="bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10 resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Error Display */}
+          {errors.length > 0 && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <div className="text-sm text-red-800 dark:text-red-200">
+                <div className="font-medium mb-1">Please fix the following errors:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  {errors.map((error, index) => (
+                    <li key={index} className="text-xs">{error}</li>
+                  ))}
+                </ul>
               </div>
+            </div>
+          )}
 
-              {/* Form Actions */}
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  disabled={isSubmitting}
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10 hover:bg-white/80 dark:hover:bg-black/40"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="flex items-center gap-2"
                 >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-b-2 border-white border-transparent bg-emerald-600/20 border-emerald-600/20 border-emerald-600/40 border-emerald-600/60 border-emerald-600/80" text-white" />
-                      <span className="ml-2">Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      {editingTransaction ? 'Update Loan' : 'Add Loan'}
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </AnimatePresence>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  {editingLoan ? 'Updating...' : 'Creating...'}
+                </motion.div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  {editingLoan ? 'Update Loan' : 'Create Loan'}
+                </div>
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
-
-export default AddTransactionModal
