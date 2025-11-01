@@ -238,8 +238,9 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
   const memberStats = getMemberStats()
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {memberStats.map((stat, index) => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {memberStats.map((stat, index) => (
         <motion.div
           key={stat.title}
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -324,10 +325,11 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
             </CardContent>
           </Card>
         </motion.div>
+      ))}
       </div>
 
-      {/* Member Growth Chart */}
-      <motion.div
+    {/* Member Growth Chart */}
+    <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
@@ -394,6 +396,7 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
                   </span>
                 </div>
               </div>
+            </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -427,7 +430,7 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ 
                     duration: 0.5, 
-                    delay: index * 0.1 
+                    delay: index * 0.1,
                     type: "spring",
                     stiffness: 100
                   }}
@@ -454,6 +457,7 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
                   </Badge>
                 </div>
               </motion.div>
+            ))}
             </div>
             
             {/* Validation Check */}
@@ -470,6 +474,7 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
                 </span>
               </div>
             </div>
+            </CardContent>
           </Card>
         </motion.div>
       </div>

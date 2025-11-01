@@ -265,7 +265,7 @@ export function PassbookManagement({ transactions, stats, onAction, onEdit, onDe
                   </SelectContent>
                 </Select>
                 
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}}>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
