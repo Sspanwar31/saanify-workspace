@@ -5,10 +5,13 @@ import { motion } from 'framer-motion'
 import { 
   Plus, 
   DollarSign, 
-  Calendar,
+  TrendingUp, 
+  Calendar, 
+  CreditCard, 
+  Building2, 
   RefreshCw,
-  Download,
-  Filter
+  FileText,
+  BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,21 +19,23 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import PassbookTable from '@/components/client/PassbookTable'
-import AddEntryModal from '@/components/client/AddEntryModal'
+import ExpensesTable from '@/components/client/ExpensesTable'
+import AddExpenseModal from '@/components/client/AddExpenseModal'
 import { 
-  PassbookEntry, 
-  PassbookStats, 
-  passbookData as initialPassbook, 
-  getPassbookStats 
-} from '@/data/passbookData'
+  Expense, 
+  ExpenseStats, 
+  expensesData as initialExpenses, 
+  getExpenseStats,
+  formatCurrency
+} from '@/data/expensesData'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
-export default function PassbookManagementPage() {
-  const [passbook, setPassbook] = useState<PassbookEntry[]>([])
-  const [stats, setStats] = useState<PassbookStats | null>(null)
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [stats, setStats] = useState<ExpenseStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<PassbookEntry | null>(null)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   // Load initial data
@@ -40,76 +45,76 @@ export default function PassbookManagementPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      setPassbook(initialPassbook)
-      setStats(getPassbookStats(initialPassbook))
+      setExpenses(initialExpenses)
+      setStats(getExpenseStats(initialExpenses))
       setLoading(false)
     }
 
     loadData()
   }, [])
 
-  const handleAddEntry = () => {
-    setEditingEntry(null)
+  const handleAddExpense = () => {
+    setEditingExpense(null)
     setIsModalOpen(true)
   }
 
-  const handleEditEntry = (entry: PassbookEntry) => {
-    setEditingEntry(entry)
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense)
     setIsModalOpen(true)
   }
 
-  const handleSaveEntry = (savedEntry: PassbookEntry) => {
-    if (editingEntry) {
-      // Update existing entry
-      setPassbook(prev => prev.map(entry => 
-        entry.id === savedEntry.id ? savedEntry : entry
+  const handleSaveExpense = (savedExpense: Expense) => {
+    if (editingExpense) {
+      // Update existing expense
+      setExpenses(prev => prev.map(expense => 
+        expense.id === savedExpense.id ? savedExpense : expense
       ))
-      toast.success('✅ Entry Updated Successfully!', {
-        description: `${savedEntry.memberName}'s passbook entry has been updated.`,
+      toast.success('✅ Expense Updated Successfully!', {
+        description: `${savedExpense.category} expense of ${formatCurrency(savedExpense.amount)} has been updated.`,
         duration: 3000,
       })
     } else {
-      // Add new entry
-      setPassbook(prev => [...prev, savedEntry])
-      toast.success('✅ Entry Added Successfully!', {
-        description: `${savedEntry.memberName}'s passbook entry of ₹${savedEntry.depositAmount} has been added.`,
+      // Add new expense
+      setExpenses(prev => [...prev, savedExpense])
+      toast.success('✅ Expense Added Successfully!', {
+        description: `${savedExpense.category} expense of ${formatCurrency(savedExpense.amount)} has been added.`,
         duration: 3000,
       })
     }
     
     // Update stats
-    const updatedPassbook = editingEntry 
-      ? passbook.map(entry => entry.id === savedEntry.id ? savedEntry : entry)
-      : [...passbook, savedEntry]
-    setStats(getPassbookStats(updatedPassbook))
+    const updatedExpenses = editingExpense 
+      ? expenses.map(expense => expense.id === savedExpense.id ? savedExpense : expense)
+      : [...expenses, savedExpense]
+    setStats(getExpenseStats(updatedExpenses))
     
     setIsModalOpen(false)
-    setEditingEntry(null)
+    setEditingExpense(null)
   }
 
-  const handleDeleteEntry = (entryId: string) => {
-    const entryToDelete = passbook.find(entry => entry.id === entryId)
-    if (!entryToDelete) return
+  const handleDeleteExpense = (expenseId: string) => {
+    const expenseToDelete = expenses.find(expense => expense.id === expenseId)
+    if (!expenseToDelete) return
 
-    // Delete entry
-    setPassbook(prev => prev.filter(entry => entry.id !== entryId))
-    setStats(getPassbook(passbook.filter(entry => entry.id !== entryId)))
+    // Delete expense
+    setExpenses(prev => prev.filter(expense => expense.id !== expenseId))
+    setStats(getExpenseStats(expenses.filter(expense => expense.id !== expenseId)))
     
-    toast.success('✅ Entry Deleted Successfully!', {
-      description: `${entryToDelete.memberName}'s passbook entry has been removed.`,
+    toast.success('✅ Expense Deleted Successfully!', {
+      description: `${expenseToDelete.category} expense of ${formatCurrency(expenseToDelete.amount)} has been removed.`,
       duration: 3000,
     })
   }
 
   const handleExport = (format: 'csv' | 'pdf') => {
     toast.info(`📥 Exporting ${format.toUpperCase()}`, {
-      description: `Passbook data is being exported as ${format.toUpperCase()}.`,
+      description: `Expense data is being exported as ${format.toUpperCase()}.`,
       duration: 2000,
     })
     
     setTimeout(() => {
       toast.success('✅ Export Complete!', {
-        description: `Passbook data exported successfully as ${format.toUpperCase()}.`,
+        description: `Expense data exported successfully as ${format.toUpperCase()}.`,
         duration: 3000,
       })
     }, 1500)
@@ -118,19 +123,19 @@ export default function PassbookManagementPage() {
   const handleRefresh = async () => {
     setRefreshing(true)
     toast.info('🔄 Refreshing Data', {
-      description: 'Fetching latest passbook data...',
+      description: 'Fetching latest expense data...',
       duration: 2000,
     })
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    setPassbook(initialPassbook)
-    setStats(getPassbookStats(initialPassbook))
+    setExpenses(initialExpenses)
+    setStats(getExpenseStats(initialExpenses))
     setRefreshing(false)
     
     toast.success('✅ Data Updated', {
-      description: 'Passbook data has been refreshed.',
+      description: 'Expense data has been refreshed.',
       duration: 2000,
     })
   }
@@ -154,6 +159,19 @@ export default function PassbookManagementPage() {
     }
   }
 
+  // Prepare chart data
+  const categoryChartData = stats ? Object.entries(stats.categoryBreakdown).map(([category, amount]) => ({
+    category,
+    amount
+  })) : []
+
+  const pieChartData = stats ? Object.entries(stats.categoryBreakdown).map(([category, amount]) => ({
+    name: category,
+    value
+  })) : []
+
+  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#6b7280']
+
   return (
     <motion.div
       variants={containerVariants}
@@ -165,10 +183,10 @@ export default function PassbookManagementPage() {
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            Passbook Management
+            Expense Management
           </h1>
           <p className="text-muted-foreground mt-2">
-            Track all member transactions and passbook entries efficiently
+            Track and manage all society expenses efficiently
           </p>
         </div>
         
@@ -183,17 +201,17 @@ export default function PassbookManagementPage() {
           </Button>
 
           <Button
-            onClick={handleAddEntry}
+            onClick={handleAddExpense}
             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Entry
+            Add Expense
           </Button>
         </div>
       </motion.div>
 
       {/* Stats Cards */}
-      <motion.div variants={itemVariants} className="grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           [...Array(4)].map((_, i) => (
             <Card key={i} className="border-0 shadow-xl bg-white/80 dark:bg-black/40 backdrop-blur-xl">
@@ -215,10 +233,10 @@ export default function PassbookManagementPage() {
                   </Badge>
                 </div>
                 <div className="text-2xl font-bold mb-1">
-                  ₹{stats.totalDeposits.toLocaleString('en-IN')}
+                  {formatCurrency(stats.totalExpenses)}
                 </div>
                 <div className="text-emerald-100 text-sm">
-                  Total Deposits
+                  Total Expenses
                 </div>
               </CardContent>
             </Card>
@@ -232,10 +250,16 @@ export default function PassbookManagementPage() {
                   </Badge>
                 </div>
                 <div className="text-2xl font-bold mb-1">
-                  ₹{stats.thisMonthDeposits.toLocaleString('en-IN')}
+                  {formatCurrency(stats.thisMonthExpenses)}
                 </div>
                 <div className="text-blue-100 text-sm">
-                  Monthly Deposits
+                  This Month's Expenses
+                </div>
+                {stats.lastMonthExpenses > 0 && (
+                  <div className="text-xs text-blue-200 mt-2">
+                    {stats.thisMonthExpenses > stats.lastMonthExpenses ? '+' : ''}
+                    {Math.round(((stats.thisMonthExpenses - stats.lastMonthExpenses) / stats.lastMonthExpenses) * 100)}% from last month
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -243,16 +267,16 @@ export default function PassbookManagementPage() {
             <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <TrendingUp className="h-8 w-8 text-purple-100" />
+                  <Building2 className="h-8 w-8 text-purple-100" />
                   <Badge className="bg-purple-400 text-purple-900">
-                    Total Interest
+                    Top Category
                   </Badge>
                 </div>
                 <div className="text-2xl font-bold mb-1">
-                  ₹{stats.totalInterest.toLocaleString('en-IN')}
+                  {stats.topCategory}
                 </div>
                 <div className="text-purple-100 text-sm">
-                  Total Interest
+                  {formatCurrency(stats.topCategoryAmount)}
                 </div>
               </CardContent>
             </Card>
@@ -260,50 +284,16 @@ export default function PassbookManagementPage() {
             <Card className="border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Users className="h-8 w-8 text-amber-100" />
+                  <TrendingUp className="h-8 w-8 text-amber-100" />
                   <Badge className="bg-amber-400 text-amber-900">
-                    Fines
+                    Average
                   </Badge>
                 </div>
                 <div className="text-2xl font-bold mb-1">
-                  ₹{stats.totalFine.toLocaleString('en-IN')}
+                  {formatCurrency(stats.averageExpense)}
                 </div>
                 <div className="text-amber-100 text-sm">
-                  Total Fines
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-teal-500 to-teal-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Shield className="h-8 w-8 text-teal-100" />
-                  <Badge className="bg-teal-400 text-teal-900">
-                    Active Members
-                  </Badge>
-                </div>
-                <div className="text-2xl font-bold mb-1">
-                  {stats.activeMembers}
-                </div>
-                <div className="text-teal-100 text-sm">
-                  Active Members
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <PieChart className="h-8 w-8 text-cyan-100" />
-                  <Badge className="bg-cyan-400 text-cyan-900">
-                    Categories
-                  </Badge>
-                </div>
-                <div className="text-2xl font-bold mb-1">
-                  {stats.paymentModeBreakdown.Cash}
-                </div>
-                <div className="text-cyan-100 text-sm">
-                  Payment Mode Breakdown
+                  Average Expense
                 </div>
               </CardContent>
             </Card>
@@ -311,13 +301,12 @@ export default function PassbookManagementPage() {
         ) : null}
       </motion.div>
 
-      {/* Add/Edit Entry Modal */}
-      <AddEntryModal
+      {/* Add/Edit Expense Modal */}
+      <AddExpenseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveEntry}
-        editingEntry={editingEntry}
-        existingEntries={passbook}
+        onSave={handleSaveExpense}
+        editingExpense={editingExpense}
       />
     </motion.div>
   )

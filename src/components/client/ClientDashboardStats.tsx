@@ -8,6 +8,7 @@ import {
   TrendingUp, 
   CreditCard, 
   Calendar,
+  MessageSquare,
   Activity,
   DollarSign,
   FileText,
@@ -353,7 +354,7 @@ export function ClientDashboardStats({ stats, societyInfo }: DashboardStatsProps
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                    <Mail className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <MessageSquare className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Admin Email</p>

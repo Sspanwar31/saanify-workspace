@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, User, Mail, Phone, MapPin, Shield } from 'lucide-react'
+import { X, User, MessageSquare, Phone, MapPin, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -199,7 +199,7 @@ export default function AddUserModal({
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" />
                   Email Address *
                 </Label>
                 <Input

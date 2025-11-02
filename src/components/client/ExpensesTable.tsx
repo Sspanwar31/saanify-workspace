@@ -9,20 +9,17 @@ import {
   MoreVertical,
   ChevronUp, 
   ChevronDown,
-  MessageSquare,
-  Phone,
-  Calendar,
-  Shield,
-  Key,
-  Filter,
   Download,
-  Upload
+  Filter,
+  Calendar,
+  DollarSign,
+  CreditCard,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   Table,
   TableBody,
@@ -47,72 +44,64 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { 
-  User, 
-  getStatusColor, 
-  getRoleColor, 
-  getRoleIcon,
-  formatLastLogin 
-} from '@/data/usersData'
+  Expense, 
+  getCategoryColor, 
+  getPaymentModeColor,
+  getCategoryIcon,
+  formatDate,
+  formatCurrency
+} from '@/data/expensesData'
 
-interface UserTableProps {
-  users: User[]
+interface ExpensesTableProps {
+  expenses: Expense[]
   loading?: boolean
-  onEdit?: (user: User) => void
-  onDelete?: (userId: string) => void
-  onResetPassword?: (user: User) => void
-  onInviteUser?: (user: User) => void
+  onEdit?: (expense: Expense) => void
+  onDelete?: (expenseId: string) => void
   onExport?: (format: 'csv' | 'pdf') => void
-  onBulkAction?: (action: string, userIds: string[]) => void
 }
 
-type SortField = keyof User
+type SortField = keyof Expense
 type SortDirection = 'asc' | 'desc'
 
-export default function UserTable({ 
-  users, 
+export default function ExpensesTable({ 
+  expenses, 
   loading = false, 
   onEdit, 
   onDelete,
-  onResetPassword,
-  onInviteUser,
-  onExport,
-  onBulkAction
-}: UserTableProps) {
+  onExport
+}: ExpensesTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRole, setSelectedRole] = useState('all')
-  const [selectedStatus, setSelectedStatus] = useState('all')
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
-  const [sortField, setSortField] = useState<SortField>('createdAt')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedMode, setSelectedMode] = useState('all')
+  const [sortField, setSortField] = useState<SortField>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
-  // Filter and sort users
-  const filteredUsers = useMemo(() => {
-    let filtered = users
+  // Filter and sort expenses
+  const filteredExpenses = useMemo(() => {
+    let filtered = expenses
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phone?.includes(searchTerm) ||
-        user.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(expense =>
+        expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.mode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.addedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.amount.toString().includes(searchTerm)
       )
     }
 
-    // Filter by role
-    if (selectedRole !== 'all') {
-      filtered = filtered.filter(user => user.role === selectedRole)
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(expense => expense.category === selectedCategory)
     }
 
-    // Filter by status
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(user => user.status === selectedStatus)
+    // Filter by payment mode
+    if (selectedMode !== 'all') {
+      filtered = filtered.filter(expense => expense.mode === selectedMode)
     }
 
-    // Sort users
+    // Sort expenses
     filtered.sort((a, b) => {
       const aValue = a[sortField]
       const bValue = b[sortField]
@@ -130,7 +119,7 @@ export default function UserTable({
     })
 
     return filtered
-  }, [users, searchTerm, selectedRole, selectedStatus, sortField, sortDirection])
+  }, [expenses, searchTerm, selectedCategory, selectedMode, sortField, sortDirection])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -141,58 +130,23 @@ export default function UserTable({
     }
   }
 
-  const handleEdit = (user: User) => {
+  const handleEdit = (expense: Expense) => {
     if (onEdit) {
-      onEdit(user)
+      onEdit(expense)
     }
   }
 
-  const handleDelete = (userId: string, userName: string) => {
+  const handleDelete = (expenseId: string, expenseDescription: string) => {
     if (onDelete) {
-      if (confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
-        onDelete(userId)
+      if (confirm(`Are you sure you want to delete this expense?\n\n${expenseDescription}\n\nThis action cannot be undone.`)) {
+        onDelete(expenseId)
       }
-    }
-  }
-
-  const handleResetPassword = (user: User) => {
-    if (onResetPassword) {
-      onResetPassword(user)
-    }
-  }
-
-  const handleInviteUser = (user: User) => {
-    if (onInviteUser) {
-      onInviteUser(user)
     }
   }
 
   const handleExport = (format: 'csv' | 'pdf') => {
     if (onExport) {
       onExport(format)
-    }
-  }
-
-  const handleBulkAction = (action: string) => {
-    if (onBulkAction && selectedUsers.length > 0) {
-      onBulkAction(action, selectedUsers)
-      setSelectedUsers([])
-    }
-  }
-
-  const handleSelectAll = () => {
-    if (selectedUsers.length === filteredUsers.length) {
-      setSelectedUsers([])
-    } else {
-      setSelectedUsers(filteredUsers.map(user => user.id))
-    }
-  }
-
-  const handleSelectUser = (userId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedUsers(prev => [...prev, userId])
-    } else {
-      setSelectedUsers(prev => prev.filter(id => id !== userId))
     }
   }
 
@@ -230,40 +184,44 @@ export default function UserTable({
         <CardHeader>
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <CardTitle className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              Users Directory
+              Expenses Directory
             </CardTitle>
             
             <div className="flex flex-col lg:flex-row gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search users..."
+                  placeholder="Search expenses..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-full lg:w-64 bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10"
                 />
               </div>
 
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-full lg:w-40 bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10">
-                  <SelectValue placeholder="All Roles" />
+                  <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Treasurer">Treasurer</SelectItem>
-                  <SelectItem value="Member">Member</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Repair">Repair</SelectItem>
+                  <SelectItem value="Event">Event</SelectItem>
+                  <SelectItem value="Salary">Salary</SelectItem>
+                  <SelectItem value="Utilities">Utilities</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <Select value={selectedMode} onValueChange={setSelectedMode}>
                 <SelectTrigger className="w-full lg:w-40 bg-white/50 dark:bg-black/20 border-white/20 dark:border-white/10">
-                  <SelectValue placeholder="All Status" />
+                  <SelectValue placeholder="All Modes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="all">All Modes</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Online">Online</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -292,22 +250,22 @@ export default function UserTable({
         </CardHeader>
 
         <CardContent>
-          {filteredUsers.length === 0 ? (
+          {filteredExpenses.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center py-12"
             >
               <div className="mx-auto w-24 h-24 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-full flex items-center justify-center mb-4">
-                <Shield className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
+                <DollarSign className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                No users found
+                No expenses found
               </h3>
               <p className="text-muted-foreground max-w-md mx-auto">
                 {searchTerm 
-                  ? 'Try adjusting your search terms to find the users you\'re looking for.'
-                  : 'No users have been added yet. Click "Add User" to create the first user.'
+                  ? 'Try adjusting your search terms to find the expenses you\'re looking for.'
+                  : 'No expenses have been added yet. Click "Add Expense" to create the first expense.'
                 }
               </p>
             </motion.div>
@@ -316,161 +274,119 @@ export default function UserTable({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                        onChange={handleSelectAll}
-                        className="rounded border-gray-300 dark:border-gray-600"
-                      />
-                    </TableHead>
-                    <TableHead>User</TableHead>
                     <TableHead 
                       className="cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                      onClick={() => handleSort('role')}
+                      onClick={() => handleSort('date')}
                     >
                       <div className="flex items-center gap-2">
-                        Role
-                        {sortField === 'role' && (
+                        <Calendar className="h-4 w-4" />
+                        Date
+                        {sortField === 'date' && (
                           sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                         )}
                       </div>
                     </TableHead>
                     <TableHead 
                       className="cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                      onClick={() => handleSort('status')}
+                      onClick={() => handleSort('category')}
                     >
                       <div className="flex items-center gap-2">
-                        Status
-                        {sortField === 'status' && (
+                        Category
+                        {sortField === 'category' && (
                           sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                         )}
                       </div>
                     </TableHead>
                     <TableHead 
                       className="cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                      onClick={() => handleSort('joinDate')}
+                      onClick={() => handleSort('amount')}
                     >
                       <div className="flex items-center gap-2">
-                        Join Date
-                        {sortField === 'joinDate' && (
+                        <DollarSign className="h-4 w-4" />
+                        Amount
+                        {sortField === 'amount' && (
                           sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                         )}
                       </div>
                     </TableHead>
-                    <TableHead>Last Login</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                      onClick={() => handleSort('mode')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Mode
+                        {sortField === 'mode' && (
+                          sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Added By</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence>
-                    {filteredUsers.map((user, index) => (
+                    {filteredExpenses.map((expense, index) => (
                       <motion.tr
-                        key={user.id}
+                        key={expense.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         className="border-b border-border/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors"
                       >
-                        <TableCell className="w-12">
-                          <input
-                            type="checkbox"
-                            checked={selectedUsers.includes(user.id)}
-                            onChange={(e) => handleSelectUser(user.id, e.target.checked)}
-                            className="rounded border-gray-300 dark:border-gray-600"
-                          />
+                        <TableCell className="font-medium">
+                          {formatDate(expense.date)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={user.avatar} alt={user.name} />
-                              <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
-                                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium text-foreground flex items-center gap-2">
-                                <span>{user.name}</span>
-                                <span className="text-lg">{getRoleIcon(user.role)}</span>
-                                {user.employeeId && (
-                                  <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-800">
-                                    {user.employeeId}
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <MessageSquare className="h-3 w-3" />
-                                <span>{user.email}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Phone className="h-3 w-3" />
-                                <span>{user.phone}</span>
-                              </div>
-                              {user.department && (
-                                <div className="text-xs text-muted-foreground">
-                                  {user.department}
-                                </div>
-                              )}
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{getCategoryIcon(expense.category)}</span>
+                            <Badge className={getCategoryColor(expense.category)}>
+                              {expense.category}
+                            </Badge>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getRoleColor(user.role)}>
-                            {user.role}
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(expense.amount)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getPaymentModeColor(expense.mode)}>
+                            {expense.mode}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(user.status)}>
-                            {user.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(user.joinDate).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric'
-                            })}</span>
+                          <div className="max-w-xs truncate" title={expense.description}>
+                            {expense.description}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-muted-foreground">
-                            {formatLastLogin(user.lastLogin)}
-                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {expense.addedBy}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="hover:bg-emerald-100 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400"
-                              >
+                              <Button variant="ghost" size="sm">
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/20 dark:border-white/10">
-                              <DropdownMenuItem onClick={() => handleEdit(user)}>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(expense)}>
                                 <Edit className="h-4 w-4 mr-2" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleResetPassword(user)}>
-                                <Key className="h-4 w-4 mr-2" />
-                                Reset Password
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleInviteUser(user)}>
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Invite User
+                                Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleDelete(user.id, user.name)}
-                                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                                onClick={() => handleDelete(expense.id, expense.description)}
+                                className="text-red-600 dark:text-red-400"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete User
+                                Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

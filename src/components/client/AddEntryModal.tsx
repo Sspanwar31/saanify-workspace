@@ -3,136 +3,181 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Plus, 
+  X, 
   DollarSign, 
   Calendar,
-  RefreshCw,
-  Download,
-  Filter
+  CreditCard,
+  FileText,
+  AlertCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import PassbookTable from '@/components/client/PassbookTable'
-import AddEntryModal from '@/components/client/AddEntryModal'
 import { 
-  PassbookEntry, 
-  PassbookStats, 
-  passbookData as initialPassbook, 
-  getPassbookStats 
+  PassbookEntry as PassbookEntryType, 
+  validatePassbookForm, 
+  generatePassbookId
 } from '@/data/passbookData'
 
-export default function PassbookManagementPage() {
-  const [passbook, setPassbook] = useState<PassbookEntry[]>([])
-  const [stats, setStats] = useState<PassbookStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<PassbookEntry | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
+interface AddEntryModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (entry: PassbookEntryType) => void
+  editingEntry?: PassbookEntryType | null
+  existingEntries: PassbookEntryType[]
+}
 
-  // Load initial data
+interface EntryFormData {
+  memberId: string
+  depositAmount: string
+  loanInstallment: string
+  interestRate: string
+  fine: string
+  mode: 'Cash' | 'Online' | 'Cheque'
+  description: string
+}
+
+export default function AddEntryModal({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  editingEntry,
+  existingEntries
+}: AddEntryModalProps) {
+  const [formData, setFormData] = useState<EntryFormData>({
+    memberId: '',
+    depositAmount: '',
+    loanInstallment: '',
+    interestRate: '8.5',
+    fine: '',
+    mode: 'Cash',
+    description: ''
+  })
+  
+  const [errors, setErrors] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Reset form when modal opens/closes or editing entry changes
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
+    if (isOpen) {
+      if (editingEntry) {
+        setFormData({
+          memberId: editingEntry.memberId,
+          depositAmount: editingEntry.depositAmount.toString(),
+          loanInstallment: editingEntry.loanInstallment.toString(),
+          interestRate: editingEntry.interestRate,
+          fine: editingEntry.fine.toString(),
+          mode: editingEntry.mode,
+          description: editingEntry.description
+        })
+      } else {
+        setFormData({
+          memberId: '',
+          depositAmount: '',
+          loanInstallment: '',
+          interestRate: '8.5',
+          fine: '',
+          mode: 'Cash',
+          description: ''
+        })
+      }
+      setErrors([])
+    }
+  }, [isOpen, editingEntry])
+
+  const handleInputChange = (field: keyof EntryFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    // Clear errors when user starts typing
+    if (errors.length > 0) {
+      setErrors([])
+    }
+  }
+
+  const validateForm = (): boolean => {
+    const validationErrors = validatePassbookForm(formData, !!editingEntry)
+    
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors)
+      validationErrors.forEach(error => {
+        toast.error('❌ Validation Error', {
+          description: error,
+          duration: 3000,
+        })
+      })
+      return false
+    }
+
+    return true
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validateForm()) {
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const entryData: PassbookEntryType = {
+        id: editingEntry ? editingEntry.id : generatePassbookId(),
+        memberId: formData.memberId,
+        date: formData.date,
+        depositAmount: parseFloat(formData.depositAmount),
+        loanInstallment: parseFloat(formData.loanInstallment),
+        interestRate: parseFloat(formData.interestRate),
+        fine: parseFloat(formData.fine),
+        mode: formData.mode as 'Cash' | 'Online' | 'Cheque',
+        description: formData.description.trim(),
+        addedBy: 'Admin',
+        createdAt: editingEntry ? editingEntry.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      onSave(entryData)
       
-      setPassbook(initialPassbook)
-      setStats(getPassbookStats(initialPassbook))
-      setLoading(false)
+      if (editingEntry) {
+        // Update existing entry
+        setPassbook(prev => prev.map(entry => 
+          entry.id === entryData.id ? entryData : entry
+        ))
+        toast.success('✅ Entry Updated Successfully!', {
+          description: `${entryData.memberName}'s passbook entry has been updated.`,
+          duration: 3000,
+        })
+      } else {
+        // Add new entry
+        setPassbook(prev => [...prev, entryData])
+        toast.success('✅ Entry Added Successfully!', {
+          description: `${entryData.memberName}'s passbook entry of ₹${entryData.depositAmount} has been added.`,
+          duration: 3000,
+        })
+      }
+      
+      // Update stats
+      const updatedPassbook = editingEntry 
+        ? passbook.map(entry => entry.id === entryData.id ? entryData : entry)
+        : [...passbook, entryData]
+      setStats(getPassbookStats(updatedPassbook))
+      
+      setIsModalOpen(false)
+      setEditingEntry(null)
+    } catch (error) {
+      toast.error('❌ Error', {
+        description: 'Failed to save entry. Please try again.',
+        duration: 3000,
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-
-    loadData()
-  }, [])
-
-  const handleAddEntry = () => {
-    setEditingEntry(null)
-    setIsModalOpen(true)
-  }
-
-  const handleEditEntry = (entry: PassbookEntry) => {
-    setEditingEntry(entry)
-    setIsModalOpen(true)
-  }
-
-  const handleSaveEntry = (savedEntry: PassbookEntry) => {
-    if (editingEntry) {
-      // Update existing entry
-      setPassbook(prev => prev.map(entry => 
-        entry.id === savedEntry.id ? savedEntry : entry
-      ))
-      toast.success('✅ Entry Updated Successfully!', {
-        description: `${savedEntry.memberName}'s passbook entry has been updated.`,
-        duration: 3000,
-      })
-    } else {
-      // Add new entry
-      setPassbook(prev => [...prev, savedEntry])
-      toast.success('✅ Entry Added Successfully!', {
-        description: `${savedEntry.memberName}'s passbook entry of ₹${savedEntry.depositAmount} has been added.`,
-        duration: 3000,
-      })
-    }
-    
-    // Update stats
-    const updatedPassbook = editingEntry 
-      ? passbook.map(entry => entry.id === savedEntry.id ? savedEntry : entry)
-      : [...passbook, savedEntry]
-    setStats(getPassbookStats(updatedPassbook))
-    
-    setIsModalOpen(false)
-    setEditingEntry(null)
-  }
-
-  const handleDeleteEntry = (entryId: string) => {
-    const entryToDelete = passbook.find(entry => entry.id === entryId)
-    if (!entryToDelete) return
-
-    // Delete entry
-    setPassbook(prev => prev.filter(entry => entry.id !== entryId))
-    setStats(getPassbook(passbook.filter(entry => entry.id !== entryId)))
-    
-    toast.success('✅ Entry Deleted Successfully!', {
-      description: `${entryToDelete.memberName}'s passbook entry has been removed.`,
-      duration: 3000,
-    })
-  }
-
-  const handleExport = (format: 'csv' | 'pdf') => {
-    toast.info(`📥 Exporting ${format.toUpperCase()}`, {
-      description: `Passbook data is being exported as ${format.toUpperCase()}.`,
-      duration: 2000,
-    })
-    
-    setTimeout(() => {
-      toast.success('✅ Export Complete!', {
-        description: `Passbook data exported successfully as ${format.toUpperCase()}.`,
-        duration: 3000,
-      })
-    }, 1500)
-  }
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    toast.info('🔄 Refreshing Data', {
-      description: 'Fetching latest passbook data...',
-      duration: 2000,
-    })
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    setPassbook(initialPassbook)
-    setStats(getPassbookStats(initialPassbook))
-    setRefreshing(false)
-    
-    toast.success('✅ Data Updated', {
-      description: 'Passbook data has been refreshed.',
-      duration: 2000,
-    })
   }
 
   const containerVariants = {
@@ -193,7 +238,7 @@ export default function PassbookManagementPage() {
       </motion.div>
 
       {/* Stats Cards */}
-      <motion.div variants={itemVariants} className="grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           [...Array(4)].map((_, i) => (
             <Card key={i} className="border-0 shadow-xl bg-white/80 dark:bg-black/40 backdrop-blur-xl">
@@ -260,7 +305,7 @@ export default function PassbookManagementPage() {
             <Card className="border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Users className="h-8 w-8 text-amber-100" />
+                  <Shield className="h-8 w-8 text-teal-100" />
                   <Badge className="bg-amber-400 text-amber-900">
                     Fines
                   </Badge>
@@ -277,33 +322,13 @@ export default function PassbookManagementPage() {
             <Card className="border-0 shadow-xl bg-gradient-to-br from-teal-500 to-teal-600 text-white">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Shield className="h-8 w-8 text-teal-100" />
+                  <PieChart className="h-8 w-8 text-teal-100" />
                   <Badge className="bg-teal-400 text-teal-900">
-                    Active Members
-                  </Badge>
-                </div>
-                <div className="text-2xl font-bold mb-1">
-                  {stats.activeMembers}
-                </div>
-                <div className="text-teal-100 text-sm">
-                  Active Members
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <PieChart className="h-8 w-8 text-cyan-100" />
-                  <Badge className="bg-cyan-400 text-cyan-900">
                     Categories
                   </Badge>
                 </div>
                 <div className="text-2xl font-bold mb-1">
                   {stats.paymentModeBreakdown.Cash}
-                </div>
-                <div className="text-cyan-100 text-sm">
-                  Payment Mode Breakdown
                 </div>
               </CardContent>
             </Card>

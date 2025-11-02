@@ -478,5 +478,17 @@ export function PassbookManagement({ transactions, stats, onAction, onEdit, onDe
           </motion.div>
       </div>
     </div>
-  )
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </DropdownMenu>
+                </TableCell>
+              </motion.tr>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </motion.div>
+  </div>
+)
 }

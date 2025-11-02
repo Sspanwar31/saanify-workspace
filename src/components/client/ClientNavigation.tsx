@@ -7,11 +7,14 @@ import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, 
   Users, 
-  HandCoins, 
+  CreditCard, 
   BookOpen, 
   TrendingUp, 
   FileText, 
   Calendar,
+  DollarSign,
+  BarChart3,
+  Settings,
   Menu,
   X
 } from 'lucide-react'
@@ -34,7 +37,7 @@ const navigationItems = [
   {
     label: 'Loans',
     href: '/client/loans',
-    icon: HandCoins,
+    icon: CreditCard,
     description: 'Loan management'
   },
   {
@@ -50,10 +53,22 @@ const navigationItems = [
     description: 'Maturity tracking'
   },
   {
+    label: 'Admin Fund',
+    href: '/client/admin-fund',
+    icon: DollarSign,
+    description: 'Fund management'
+  },
+  {
     label: 'Reports',
     href: '/client/reports',
-    icon: FileText,
+    icon: BarChart3,
     description: 'Reports and analytics'
+  },
+  {
+    label: 'User Management',
+    href: '/client/user-management',
+    icon: Settings,
+    description: 'Role & permission management'
   }
 ]
 

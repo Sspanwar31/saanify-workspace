@@ -617,14 +617,40 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                           </SelectContent>
                         </Select>
                       </Select>
+                      
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-            </div>
-          )
-        </div>
+                        <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">Remaining Balance</Label>
+                        <span className="text-2xl font-bold text-slate-900 dark:text-white">
+                          ${loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0), 0)} / 
+                          ${loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0) / 
+                          ${loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0) / 
+                          ${loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0) / 
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Balance: ${loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      </div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          <Progress 
+                          value={getEMIInfo(loans)} 
+                          className="h-2"
+                          indicatorClassName={getProgressColor(getEMIInfo(loans))}
+                        />
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {getEMIInfo(loans)?.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )
       )
     )
   )

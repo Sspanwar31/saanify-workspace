@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
-  HandCoins, 
+  CreditCard, 
   Users, 
   Clock, 
   CheckCircle, 
@@ -18,7 +18,6 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import ClientNavigation from '@/components/client/ClientNavigation'
 import LoansTable from '@/components/client/LoansTable'
 import AddLoanModal from '@/components/client/AddLoanModal'
 import { 
@@ -172,12 +171,8 @@ export default function LoansPage() {
             <ClientNavigation />
           </div>
 
-          {/* Main Content */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex-1 space-y-6"
+        {/* Main Content */}
+        <motion.div
           >
             {/* Header */}
             <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -337,6 +332,7 @@ export default function LoansPage() {
                   Total value: {formatCurrency(stats.totalAmount)}
                 </p>
               </motion.div>
+            )
             )}
           </motion.div>
         </div>
