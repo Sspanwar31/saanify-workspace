@@ -157,7 +157,7 @@ export default function LoginPage() {
 
       // Redirect to admin dashboard
       setTimeout(() => {
-        window.location.href = '/admin/dashboard'
+        window.location.href = '/super-admin'
       }, 1000)
 
     } catch (error: any) {

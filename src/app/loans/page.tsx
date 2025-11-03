@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, CreditCard, Users, Calendar, TrendingUp, Search } from 'lucide-react'
+import { Plus, CreditCard, Users, Calendar, TrendingUp, Search, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,31 +26,19 @@ interface Stats {
   completedLoans: number
 }
 
-// Initial mock data ko component se bahar rakhein ya seedhe useState mein daalein
-const initialLoans: Loan[] = [
-    { id: 1, memberName: 'John Doe', amount: 50000, type: 'PERSONAL', status: 'ACTIVE', date: '2024-01-15', interestRate: 12 },
-    { id: 2, memberName: 'Jane Smith', amount: 75000, type: 'HOME', status: 'ACTIVE', date: '2024-01-14', interestRate: 10 },
-    { id: 3, memberName: 'Bob Johnson', amount: 25000, type: 'PERSONAL', status: 'PENDING', date: '2024-01-13', interestRate: 14 },
-    { id: 4, memberName: 'Alice Brown', amount: 100000, type: 'HOME', status: 'COMPLETED', date: '2024-01-12', interestRate: 11 },
-    { id: 5, memberName: 'Charlie Wilson', amount: 30000, type: 'PERSONAL', status: 'ACTIVE', date: '2024-01-11', interestRate: 13 }
-]
-
-const initialNewLoanState = {
-    memberName: '',
-    amount: '',
-    type: 'PERSONAL' as 'PERSONAL' | 'HOME',
-};
-
 export default function LoansPage() {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false)
 
-  // --- SOLUTION 1: 'loans' ko state mein daalein taaki hum ise update kar sakein ---
-  const [loans, setLoans] = useState<Loan[]>(initialLoans);
-  
-  // --- SOLUTION 2: Naye loan ke form data ke liye state banayein ---
-  const [newLoanData, setNewLoanData] = useState(initialNewLoanState);
+  // Mock data
+  const loans: Loan[] = [
+    { id: 1, memberName: 'John Doe', amount: 50000, type: 'PERSONAL', status: 'ACTIVE', date: '2024-01-15', interestRate: 12 },
+    { id: 2, memberName: 'Jane Smith', amount: 75000, type: 'HOME', status: 'ACTIVE', date: '2024-01-14', interestRate: 10 },
+    { id: 3, memberName: 'Bob Johnson', amount: 25000, type: 'PERSONAL', status: 'PENDING', date: '2024-01-13', interestRate: 14 },
+    { id: 4, memberName: 'Alice Brown', amount: 100000, type: 'HOME', status: 'COMPLETED', date: '2024-01-12', interestRate: 11 },
+    { id: 5, memberName: 'Charlie Wilson', amount: 30000, type: 'PERSONAL', status: 'ACTIVE', date: '2024-01-11', interestRate: 13 }
+  ]
 
   const stats: Stats = useMemo(() => ({
     totalLoans: loans.reduce((sum, loan) => sum + loan.amount, 0),
@@ -62,43 +50,10 @@ export default function LoansPage() {
   const filteredLoans: Loan[] = useMemo(() => {
     return loans.filter(loan => {
       const matchesSearch = loan.memberName.toLowerCase().includes(searchTerm.toLowerCase())
-      // --- CHHOTA SUDHAR: Case-insensitive banane ke liye ---
-      const matchesStatus = selectedStatus === 'all' || loan.status.toLowerCase() === selectedStatus.toLowerCase()
+      const matchesStatus = selectedStatus === 'all' || loan.status === selectedStatus
       return matchesSearch && matchesStatus
     })
   }, [loans, searchTerm, selectedStatus])
-  
-  // --- SOLUTION 3: Naye loan ko add karne ke liye function banayein ---
-  const handleAddLoan = () => {
-    if (!newLoanData.memberName || !newLoanData.amount) {
-        alert("Please fill all the fields.");
-        return;
-    }
-
-    const newLoan: Loan = {
-        id: loans.length + 1, // Simple ID generation
-        memberName: newLoanData.memberName,
-        amount: Number(newLoanData.amount),
-        type: newLoanData.type,
-        status: 'PENDING', // Naya loan default mein PENDING hoga
-        date: new Date().toISOString().split('T')[0], // Aaj ki date
-        interestRate: 12, // Default interest rate
-    };
-
-    setLoans([...loans, newLoan]); // Purane loans ke saath naya loan add karein
-    setIsAddModalOpen(false); // Modal band karein
-    setNewLoanData(initialNewLoanState); // Form ko reset karein
-  }
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, value } = e.target;
-      setNewLoanData(prev => ({...prev, [name]: value}));
-  }
-
-  const handleSelectChange = (value: 'PERSONAL' | 'HOME') => {
-      setNewLoanData(prev => ({...prev, type: value}));
-  }
-
 
   return (
     <div className="space-y-6 p-6">
@@ -282,7 +237,7 @@ export default function LoansPage() {
         </CardContent>
       </Card>
 
-      {/* --- SOLUTION 4: Modal ke inputs ko state se connect karein --- */}
+      {/* Add Loan Modal (Simple) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <motion.div 
@@ -295,26 +250,15 @@ export default function LoansPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Member Name</label>
-                <Input 
-                  name="memberName"
-                  placeholder="Enter member name"
-                  value={newLoanData.memberName}
-                  onChange={handleInputChange}
-                />
+                <Input placeholder="Enter member name" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Amount</label>
-                <Input 
-                  name="amount"
-                  type="number" 
-                  placeholder="Enter amount"
-                  value={newLoanData.amount}
-                  onChange={handleInputChange}
-                />
+                <Input type="number" placeholder="Enter amount" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <Select value={newLoanData.type} onValueChange={handleSelectChange}>
+                <Select>
                   <SelectTrigger>
                     <SelectValue placeholder="Select loan type" />
                   </SelectTrigger>
@@ -328,8 +272,7 @@ export default function LoansPage() {
                 <Button onClick={() => setIsAddModalOpen(false)} variant="outline" className="flex-1">
                   Cancel
                 </Button>
-                {/* Submit button ab handleAddLoan function ko call karega */}
-                <Button onClick={handleAddLoan} className="flex-1">
+                <Button onClick={() => setIsAddModalOpen(false)} className="flex-1">
                   Add Loan
                 </Button>
               </div>

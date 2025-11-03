@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import AnimatedCounter from '@/components/ui/animated-counter'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -428,8 +429,11 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                 </motion.div>
               ))}
             </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-            {/* Quick Stats */}
+        {/* Quick Stats */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -568,7 +572,8 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                       </motion.div>
                   ))}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
             </motion.div>
 
             {/* EMI Info */}
@@ -588,25 +593,26 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      </div>
+                      <div>
                         <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">Current EMI</Label>
                         <Input
                           type="number"
-                          value={loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0), 0)}
+                          value={loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0)}
                           className="w-full"
                           placeholder="0.00"
                           readOnly
                           className="font-mono text-slate-900 dark:text-white"
                         />
                       </div>
-                      </div>
+                      <div>
                         <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">Monthly Payment</Label>
                         <Select
-                          value={loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0), 0)}
+                          value={loans.reduce((sum, l) => sum + (l.emiAmount || 0), 0)}
                           className="w-full"
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="CREDIT_CARD">Credit Card</SelectItem>
                             <SelectItem value="DEBIT_CARD">Debit Card</SelectItem>
@@ -614,16 +620,14 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                             <SelectItem value="SUBSCRIPTION">Subscription</SelectItem>
                           </SelectContent>
                         </Select>
-                      </Select>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-            </div>
-          )
-        </div>
-      )
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+      </div>
     )
-  )
+  }
 }

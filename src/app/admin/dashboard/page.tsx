@@ -23,7 +23,6 @@ import {
   UserCheck,
   Calendar,
   FileText,
-  Eye,
   Lock,
   Unlock,
   Crown
@@ -239,8 +238,8 @@ export default function AdminDashboard() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExportData('pdf')}>
                   Export as PDF
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
@@ -585,8 +584,7 @@ export default function AdminDashboard() {
                       <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">+23%</span>
                     </div>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
               </Card>
 
               {/* Client Distribution */}
@@ -613,7 +611,6 @@ export default function AdminDashboard() {
                       <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">12</span>
                     </div>
                   </div>
-                </div>
               </CardContent>
             </Card>
           </div>

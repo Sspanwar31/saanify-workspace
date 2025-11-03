@@ -128,6 +128,7 @@ export async function PUT(request: NextRequest) {
         { error: 'Client ID is required' },
         { status: 400 }
       )
+    }
 
     // Update client
     const updatedClient = await db.user.update({
@@ -159,6 +160,7 @@ export async function DELETE(request: NextRequest) {
         { error: 'Client ID is required' },
         { status: 400 }
       )
+    }
 
     // Delete client
     await db.user.delete({
