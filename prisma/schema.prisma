@@ -6,9 +6,8 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // SOLUTION: Yeh dono lines Vercel deployment ke size ko kam karne ke liye zaroori hain.
+  // SOLUTION: Yeh line Vercel par deployment ke size ko kam karne ke liye zaroori hai.
   binaryTargets = ["native", "rhel-openssl-1.0.x"]
-  output        = "../node_modules/.prisma/client"
 }
 
 datasource db {
