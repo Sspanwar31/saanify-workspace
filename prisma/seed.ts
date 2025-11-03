@@ -109,6 +109,34 @@ async function main() {
     }
   }
 
+  // Create demo client user
+  const clientEmail = 'client@saanify.com'
+  const existingClient = await prisma.user.findUnique({
+    where: { email: clientEmail }
+  })
+
+  if (!existingClient) {
+    const hashedPassword = await bcrypt.hash('client123', 12)
+    
+    // Get first society account for client
+    const firstSociety = await prisma.societyAccount.findFirst()
+    
+    const client = await prisma.user.create({
+      data: {
+        email: clientEmail,
+        name: 'Demo Client',
+        password: hashedPassword,
+        role: 'CLIENT',
+        societyAccountId: firstSociety?.id,
+        isActive: true
+      }
+    })
+    
+    console.log('✅ Demo client created:', client.email)
+  } else {
+    console.log('✅ Demo client already exists:', existingClient.email)
+  }
+
   console.log('🎉 Database seeding completed!')
 }
 

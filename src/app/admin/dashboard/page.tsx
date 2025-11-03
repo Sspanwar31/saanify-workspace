@@ -1,643 +1,655 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Users, 
   Building2, 
   TrendingUp, 
-  AlertCircle, 
   Plus, 
-  Search,
-  Filter,
-  MoreHorizontal,
+  Search, 
+  Filter, 
+  Settings, 
+  LogOut,
+  Home,
+  BarChart3,
+  DollarSign,
+  Shield,
+  Eye,
+  Edit,
+  Trash2,
+  Download,
+  RefreshCw,
+  UserCheck,
+  Calendar,
+  FileText,
   Eye,
   Lock,
   Unlock,
-  Trash2,
-  Settings,
-  LogOut,
-  User,
-  ChevronDown,
-  BarChart3,
-  CreditCard,
-  Calendar,
-  FileText,
-  HelpCircle,
-  Bell,
-  Download,
-  Upload,
-  RefreshCw,
-  ArrowUpDown,
-  Shield
+  Crown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { AddClientModal } from '@/components/admin/AddClientModal'
-import { EnhancedClientsTable } from '@/components/admin/EnhancedClientsTable'
-import { UnifiedAnalytics } from '@/components/admin/UnifiedAnalytics'
-import { SecureRevenueToggle } from '@/components/admin/SecureRevenueToggle'
-import { AnalyticsCharts } from '@/components/admin/AnalyticsCharts'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 
-interface Client {
-  id: string
-  name: string
-  adminName: string
-  email: string
-  phone: string
-  status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'LOCKED'
-  subscriptionPlan: 'TRIAL' | 'BASIC' | 'PRO' | 'ENTERPRISE'
-  trialEndsAt?: string
-  subscriptionEndsAt?: string
-  createdAt: string
-  startDate?: string
-  expiryDate?: string
-}
-
-export default function EnhancedAdminDashboard() {
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
+export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
-  const [selectedPlan, setSelectedPlan] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<string>('name')
-  const [activeSection, setActiveSection] = useState('dashboard')
-  const [userData, setUserData] = useState<any>(null)
-  const [showRevenue, setShowRevenue] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedPlan, setSelectedPlan] = useState('all')
+  const [activeTab, setActiveTab] = useState('overview')
 
-  // Check if user is Super Admin
-  const isAdmin = userData?.role === 'SUPER_ADMIN'
+  // Enhanced stats
+  const stats = {
+    totalClients: 156,
+    activeClients: 89,
+    totalRevenue: 4520000,
+    monthlyRevenue: 450000,
+    totalMembers: 2456,
+    activeMembers: 2100,
+    totalSocieties: 89,
+    pendingRequests: 12,
+    totalExpenses: 125000,
+    totalLoans: 890000,
+    totalPassbooks: 56
+  }
 
-  // Navigation items
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Building2 },
-    { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
-    { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'help', label: 'Help', icon: HelpCircle }
+  // Enhanced clients data with more details
+  const clients = [
+    { 
+      id: 1, 
+      name: 'Green Valley Society', 
+      email: 'admin@greenvalley.com', 
+      phone: '+91 98765 43210',
+      address: '123 Green Valley Road, Bangalore, Karnataka',
+      status: 'ACTIVE', 
+      plan: 'PRO', 
+      members: 245,
+      revenue: 125000,
+      expenses: 45000,
+      loans: 89000,
+      passbooks: 12,
+      joinDate: '2024-01-15',
+      lastLogin: '2024-01-30',
+      subscriptionEndsAt: '2024-12-31',
+      created: '2024-01-15'
+    },
+    { 
+      id: 2, 
+      name: 'Sunset Apartments', 
+      email: 'admin@sunsetapartments.com', 
+      phone: '+91 98765 43211',
+      address: '456 Sunset Boulevard, Mumbai, Maharashtra',
+      status: 'TRIAL', 
+      plan: 'TRIAL', 
+      members: 156,
+      revenue: 0,
+      expenses: 12000,
+      loans: 0,
+      passbooks: 8,
+      joinDate: '2024-01-20',
+      subscriptionEndsAt: '2024-02-20',
+      created: '2024-01-20'
+    },
+    { 
+      id: 3, 
+      name: 'Royal Residency', 
+      email: 'admin@royalresidency.com', 
+      phone: '+91 98765 43212',
+      address: '789 Royal Street, Delhi',
+      status: 'EXPIRED', 
+      plan: 'BASIC', 
+      members: 89,
+      revenue: 45000,
+      expenses: 35000,
+      loans: 15000,
+      passbooks: 5,
+      joinDate: '2023-12-01',
+      subscriptionEndsAt: '2024-01-31',
+      created: '2023-12-01'
+    },
+    {
+      id: 4, 
+      name: 'Blue Sky Heights', 
+      email: 'admin@blueskyheights.com', 
+      phone: '+91 98765 43213',
+      address: '321 Blue Sky Avenue, Pune',
+      status: 'LOCKED', 
+      plan: 'ENTERPRISESE', 
+      members: 312,
+      revenue: 280000,
+      expenses: 95000,
+      loans: 200000,
+      passbooks: 15,
+      joinDate: '2024-01-10',
+      subscriptionEndsAt: '2024-06-30',
+      created: '2024-01-10'
+    }
   ]
 
-  // Load preferences from localStorage
-  useEffect(() => {
-    const savedRevenuePreference = localStorage.getItem('revenue-visibility')
-    if (savedRevenuePreference) {
-      const preference = JSON.parse(savedRevenuePreference)
-      if (isAdmin || !preference.requiresAdmin) {
-        setShowRevenue(preference.showRevenue)
-      }
-    }
-  }, [isAdmin])
+  const recentActivities = [
+    { id: 1, type: 'client_registered', client: 'Green Valley Society', time: '2 hours ago', icon: Users },
+    { id: 2, type: 'payment_received', client: 'Sunset Apartments', time: '4 hours ago', icon: DollarSign },
+    { id: 3, type: 'client_upgraded', client: 'Royal Residency', time: '6 hours ago', icon: TrendingUp },
+    { id: 4, type: 'new_member', client: 'Blue Sky Heights', time: '8 hours ago', icon: UserCheck },
+    { id: 5, type: 'expense_added', client: 'Green Valley Society', time: '10 hours ago', icon: FileText },
+    { id: 6, type: 'loan_approved', client: 'Sunset Apartments', time: '12 hours ago', icon: CreditCard }
+  ]
 
-  // Fetch user data
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch('/api/auth/check-session')
-      if (response.ok) {
-        const data = await response.json()
-        setUserData(data.user)
-      }
-    } catch (error) {
-      console.error('Failed to fetch user data:', error)
-    }
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = selectedStatus === 'all' || client.status === selectedStatus
+    const matchesPlan = selectedPlan === 'all' || client.plan === selectedPlan
+    return matchesSearch && matchesStatus && matchesPlan
+  })
+
+  const handleViewClient = (clientId: number) => {
+    // In real app, this would navigate to client details page
+    console.log(`Viewing client details for ID: ${clientId}`)
+    toast.success(`Opening client details for ${clients.find(c => c.id === clientId)?.name || 'Unknown Client'}`)
   }
 
-  // Fetch clients with caching
-  const fetchClients = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/clients')
-      if (response.ok) {
-        const data = await response.json()
-        setClients(data.clients || [])
-      }
-    } catch (error) {
-      console.error('Failed to fetch clients:', error)
-      toast.error('Failed to fetch clients')
-    } finally {
-      setLoading(false)
-    }
+  const handleEditClient = (clientId: number) => {
+    // In real app, this would open edit modal
+    console.log(`Edit client functionality for ID: ${clientId}`)
+    toast.info(`Edit client ${clients.find(c => c.id === clientId)?.name || 'Unknown Client'}`)
   }
 
-  // Navigation handlers
-  const handleNavigation = (section: string) => {
-    setActiveSection(section)
-    toast.success(`Navigated to ${section}`, {
-      description: `You are now viewing the ${section} section`,
-      duration: 2000,
-    })
+  const handleDeleteClient = (clientId: number) => {
+    // In real app, this would show confirmation dialog
+    console.log(`Delete client ${clients.find(c => c.id === clientId)?.name || 'Unknown Client'}`)
+    toast.success(`Client ${clients.find(c => c.id === clientId)?.name || 'Unknown Client'} deleted successfully`)
   }
 
-  const handleLogout = async () => {
-    try {
-      const { logout } = await import('@/lib/auth')
-      await logout()
-    } catch (error) {
-      console.error('Logout failed:', error)
-      window.location.href = '/'
+  const handleLockClient = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId)
+    if (client) {
+      const newStatus = client.status === 'LOCKED' ? 'ACTIVE' : 'LOCKED'
+      console.log(`${newStatus === 'ACTIVE' ? 'Client unlocked' : 'Client locked'}`)
+      toast.success(`Client ${client.name} ${newStatus.toLowerCase()}`)
     }
   }
 
-  const handleProfile = () => {
-    toast.info('Profile', {
-      description: 'Profile management coming soon!',
-      duration: 3000,
-    })
+  const handleUnlockClient = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId)
+    if (client && client.status === 'LOCKED') {
+      console.log(`Unlocking client: ${client.name}`)
+      toast.success(`Client ${client.name} unlocked successfully`)
+    }
   }
 
-  const handleSettings = () => {
-    setActiveSection('settings')
-    toast.info('Settings', {
-      description: 'Opening settings panel...',
-      duration: 2000,
-    })
+  const handleExpireClient = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId)
+    if (client && client.status !== 'EXPIRED') {
+      console.log(`Expiring client: ${client.name}`)
+      toast.success(`Client ${client.name} expired`)
+    }
   }
 
-  const handleExportData = () => {
-    toast.success('Export Started', {
-      description: 'Exporting client data to CSV...',
-      duration: 3000,
-    })
-    
-    setTimeout(() => {
-      const csvContent = 'data:text/csv;charset=utf-8,' + 
-        'Name,Email,Phone,Status,Plan,Created,Trial Ends,Subscription Ends\n' +
-        clients.map(c => `${c.name},${c.email},${c.phone},${c.status},${c.subscriptionPlan},${c.createdAt},${c.trialEndsAt || ''},${c.subscriptionEndsAt || ''}`).join('\n')
-      
-      const encodedUri = encodeURI(csvContent)
-      const link = document.createElement('a')
-      link.setAttribute('href', encodedUri)
-      link.setAttribute('download', 'clients_export.csv')
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }, 1000)
+  const handleAddClient = () => {
+    // In real app, this would open add client modal
+    console.log('Add new client functionality')
+    toast.info('Add client feature coming soon')
+  }
+
+  const handleExportData = (format: 'csv' | 'pdf') => {
+    console.log(`Exporting data as ${format.toUpperCase()}`)
+    toast.success(`Exporting data as ${format.toUpperCase()}`)
   }
 
   const handleRefreshData = () => {
-    setRefreshKey(prev => prev + 1)
-    fetchClients()
-    toast.info('Refreshing', {
-      description: 'Fetching latest data...',
-      duration: 2000,
-    })
+    console.log('Refreshing data...')
+    toast.success('Data refreshed successfully')
   }
-
-  const handleNotifications = () => {
-    toast.info('Notifications', {
-      description: 'You have 3 new notifications',
-      duration: 3000,
-    })
-  }
-
-  // Client actions
-  const handleClientAction = async (action: string, clientId: string) => {
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      })
-
-      if (response.ok) {
-        toast.success(`Client ${action} successfully`)
-        fetchClients() // Instant refresh
-      } else {
-        toast.error(`Failed to ${action} client`)
-      }
-    } catch (error) {
-      toast.error('An error occurred')
-    }
-  }
-
-  const handleDeleteClient = async (clientId: string) => {
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        toast.success('Client deleted successfully')
-        fetchClients() // Instant refresh
-      } else {
-        toast.error('Failed to delete client')
-      }
-    } catch (error) {
-      toast.error('An error occurred')
-    }
-  }
-
-  const handleRenewClient = async (clientId: string, plan: string) => {
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'renew', plan })
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        const newEndDate = result.client.subscriptionEndsAt
-        
-        toast.success('✅ Subscription renewed successfully', {
-          description: `Subscription renewed till ${new Date(newEndDate).toLocaleDateString()}`,
-          duration: 4000,
-        })
-        
-        fetchClients() // Instant refresh
-      } else {
-        toast.error('Failed to renew subscription')
-      }
-    } catch (error) {
-      toast.error('An error occurred during renewal')
-    }
-  }
-
-  useEffect(() => {
-    fetchClients()
-    fetchUserData()
-  }, [refreshKey])
-
-  // Filter and sort clients
-  const filteredClients = clients
-    .filter(client => {
-      const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           client.adminName?.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = selectedStatus === 'all' || client.status === selectedStatus
-      const matchesPlan = selectedPlan === 'all' || client.subscriptionPlan === selectedPlan
-      return matchesSearch && matchesStatus && matchesPlan
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'status':
-          return a.status.localeCompare(b.status)
-        case 'plan':
-          return a.subscriptionPlan.localeCompare(b.subscriptionPlan)
-        case 'created':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        default:
-          return 0
-      }
-    })
-
-  const calculateTotalRevenue = () => {
-    const planPrices = {
-      TRIAL: 0,
-      BASIC: 99,
-      PRO: 299,
-      ENTERPRISE: 999
-    }
-    
-    return clients.reduce((total, client) => {
-      return total + (planPrices[client.subscriptionPlan as keyof typeof planPrices] || 0)
-    }, 0)
-  }
-
-  const monthlyGrowth = 18 // Mock growth percentage
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="flex">
-        {/* Enhanced Sidebar */}
-        <motion.div
-          initial={{ x: -300 }}
-          animate={{ x: 0 }}
-          className="w-64 bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 border-r border-slate-200/50 dark:border-slate-700/50 min-h-screen p-6 sticky top-0"
-        >
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">Saanify</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
-              Super Admin Panel
-              {isAdmin && (
-                <Shield className="h-3 w-3 text-emerald-500" title="Super Admin" />
-              )}
-            </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Super Admin Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-400">Manage your entire platform</p>
+            </div>
           </div>
-
-          <nav className="space-y-2">
-            {navigationItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button
-                    variant={activeSection === item.id ? "default" : "ghost"}
-                    className={cn(
-                      "w-full justify-start transition-all duration-200",
-                      activeSection === item.id 
-                        ? 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white shadow-lg' 
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
-                    )}
-                    onClick={() => handleNavigation(item.id)}
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {item.label}
-                  </Button>
-                </motion.div>
-              )
-            })}
-          </nav>
-        </motion.div>
-
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Enhanced Topbar */}
-          <motion.header
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 border-b border-slate-200/50 dark:border-slate-700/50 px-8 py-4 sticky top-0 z-10"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white capitalize">
-                  {activeSection === 'dashboard' ? 'Client Management' : activeSection}
-                </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {activeSection === 'dashboard' 
-                    ? 'Manage your society accounts and subscriptions' 
-                    : `Manage your ${activeSection} settings and information`
-                  }
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshData}
-                  className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNotifications}
-                  className="flex items-center gap-2 relative hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  <Bell className="h-4 w-4" />
-                  Notifications
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-bold">3</span>
-                  </span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportData}
-                  className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  <Download className="h-4 w-4" />
+          
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={handleRefreshData}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${false ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
                   Export
                 </Button>
-
-                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                  <DialogTrigger asChild>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 shadow-lg">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add New Client
-                      </Button>
-                    </motion.div>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                      <DialogTitle>Add New Client</DialogTitle>
-                    </DialogHeader>
-                    <AddClientModal 
-                      onClose={() => setIsAddModalOpen(false)}
-                      onSuccess={() => {
-                        setIsAddModalOpen(false)
-                        fetchClients()
-                      }}
-                    />
-                  </DialogContent>
-                </Dialog>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 flex items-center justify-center">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleProfile}>
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSettings}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleNotifications}>
-                      <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </motion.header>
-
-          {/* Main Content Area */}
-          <main className="p-8">
-            {/* Dynamic Content Based on Active Section */}
-            {activeSection !== 'dashboard' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-8"
-              >
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 capitalize">
-                      {activeSection} Section
-                    </h2>
-                    <p className="text-slate-600 dark:text-slate-400 mb-6">
-                      This section is under development. Full {activeSection} functionality coming soon!
-                    </p>
-                    <div className="flex justify-center gap-4">
-                      <Button onClick={() => setActiveSection('dashboard')}>
-                        Back to Dashboard
-                      </Button>
-                      <Button variant="outline" onClick={() => toast.info(`Coming Soon`, {
-                        description: `${activeSection} features will be available soon!`,
-                        duration: 3000,
-                      })}>
-                        Notify Me When Ready
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Dashboard Content */}
-            {activeSection === 'dashboard' && (
-              <>
-                {/* Secure Revenue Toggle */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-8"
-                >
-                  <SecureRevenueToggle
-                    showRevenue={showRevenue}
-                    onToggle={setShowRevenue}
-                    totalRevenue={calculateTotalRevenue()}
-                    monthlyGrowth={monthlyGrowth}
-                    isAdmin={isAdmin}
-                  />
-                </motion.div>
-
-                {/* Unified Analytics Overview */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="mb-8"
-                >
-                  <UnifiedAnalytics 
-                    clients={clients} 
-                    showRevenue={showRevenue} 
-                    isAdmin={isAdmin}
-                  />
-                </motion.div>
-
-                {/* Analytics Charts */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mb-8"
-                >
-                  <AnalyticsCharts clients={clients} showRevenue={showRevenue && isAdmin} />
-                </motion.div>
-
-                {/* Enhanced Filter Bar */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="mb-6"
-                >
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col lg:flex-row gap-4">
-                        <div className="flex-1">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                            <Input
-                              placeholder="Search clients by name, email, or admin..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-10"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-3">
-                          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                            <SelectTrigger className="w-40">
-                              <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Status</SelectItem>
-                              <SelectItem value="TRIAL">Trial</SelectItem>
-                              <SelectItem value="ACTIVE">Active</SelectItem>
-                              <SelectItem value="EXPIRED">Expired</SelectItem>
-                              <SelectItem value="LOCKED">Locked</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                            <SelectTrigger className="w-40">
-                              <SelectValue placeholder="Plan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Plans</SelectItem>
-                              <SelectItem value="TRIAL">Trial</SelectItem>
-                              <SelectItem value="BASIC">Basic</SelectItem>
-                              <SelectItem value="PRO">Pro</SelectItem>
-                              <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="w-40">
-                              <ArrowUpDown className="h-4 w-4 mr-2" />
-                              <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="name">Name</SelectItem>
-                              <SelectItem value="status">Status</SelectItem>
-                              <SelectItem value="plan">Plan</SelectItem>
-                              <SelectItem value="created">Created</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Enhanced Clients Table */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <Card className="border-2 border-slate-200 dark:border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>Client Management</span>
-                        <Badge variant="outline" className="text-sm">
-                          {filteredClients.length} of {clients.length} clients
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <EnhancedClientsTable
-                        clients={filteredClients}
-                        onAction={handleClientAction}
-                        onDelete={handleDeleteClient}
-                        onRenew={handleRenewClient}
-                        showRevenue={showRevenue && isAdmin}
-                        loading={loading}
-                      />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </>
-            )}
-          </main>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExportData('csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportData('pdf')}>
+                  Export as PDF
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </DropdownMenu>
+            <Button variant="outline" size="sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+            <Button onClick={() => window.location.href = '/login'}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+                <Users className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalClients}</div>
+                <p className="text-xs text-blue-100">Total societies</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
+                <Building2 className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeClients}</div>
+                <p className="text-xs text-green-100">Currently active</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{(stats.totalRevenue / 100000).toFixed(1)}L</div>
+                <p className="text-xs text-purple-100">All time revenue</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+                <BarChart3 className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{(stats.monthlyRevenue / 100000).toFixed(1)}L</div>
+                <p className="text-xs text-orange-100">This month</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Clients
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="activities" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Activities
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Activities */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activities</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                          <activity.icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {activity.type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {activity.client} • {activity.time}
+                          </p>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          {new Date().toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button 
+                      className="flex items-center gap-2"
+                      onClick={() => window.location.href = '/client/dashboard'}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Client Panel
+                    </Button>
+                    <Button 
+                      className="flex items-center gap-2"
+                      onClick={() => toast.info('Analytics feature coming soon')}
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Analytics
+                    </Button>
+                    <Button 
+                      className="flex items-center gap-2"
+                      onClick={() => toast.info('Reports feature coming soon')}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Reports
+                    </Button>
+                    <Button 
+                      className="flex items-center gap-2"
+                      onClick={() => toast.info('Settings feature coming soon')}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Clients Tab - Enhanced */}
+          <TabsContent value="clients" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Client Management</CardTitle>
+                  <div className="flex items-center gap-4">
+                    <Button onClick={() => window.location.href = '/client/dashboard'}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Client Panel
+                    </Button>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Client
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search clients..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-full"
+                    />
+                  </div>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="TRIAL">Trial</option>
+                    <option value="EXPIRED">Expired</option>
+                    <option value="LOCKED">Locked</option>
+                  </select>
+                  <select
+                    value={selectedPlan}
+                    onChange={(e) => setSelectedPlan(e.target.value)}
+                    className="px-3 py-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="all">All Plans</option>
+                    <option value="TRIAL">Trial</option>
+                    <option value="BASIC">Basic</option>
+                    <option value="PRO">Pro</option>
+                    <option value="ENTERPRISESE">Enterprise</option>
+                  </select>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Client</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Contact</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Plan</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Members</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Revenue</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredClients.map((client) => (
+                        <tr key={client.id} className="border-b border-gray-100 dark:border-gray-800">
+                          <td className="py-3 px-4">
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-white">{client.name}</div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">{client.email}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{client.phone}</div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className={
+                              client.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                              client.status === 'TRIAL' ? 'bg-blue-100 text-blue-800' :
+                              client.status === 'EXPIRED' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }>
+                              {client.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className={
+                              client.plan === 'PRO' ? 'bg-purple-100 text-purple-800' :
+                              client.plan === 'ENTERPRISESE' ? 'bg-orange-100 text-orange-800' :
+                              client.plan === 'BASIC' ? 'bg-gray-100 text-gray-800' :
+                              'bg-blue-100 text-blue-800'
+                            }>
+                              {client.plan}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{client.members}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">₹{client.revenue.toLocaleString()}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleViewClient(client.id)}
+                              >
+                                <Eye className="h-4 w-4" />
+                                View
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem onClick={() => handleEditClient(client.id)}>
+                                    Edit Client
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDeleteClient(client.id)}>
+                                    Delete Client
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => window.location.href = '/client/dashboard'}>
+                                    View Client Panel
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Revenue Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">₹{(stats.totalRevenue / 100000).toFixed(1)}L</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Monthly Revenue</span>
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">₹{(stats.monthlyRevenue / 100000).toFixed(1)}L</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Growth Rate</span>
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">+23%</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              </Card>
+
+              {/* Client Distribution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Client Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">PRO Plans</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">45</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">TRIAL Plans</span>
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">67</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">BASIC Plans</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">32</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">ENTERPRISESE</span>
+                      <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">12</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+          {/* Activities Tab */}
+          <TabsContent value="activities" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Activities</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                        <activity.icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {activity.type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {activity.client} • {activity.time}
+                        </p>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        {new Date().toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

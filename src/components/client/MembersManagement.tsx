@@ -35,6 +35,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import EnhancedActionsDropdown from '@/components/admin/EnhancedActionsDropdown'
 
 interface Member {
   id: string
@@ -768,12 +769,14 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
                             {member.email}
                           </div>
                         </div>
-                      </TableCell>
+                      </div>
+                    </TableCell>
                       
                       <TableCell>
                         <div className="text-slate-900 dark:text-white">
                           {member.phone || 'Not provided'}
-                        </TableCell>
+                        </div>
+                      </TableCell>
                       
                       <TableCell>
                         {getRoleBadge(member.role)}

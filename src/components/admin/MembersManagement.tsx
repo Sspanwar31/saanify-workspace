@@ -473,11 +473,10 @@ export function MembersManagement({ societyInfo }: MembersManagementProps) {
                   {members.length === 0 ? 'No members found' : '✅ Accurate'}
                 </span>
               </div>
+            </div>
             </CardContent>
             </Card>
           </motion.div>
         </div>
-      </div>
-    </div>
   )
 }

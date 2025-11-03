@@ -1,353 +1,251 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Plus, 
-  CreditCard, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  RefreshCw,
-  Search,
-  TrendingUp
-} from 'lucide-react'
+import { Plus, CreditCard, Users, Calendar, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from 'sonner'
-import LoansTable from '@/components/client/LoansTable'
-import AddLoanModal from '@/components/client/AddLoanModal'
-import { 
-  Loan, 
-  LoanStats, 
-  loansData as initialLoans, 
-  getLoanStats, 
-  formatCurrency 
-} from '@/data/loansData'
 
 export default function LoansPage() {
-  const [loans, setLoans] = useState<Loan[]>([])
-  const [filteredLoans, setFilteredLoans] = useState<Loan[]>([])
-  const [stats, setStats] = useState<LoanStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingLoan, setEditingLoan] = useState<Loan | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
-  // Load initial data
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setLoans(initialLoans)
-      setFilteredLoans(initialLoans)
-      setStats(getLoanStats(initialLoans))
-      setLoading(false)
-    }
+  // Mock data
+  const loans = [
+    { id: 1, memberName: 'John Doe', amount: 50000, type: 'PERSONAL', status: 'ACTIVE', date: '2024-01-15', interestRate: 12 },
+    { id: 2, memberName: 'Jane Smith', amount: 75000, type: 'HOME', status: 'ACTIVE', date: '2024-01-14', interestRate: 10 },
+    { id: 3, memberName: 'Bob Johnson', amount: 25000, type: 'PERSONAL', status: 'PENDING', date: '2024-01-13', interestRate: 14 },
+    { id: 4, memberName: 'Alice Brown', amount: 100000, type: 'HOME', status: 'COMPLETED', date: '2024-01-12', interestRate: 11 },
+    { id: 5, memberName: 'Charlie Wilson', amount: 30000, type: 'PERSONAL', status: 'ACTIVE', date: '2024-01-11', interestRate: 13 }
+  ]
 
-    loadData()
-  }, [])
-
-  // Filter loans based on search term
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = loans.filter(loan =>
-        loan.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loan.member.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loan.status.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      setFilteredLoans(filtered)
-    } else {
-      setFilteredLoans(loans)
-    }
-  }, [searchTerm, loans])
-
-  const handleAddLoan = () => {
-    setEditingLoan(null)
-    setIsModalOpen(true)
+  const stats = {
+    totalLoans: loans.reduce((sum, loan) => sum + loan.amount, 0),
+    activeLoans: loans.filter(loan => loan.status === 'ACTIVE').length,
+    pendingLoans: loans.filter(loan => loan.status === 'PENDING').length,
+    completedLoans: loans.filter(loan => loan.status === 'COMPLETED').length
   }
 
-  const handleEditLoan = (loan: Loan) => {
-    setEditingLoan(loan)
-    setIsModalOpen(true)
-  }
-
-  const handleSaveLoan = (savedLoan: Loan) => {
-    if (editingLoan) {
-      // Update existing loan
-      setLoans(prev => prev.map(loan => 
-        loan.id === savedLoan.id ? savedLoan : loan
-      ))
-      toast.success('✅ Loan Updated Successfully!', {
-        description: `Loan for ${savedLoan.member} has been updated.`,
-        duration: 3000,
-      })
-    } else {
-      // Add new loan
-      setLoans(prev => [...prev, savedLoan])
-      toast.success('✅ Loan Added Successfully!', {
-        description: `New loan for ${savedLoan.member} has been created.`,
-        duration: 3000,
-      })
-    }
-    
-    // Update stats
-    const updatedLoans = editingLoan 
-      ? loans.map(loan => loan.id === savedLoan.id ? savedLoan : loan)
-      : [...loans, savedLoan]
-    setStats(getLoanStats(updatedLoans))
-    
-    setIsModalOpen(false)
-    setEditingLoan(null)
-  }
-
-  const handleDeleteLoan = (loanId: string) => {
-    const loanToDelete = loans.find(loan => loan.id === loanId)
-    if (!loanToDelete) return
-
-    // Delete loan
-    setLoans(prev => prev.filter(loan => loan.id !== loanId))
-    setStats(getLoanStats(loans.filter(loan => loan.id !== loanId)))
-    
-    toast.success('✅ Loan Deleted Successfully!', {
-      description: `Loan for ${loanToDelete.member} has been deleted.`,
-      duration: 3000,
-    })
-  }
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    toast.info('🔄 Refreshing Data', {
-      description: 'Fetching latest loans data...',
-      duration: 2000,
-    })
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    setLoans(initialLoans)
-    setFilteredLoans(initialLoans)
-    setStats(getLoanStats(initialLoans))
-    setRefreshing(false)
-    
-    toast.success('✅ Data Updated', {
-      description: 'Loans data has been refreshed.',
-      duration: 2000,
-    })
-  }
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  }
+  const filteredLoans = loans.filter(loan => {
+    const matchesSearch = loan.memberName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = selectedStatus === 'all' || loan.status === selectedStatus
+    return matchesSearch && matchesStatus
+  })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-cyan-50/50 dark:from-emerald-950/20 dark:via-teal-950/10 dark:to-cyan-950/20 p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar Navigation */}
-          <div className="lg:w-64 flex-shrink-0">
-            <ClientNavigation />
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Loans Management</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Manage and track all member loans
+          </p>
+        </div>
+        
+        <Button onClick={() => setIsAddModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Loan
+        </Button>
+      </motion.div>
 
-        {/* Main Content */}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div
-          >
-            {/* Header */}
-            <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  Loans Management
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                  Manage and track all society loans efficiently
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search loans..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-64 bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10"
-                  />
-                </div>
-                
-                <Button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  variant="outline"
-                  className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 hover:bg-white/90 dark:hover:bg-black/60"
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                </Button>
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Loans</CardTitle>
+              <CreditCard className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{stats.totalLoans.toLocaleString()}</div>
+              <p className="text-xs text-blue-100">All active loans</p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-                <Button
-                  onClick={handleAddLoan}
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active</CardTitle>
+              <Users className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeLoans}</div>
+              <p className="text-xs text-green-100">Currently active</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <Calendar className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pendingLoans}</div>
+              <p className="text-xs text-yellow-100">Awaiting approval</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <TrendingUp className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.completedLoans}</div>
+              <p className="text-xs text-purple-100">Fully paid</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Recent Loans</CardTitle>
+            <div className="flex items-center gap-4">
+              <Input
+                placeholder="Search loans..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64"
+              />
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              >
+                <option value="all">All Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="PENDING">Pending</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Member</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Amount</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Type</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Interest</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Date</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLoans.map((loan) => (
+                  <tr key={loan.id} className="border-b border-gray-100 dark:border-gray-800">
+                    <td className="py-3 px-4">
+                      <div className="font-medium text-gray-900 dark:text-white">{loan.memberName}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">₹{loan.amount.toLocaleString()}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge className={
+                        loan.type === 'PERSONAL' ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800'
+                      }>
+                        {loan.type}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{loan.interestRate}%</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{loan.date}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge className={
+                        loan.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                        loan.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-blue-100 text-blue-800'
+                      }>
+                        {loan.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">View</Button>
+                        <Button variant="ghost" size="sm">Edit</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Loan Modal (Simple) */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Add New Loan</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Member Name</label>
+                <Input placeholder="Enter member name" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Amount</label>
+                <Input type="number" placeholder="Enter amount" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                  <option value="PERSONAL">Personal</option>
+                  <option value="HOME">Home</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button onClick={() => setIsAddModalOpen(false)} variant="outline" className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={() => setIsAddModalOpen(false)} className="flex-1">
                   Add Loan
                 </Button>
               </div>
-            </motion.div>
-
-            {/* Stats Cards */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {loading ? (
-                [...Array(4)].map((_, i) => (
-                  <Card key={i} className="border-0 shadow-xl bg-white/80 dark:bg-black/40 backdrop-blur-xl">
-                    <CardContent className="p-6">
-                      <Skeleton className="h-8 w-8 mb-4" />
-                      <Skeleton className="h-6 w-24 mb-2" />
-                      <Skeleton className="h-4 w-16" />
-                    </CardContent>
-                  </Card>
-                ))
-              ) : stats ? (
-                <>
-                  <Card className="border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <HandCoins className="h-8 w-8 text-emerald-100" />
-                        <Badge className="bg-emerald-400 text-emerald-900">
-                          Total
-                        </Badge>
-                      </div>
-                      <div className="text-2xl font-bold mb-1">
-                        {stats.totalLoans}
-                      </div>
-                      <div className="text-emerald-100 text-sm">
-                        Total Loans
-                      </div>
-                      <div className="text-xs text-emerald-200 mt-2">
-                        {formatCurrency(stats.totalAmount)}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <CheckCircle className="h-8 w-8 text-blue-100" />
-                        <Badge className="bg-blue-400 text-blue-900">
-                          Active
-                        </Badge>
-                      </div>
-                      <div className="text-2xl font-bold mb-1">
-                        {stats.activeLoans}
-                      </div>
-                      <div className="text-blue-100 text-sm">
-                        Active Loans
-                      </div>
-                      <div className="text-xs text-blue-200 mt-2">
-                        {stats.totalLoans > 0 ? Math.round((stats.activeLoans / stats.totalLoans) * 100) : 0}% of total
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <Clock className="h-8 w-8 text-amber-100" />
-                        <Badge className="bg-amber-400 text-amber-900">
-                          Pending
-                        </Badge>
-                      </div>
-                      <div className="text-2xl font-bold mb-1">
-                        {stats.pendingApprovals}
-                      </div>
-                      <div className="text-amber-100 text-sm">
-                        Pending Approvals
-                      </div>
-                      <div className="text-xs text-amber-200 mt-2">
-                        Require attention
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-0 shadow-xl bg-gradient-to-br from-gray-500 to-gray-600 text-white">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <TrendingUp className="h-8 w-8 text-gray-100" />
-                        <Badge className="bg-gray-400 text-gray-900">
-                          Closed
-                        </Badge>
-                      </div>
-                      <div className="text-2xl font-bold mb-1">
-                        {stats.closedLoans}
-                      </div>
-                      <div className="text-gray-100 text-sm">
-                        Closed Loans
-                      </div>
-                      <div className="text-xs text-gray-200 mt-2">
-                        Completed successfully
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : null}
-            </motion.div>
-
-            {/* Loans Table */}
-            <motion.div variants={itemVariants}>
-              <LoansTable
-                loans={filteredLoans}
-                loading={loading}
-                onEdit={handleEditLoan}
-                onDelete={handleDeleteLoan}
-              />
-            </motion.div>
-
-            {/* Summary Info */}
-            {!loading && stats && (
-              <motion.div variants={itemVariants} className="text-center text-sm text-muted-foreground">
-                <p>
-                  Showing {filteredLoans.length} of {stats.totalLoans} total loans
-                </p>
-                <p className="mt-1">
-                  Total value: {formatCurrency(stats.totalAmount)}
-                </p>
-              </motion.div>
-            )
-            )}
-          </motion.div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Add/Edit Loan Modal */}
-      <AddLoanModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setEditingLoan(null)
-        }}
-        onSave={handleSaveLoan}
-        editingLoan={editingLoan}
-      />
+      )}
     </div>
   )
 }

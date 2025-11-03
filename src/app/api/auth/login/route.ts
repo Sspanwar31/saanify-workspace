@@ -18,24 +18,30 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('Login attempt:', body)
     
     // Validate input
     const validatedData = loginSchema.parse(body)
+    console.log('Validated data:', validatedData)
 
     // Find user by email
     const user = await db.user.findUnique({
       where: { email: validatedData.email }
     })
+    
+    console.log('Found user:', user ? { id: user.id, email: user.email, role: user.role, isActive: user.isActive } : null)
 
     if (!user) {
+      console.log('User not found')
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: 'Invalid credentials - User not found' },
         { status: 401 }
       )
     }
 
     // Check if user is active
     if (!user.isActive) {
+      console.log('User not active')
       return NextResponse.json(
         { error: 'Account is deactivated' },
         { status: 401 }
@@ -44,22 +50,29 @@ export async function POST(request: NextRequest) {
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(validatedData.password, user.password)
+    console.log('Password valid:', isPasswordValid)
+    
     if (!isPasswordValid) {
+      console.log('Invalid password')
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: 'Invalid credentials - Wrong password' },
         { status: 401 }
       )
     }
 
     // Check role compatibility with strict validation
     if (validatedData.userType) {
+      console.log('Role check - user.role:', user.role, 'requested userType:', validatedData.userType)
+      
       if (validatedData.userType === 'admin' && user.role !== 'SUPER_ADMIN') {
+        console.log('Access denied - not admin')
         return NextResponse.json(
           { error: 'Access denied. Admin privileges required.' },
           { status: 403 }
         )
       }
       if (validatedData.userType === 'client' && user.role !== 'CLIENT') {
+        console.log('Access denied - not client')
         return NextResponse.json(
           { error: 'Access denied. Client privileges required.' },
           { status: 403 }

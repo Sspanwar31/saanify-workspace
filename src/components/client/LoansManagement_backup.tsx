@@ -415,10 +415,9 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300" 
                               : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300"
                             )}
-                          )}
-                        >
-                          {stat.change}
-                        </motion.span>
+                          >
+                            {stat.change}
+                          </motion.span>
                       </div>
                       
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
@@ -551,7 +550,7 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                                     ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300" 
                                     : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300"
                                 )}
-                              )}
+                              >
                               </motion.span>
                               
                               <div className="text-right">
@@ -566,8 +565,7 @@ export function LoanManagement({ societyInfo }: LoanManagementProps) {
                             </p>
                           </CardContent>
                         </Card>
-                      </Card>
-                    </motion.div>
+                      </motion.div>
                   ))}
                 </div>
               </div>

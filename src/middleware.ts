@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import jwt from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 // Routes that require authentication
-const protectedRoutes = ['/dashboard/admin', '/dashboard/client', '/dashboard']
+const protectedRoutes = ['/dashboard/admin', '/dashboard/client', '/dashboard', '/admin', '/client']
 const publicRoutes = ['/', '/login', '/signup', '/api/auth/login', '/api/auth/signup', '/api/auth/check-session', '/api/auth/refresh']
 
 export function middleware(request: NextRequest) {
@@ -24,16 +27,34 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value
 
   if (!token) {
-    // Redirect to home if no token
-    return NextResponse.redirect(new URL('/', request.url))
+    // Redirect to login if no token
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // For now, just check if token exists (you can implement proper JWT verification in API routes)
-  // Add user info to headers for server-side usage (this would come from decoded JWT in a real implementation)
-  const response = NextResponse.next()
-  response.headers.set('x-user-token', token)
-  
-  return response
+  try {
+    // Verify JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as any
+    
+    // Check role-based access
+    if (pathname.startsWith('/admin') && decoded.role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/login?error=access_denied', request.url))
+    }
+    
+    if (pathname.startsWith('/client') && decoded.role !== 'CLIENT') {
+      return NextResponse.redirect(new URL('/login?error=access_denied', request.url))
+    }
+    
+    // Add user info to headers for server-side usage
+    const response = NextResponse.next()
+    response.headers.set('x-user-id', decoded.userId)
+    response.headers.set('x-user-email', decoded.email)
+    response.headers.set('x-user-role', decoded.role)
+    
+    return response
+  } catch (error) {
+    // Invalid token, redirect to login
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 }
 
 export const config = {

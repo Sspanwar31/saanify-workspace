@@ -29,466 +29,471 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface Transaction {
   id: string
   memberId: string
-  type: 'CREDIT' | 'DEBIT' | 'INTEREST' | 'FINE' | 'MAINTENANCE'
+  memberName: string
+  type: 'CREDIT' | 'DEBIT'
   amount: number
   description: string
   date: string
-  category: string
-  reference?: string
-  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'DEFAULT'
-  createdBy: string
-  createdAt: string
+  status: 'COMPLETED' | 'PENDING' | 'EXPIRED'
+  balance: number
 }
 
-interface MaturityRecord {
+interface Member {
   id: string
-  loanId: string
-  maturityDate: string
-  originalAmount: number
-  currentBalance: number
-  interestAccrued: number
-  totalPayable: number
-  status: 'PENDING' | 'COMPLETED' | 'PARTIAL'
-  paidAmount: number
-  remainingAmount: number
-  notes?: string
+  name: string
+  email: string
+  phone: string
+  role: string
+  status: string
+  joinedAt: string
 }
 
-interface FinancialStats {
-  totalBalance: number
-  monthlyIncome: number
-  monthlyExpenses: number
-  totalRevenue: number
-  pendingTransactions: number
-  completedTransactions: number
-  failedTransactions: number
-  totalDisbursed: number
-  activeSubscriptions: number
-  totalLoans: number
-  activeLoans: number
-  loanDisbursed: number
-}
-
-interface PassbookProps {
-  transactions: Transaction[]
-  stats: FinancialStats
-  onAction: (action: string, transactionId: string) => void
-  onEdit: (transaction: PassbookTransaction) => void
-  onDelete: (transactionId: string) => void
-  loading?: boolean
-}
-
-export function PassbookManagement({ transactions, stats, onAction, onEdit, onDelete, loading = false }: PassbookProps) {
+export default function PassbookManagement() {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('date')
-  const [renewDialog, setRenewDialog] = useState(false)
-  const [editDialog, setEditDialog] = useState(false)
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; transaction: PassbookTransaction | null }>({ open: false, transaction: null })
-  const [filterDialog, setFilterDialog] = useState(false)
-  const [selectedTransaction, setSelectedTransaction] = useState<PassbookTransaction | null>(null)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [newTransaction, setNewTransaction] = useState({
+    memberId: '',
+    type: 'CREDIT' as const,
+    amount: '',
+    description: ''
+  })
 
-  // Filter and sort transactions
+  // Mock data
+  useEffect(() => {
+    const mockTransactions: Transaction[] = [
+      {
+        id: '1',
+        memberId: '1',
+        memberName: 'John Doe',
+        type: 'CREDIT',
+        amount: 5000,
+        description: 'Monthly deposit',
+        date: '2024-01-15',
+        status: 'COMPLETED',
+        balance: 15000
+      },
+      {
+        id: '2',
+        memberId: '2',
+        memberName: 'Jane Smith',
+        type: 'DEBIT',
+        amount: 2000,
+        description: 'Withdrawal',
+        date: '2024-01-14',
+        status: 'COMPLETED',
+        balance: 8000
+      }
+    ]
+
+    const mockMembers: Member[] = [
+      {
+        id: '1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        joinedAt: '2024-01-01'
+      },
+      {
+        id: '2',
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        phone: '+0987654321',
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        joinedAt: '2024-01-02'
+      }
+    ]
+
+    setTimeout(() => {
+      setTransactions(mockTransactions)
+      setMembers(mockMembers)
+      setLoading(false)
+    }, 1000)
+  }, [])
+
   const filteredTransactions = useMemo(() => {
-    return transactions
-      .filter(transaction => {
-        const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesType = selectedType === 'all' || transaction.type === selectedType
-        const matchesStatus = selectedStatus === 'all' || transaction.status === selectedStatus
-        return matchesSearch && matchesType && matchesStatus
-      })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'date':
-            return new Date(b.date).getTime() - new Date(a.date).getTime()
-          case 'amount':
-            return b.amount - a.amount
-          case 'type':
-            return a.type.localeCompare(b.type)
-          default:
-            return 0
-        }
-      })
+    let filtered = transactions
+
+    if (searchTerm) {
+      filtered = filtered.filter(t => 
+        t.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.description.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    if (selectedType !== 'all') {
+      filtered = filtered.filter(t => t.type === selectedType)
+    }
+
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(t => t.status === selectedStatus)
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return new Date(b.date).getTime() - new Date(a.date).getTime()
+        case 'amount':
+          return b.amount - a.amount
+        case 'name':
+          return a.memberName.localeCompare(b.memberName)
+        default:
+          return 0
+      }
+    })
+
+    return filtered
   }, [transactions, searchTerm, selectedType, selectedStatus, sortBy])
 
-  const getTransactionType = (type: string) => {
-    const types = {
-      CREDIT: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200',
-      DEBIT: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300 border-red-200',
-      INTEREST: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200',
-      FINE: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 border-orange-200',
-      MAINTENANCE: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 border-amber-200'
+  const stats = useMemo(() => {
+    const totalCredit = transactions.filter(t => t.type === 'CREDIT').reduce((sum, t) => sum + t.amount, 0)
+    const totalDebit = transactions.filter(t => t.type === 'DEBIT').reduce((sum, t) => sum + t.amount, 0)
+    const pendingTransactions = transactions.filter(t => t.status === 'PENDING').length
+
+    return {
+      totalCredit,
+      totalDebit,
+      balance: totalCredit - totalDebit,
+      pendingTransactions,
+      totalTransactions: transactions.length
     }
-    
+  }, [transactions])
+
+  const handleAddTransaction = () => {
+    if (!newTransaction.memberId || !newTransaction.amount || !newTransaction.description) {
+      toast.error('Please fill all fields')
+      return
+    }
+
+    const member = members.find(m => m.id === newTransaction.memberId)
+    if (!member) {
+      toast.error('Please select a valid member')
+      return
+    }
+
+    const transaction: Transaction = {
+      id: Date.now().toString(),
+      memberId: newTransaction.memberId,
+      memberName: member.name,
+      type: newTransaction.type,
+      amount: parseFloat(newTransaction.amount),
+      description: newTransaction.description,
+      date: new Date().toISOString().split('T')[0],
+      status: 'COMPLETED',
+      balance: 0 // Calculate based on previous transactions
+    }
+
+    setTransactions([transaction, ...transactions])
+    setNewTransaction({ memberId: '', type: 'CREDIT', amount: '', description: '' })
+    setIsAddDialogOpen(false)
+    toast.success('Transaction added successfully')
+  }
+
+  const exportData = () => {
+    toast.success('Data exported successfully')
+  }
+
+  if (loading) {
     return (
-      <Badge className={cn(types[type as keyof typeof types] || types.CREDIT, 'font-medium')}>
-        {type}
-      </Badge>
+      <div className="flex items-center justify-center min-h-screen">
+        <RefreshCw className="h-8 w-8 animate-spin" />
+      </div>
     )
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: {
-        currency: 'INR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }
-    }).format(amount)
-  }
-
-  const getDaysRemaining = (endDate?: string) => {
-    if (!endDate) return null
-    
-    const today = new Date()
-    const diffTime = new Date(endDate).getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 24))
-    
-    if (diffDays < 0) return 'Expired'
-    return `${diffDays} days left`
-  }
-
-  const getProgressColor = (percentage: number, status: string) => {
-    if (status === 'FAILED' || percentage === 0) return 'bg-slate-300'
-    if (percentage > 60) return 'bg-emerald-500'
-    if (percentage > 30) return 'bg-amber-500'
-    return 'bg-red-500'
-  }
-
   return (
-    <Progress 
-      value={percentage} 
-      className="h-2"
-      indicatorClassName={getProgressColor(percentage, status)}
-    />
-  )
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            Passbook Management
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Manage all financial transactions and member balances
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={exportData}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Transaction
+          </Button>
+        </div>
+      </div>
 
-  const handleQuickAction = (action: string, transactionId: string) => {
-    switch (action) {
-      case 'view':
-        toast.info('Transaction Details', {
-          description: 'Opening transaction details...',
-          duration: 2000,
-        })
-        break
-      case 'edit':
-        handleEdit(transactions.find(t => t.id === transactionId)!)
-        break
-      case 'delete':
-        setDeleteDialog({ open: true, transaction: transactions.find(t => t.id === transactionId) })
-        break
-      case 'settle':
-        handleStatusChange(transactionId, 'SETTLED')
-        break
-      case 'refund':
-        handleStatusChange(transactionId, 'REFUNDED')
-        break
-      default:
-        break
-    }
-  }
-
-  const confirmDelete = async () => {
-    if (deleteDialog.transaction) {
-      try {
-        // Mock API call to delete transaction
-        toast.success('Transaction deleted successfully', {
-          description: `${deleteDialog.transaction.description} has been removed.`,
-          duration: 3000,
-        })
-        
-        // Update local state
-        setTransactions(prev => 
-          prev.filter(t => t.id !== deleteDialog.transaction.id)
-        )
-        
-        setDeleteDialog({ open: false, transaction: null })
-      } catch (error) {
-      toast.error('Failed to delete transaction', {
-        description: 'Please try again.',
-        duration: 3000,
-      })
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Search and Filter Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search transactions by description, amount, or reference..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="CREDIT">Credit</SelectItem>
-                    <SelectItem value="DEBIT">Debit</SelectItem>
-                    <SelectItem value="INTEREST">Interest</SelectItem>
-                    <SelectItem value="FINE">Fine</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="EXPIRED">EXPIRED</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={sortBy} onValueChange={setSortBy}}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="role">Role</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="joinedAt">Joined Date</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={applyFilter}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Reset
-                </Button>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <DollarSign className="h-8 w-8 text-blue-100" />
+              <Badge className="bg-white/20 text-white border-white/30">
+                Total Credit
+              </Badge>
+            </div>
+            <div className="text-2xl font-bold mb-1">
+              ${stats.totalCredit.toLocaleString()}
+            </div>
+            <div className="text-blue-100 text-sm">
+              All credit transactions
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+
+        <Card className="border-0 shadow-xl bg-gradient-to-br from-red-500 to-red-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <TrendingUp className="h-8 w-8 text-red-100" />
+              <Badge className="bg-white/20 text-white border-white/30">
+                Total Debit
+              </Badge>
+            </div>
+            <div className="text-2xl font-bold mb-1">
+              ${stats.totalDebit.toLocaleString()}
+            </div>
+            <div className="text-red-100 text-sm">
+              All debit transactions
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-xl bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Shield className="h-8 w-8 text-green-100" />
+              <Badge className="bg-white/20 text-white border-white/30">
+                Current Balance
+              </Badge>
+            </div>
+            <div className="text-2xl font-bold mb-1">
+              ${stats.balance.toLocaleString()}
+            </div>
+            <div className="text-green-100 text-sm">
+              Net balance
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <PieChart className="h-8 w-8 text-purple-100" />
+              <Badge className="bg-white/20 text-white border-white/30">
+                Total Transactions
+              </Badge>
+            </div>
+            <div className="text-2xl font-bold mb-1">
+              {stats.totalTransactions}
+            </div>
+            <div className="text-purple-100 text-sm">
+              All transactions
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-64">
+              <Input
+                placeholder="Search transactions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Transaction Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="CREDIT">Credit</SelectItem>
+                <SelectItem value="DEBIT">Debit</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="EXPIRED">EXPIRED</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Transactions Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="border-2 border-slate-200 dark:border-slate-700">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                  Financial Overview
-                </h2>
-                <Badge variant="outline" className="text-sm">
-                  {filteredTransactions.length} transactions
-                </Badge>
-              </CardHeader>
-          </CardHeader>
-          <CardContent className="p-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"
-                />
-              </div>
-            ) : filteredTransactions.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-                className="text-center py-12"
-              >
-                <div className="text-slate-400 mb-4">
-                  <FileText className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No transactions found</h3>
-                <p className="text-slate-500 dark:text-slate-400">Get started by adding your first transaction.</p>
-              </motion.div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
-                      <TableHead className="font-semibold">Date</TableHead>
-                      <TableHead className="font-semibold">Description</TableHead>
-                      <TableHead className="font-semibold">Category</TableHead>
-                      <TableHead className="font-semibold">Amount</TableHead>
-                      <TableHead className="font-semibold">Type</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTransactions.map((transaction, index) => (
-                      <motion.tr
-                        key={transaction.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className={cn(
-                          "border-b border-slate-200 dark:border-slate-700 transition-all duration-200",
-                          index % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/50 dark:bg-slate-800/70",
-                          "hover:bg-slate-100 dark:hover:bg-slate-800/70"
-                        )}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                              <CreditCard className="h-4 w-4 text-white" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900 dark:text-white">
-                                {transaction.description}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-slate-900 dark:text-white">
-                            {formatDate(transaction.date)}
-                          </TableCell>
-                        <TableCell>
-                          <div className="text-right">
-                            <div className="flex items-center gap-2">
-                              <span className={cn(
-                                "text-xs font-medium px-2 py-1 rounded-full",
-                                getAmountColor(transaction.type, transaction.status)
-                              )}>
-                                {getTransactionType(transaction.type)}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuickAction('view', transaction.id)}
-                              className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                            >
-                              <Eye className="h-4 w-4 text-blue-600" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuickAction('edit', transaction.id)}
-                              className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
-                            >
-                              <Edit className="h-4 w-4 text-slate-600" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuickAction('settle', transaction.id)}
-                              className="h-8 w-8 p-0 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                            >
-                              <AlertTriangle className="h-4 w-4 text-amber-600" />
-                              Settle
-                            </Button>
-                            
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleQuickAction('view', transaction.id)}>
-                                    <Eye className="mr-2 h-4 w-4 text-blue-600" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleQuickAction('edit', transaction.id)}>
-                                    <Edit className="mr-2 h-4 w-4 text-slate-600" />
-                                    Edit Transaction
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleQuickAction('settle', transaction.id)}>
-                                    <AlertTriangle className="mr-2 h-4 w-4 text-amber-600" />
-                                    Settle
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleQuickAction('expire', transaction.id)}>
-                                    <Calendar className="mr-2 h-4 w-4 text-red-600" />
-                                    Expire
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => handleQuickAction('refund', transaction.id)} 
-                                    className="text-red-600 focus:text-red-600"
-                                  >
-                                    Refund
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-          </motion.div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Member</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Balance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTransactions.map((transaction) => (
+                <TableRow key={transaction.id}>
+                  <TableCell>{transaction.date}</TableCell>
+                  <TableCell>{transaction.memberName}</TableCell>
+                  <TableCell>
+                    <Badge className={
+                      transaction.type === 'CREDIT' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }>
+                      {transaction.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>${transaction.amount.toLocaleString()}</TableCell>
+                  <TableCell>{transaction.description}</TableCell>
+                  <TableCell>
+                    <Badge className={
+                      transaction.status === 'COMPLETED' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }>
+                      {transaction.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>${transaction.balance.toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Add Transaction Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Transaction</DialogTitle>
+            <DialogDescription>
+              Add a new transaction to the passbook
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="member">Member</Label>
+              <Select value={newTransaction.memberId} onValueChange={(value) => 
+                setNewTransaction({...newTransaction, memberId: value})
+              }>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="type">Type</Label>
+              <Select value={newTransaction.type} onValueChange={(value: 'CREDIT' | 'DEBIT') => 
+                setNewTransaction({...newTransaction, type: value})
+              }>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CREDIT">Credit</SelectItem>
+                  <SelectItem value="DEBIT">Debit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={newTransaction.amount}
+                onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
+                placeholder="Enter amount"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={newTransaction.description}
+                onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
+                placeholder="Enter description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddTransaction}>
+              Add Transaction
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </DropdownMenu>
-                </TableCell>
-              </motion.tr>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </motion.div>
-  </div>
-)
+  )
 }

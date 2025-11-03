@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/client/Sidebar'
 import Topbar from '@/components/client/Topbar'
-import { ErrorBoundary } from '@/components/error-boundary'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 
 interface ClientLayoutProps {
@@ -28,28 +27,9 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       }
     }
 
-    // Initial check
     handleResize()
-    
-    // Add listener
     window.addEventListener('resize', handleResize)
-    
-    // Cleanup
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  // Keep sidebar open on desktop, allow manual toggle on mobile
-  const handleSidebarToggle = () => {
-    setSidebarOpen(prev => !prev)
-  }
-
-  // Simulate initial loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-    
-    return () => clearTimeout(timer)
   }, [])
 
   // Handle navigation loading state
@@ -64,7 +44,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   }, [pathname])
 
   const handleSignOut = () => {
-    // Mock logout - just redirect to login
     window.location.href = '/login'
   }
 
@@ -110,47 +89,27 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         )}
       </AnimatePresence>
 
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex">
         {/* Sidebar */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed lg:relative z-40 h-full"
-            >
-              <Sidebar 
-                onClose={() => setSidebarOpen(false)}
-                pathname={pathname}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <Sidebar 
+          onClose={() => setSidebarOpen(false)} 
+          pathname={pathname}
+        />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col">
           {/* Topbar */}
-          <Topbar 
+          <Topbar
             onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
             onSignOut={handleSignOut}
             sidebarOpen={sidebarOpen}
           />
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto">
-            <ErrorBoundary>
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="h-full"
-              >
-                {children}
-              </motion.div>
-            </ErrorBoundary>
+          <main className="flex-1 p-6 overflow-auto">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </main>
         </div>
       </div>
