@@ -25,7 +25,17 @@ import {
   FileText,
   Lock,
   Unlock,
-  Crown
+  Crown,
+  CreditCard,
+  Users,
+  Activity,
+  Phone,
+  MapPin,
+  Globe,
+  Mail,
+  Star,
+  ArrowUpRight,
+  ChevronDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
