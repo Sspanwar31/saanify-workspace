@@ -1,76 +1,27 @@
-# Database Migration Guide
+# Supabase Migration Guide (Vercel-Based)
 
-## Overview
-This document explains how to perform database migrations for the Saanify application.
+This project runs Prisma migrations using Vercel environment variables only.
 
-## Current Setup
-- **Local Database**: SQLite with Prisma ORM
-- **Target Database**: Supabase (PostgreSQL)
-- **Migration Tool**: Supabase CLI + Custom Scripts
+### ⚙️ Required Vercel Environment Variables
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- DATABASE_URL
+- NEXTAUTH_URL
+- NEXTAUTH_SECRET (used as run-migration security token)
 
-## Migration Steps
+### 🚀 Run Migration via API
+After deploy, trigger this endpoint (replace domain):
 
-### 1. Setup Supabase Project
-```bash
-# Install Supabase CLI
-npm install -g supabase
+POST https://<your-vercel-domain>/api/run-migrations
+Headers:
+x-run-migrations-token: <NEXTAUTH_SECRET value>
 
-# Login to Supabase
-supabase login
-
-# Initialize project
-supabase init
-```
-
-### 2. Environment Configuration
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Fill in your Supabase credentials
-# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-### 3. Run Migrations
-```bash
-# Make migration script executable
-chmod +x scripts/run_migrations.sh
-
-# Run migrations
-./scripts/run_migrations.sh
-```
-
-### 4. Seed Database
-```bash
-# Run seed script
-node scripts/create_admins.js
-
-# Or use SQL seed
-psql $SUPABASE_DB_URL -f db/seed.sql
-```
-
-## Migration Files
-- `supabase/migrations/001_initial_schema.sql` - Initial database schema
-- `db/seed.sql` - Seed data for development
-- `scripts/create_admins.js` - Admin user creation script
-- `scripts/run_migrations.sh` - Migration runner script
-
-## Important Notes
-- TODO: Replace all placeholder values with actual Supabase credentials
-- TODO: Test migrations on staging environment first
-- TODO: Backup existing data before running migrations
-- TODO: Review RLS policies before production deployment
-
-## Troubleshooting
-- Ensure Supabase CLI is properly authenticated
-- Check environment variables are correctly set
-- Verify database permissions and roles
-- Review migration logs for errors
-
-## Next Steps
-1. Complete TODO items in migration files
-2. Test on staging environment
-3. Plan production deployment strategy
-4. Document any custom migration logic
+### 🧭 Checklist
+1. Confirm all above env vars exist in Vercel.
+2. Deploy updated repo → Vercel will auto-build.
+3. Run `/api/run-migrations` manually once via Postman or curl.
+4. Check Supabase tables — verify seed admin exists.
+5. Login to frontend using:  
+   Email: superadmin@example.com  
+   Password: admin123

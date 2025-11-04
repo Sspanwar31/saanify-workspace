@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,7 +18,7 @@ model User {
   email             String    @unique
   name              String?
   password          String
-  role              String    @default("CLIENT") // CLIENT, SUPER_ADMIN
+  role              String    @default("CLIENT") // CLIENT, SUPERADMIN
   isActive          Boolean   @default(true)
   lastLoginAt       DateTime?
   societyAccountId  String?
