@@ -27,7 +27,6 @@ import {
   Unlock,
   Crown,
   CreditCard,
-  Users,
   Activity,
   Phone,
   MapPin,
