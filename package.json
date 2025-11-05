@@ -14,7 +14,10 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:migrate:deploy": "npx prisma migrate deploy",
     "db:create-admin": "node scripts/create_admins.js",
-    "deploy:glm": "node scripts/glm-deploy.js"
+    "deploy:glm": "node scripts/deploy-glm.js",
+    "restore:glm": "node scripts/restore-glm.js",
+    "backup:glm": "node scripts/deploy-glm.js --backup-only",
+    "health:glm": "node scripts/health-check-glm.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
