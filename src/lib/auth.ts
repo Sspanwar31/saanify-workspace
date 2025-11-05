@@ -20,7 +20,9 @@ export const setAuthTokens = (tokens: AuthTokens) => {
   document.cookie = `refresh-token=${tokens.refreshToken}; path=/; max-age=604800; samesite=lax` // 7 days
   
   // Store refresh token in localStorage as backup
-  localStorage.setItem('refresh-token', tokens.refreshToken)
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('refresh-token', tokens.refreshToken)
+  }
 }
 
 export const getAccessToken = () => {
@@ -43,7 +45,10 @@ export const getRefreshToken = () => {
   }
   
   // Fallback to localStorage
-  return localStorage.getItem('refresh-token')
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('refresh-token')
+  }
+  return null
 }
 
 export const removeAuthTokens = () => {
@@ -52,7 +57,9 @@ export const removeAuthTokens = () => {
   document.cookie = 'refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   
   // Remove from localStorage
-  localStorage.removeItem('refresh-token')
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('refresh-token')
+  }
 }
 
 export const refreshAccessToken = async (): Promise<string | null> => {

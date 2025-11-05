@@ -30,20 +30,24 @@ export function useDataCache<T>(
   // Get data from cache
   const getCachedData = useCallback((): T | null => {
     try {
-      const cached = localStorage.getItem(cacheKey)
+      const cached = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null
       if (!cached) return null
 
       const entry: CacheEntry<T> = JSON.parse(cached)
       const now = Date.now()
 
       if (now > entry.timestamp + entry.expiry) {
+      if (typeof window !== 'undefined') {
         localStorage.removeItem(cacheKey)
+      }
         return null
       }
 
       return entry.data
     } catch {
+      if (typeof window !== 'undefined') {
       localStorage.removeItem(cacheKey)
+    }
       return null
     }
   }, [cacheKey])
@@ -56,7 +60,9 @@ export function useDataCache<T>(
         timestamp: Date.now(),
         expiry: ttl
       }
-      localStorage.setItem(cacheKey, JSON.stringify(entry))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(cacheKey, JSON.stringify(entry))
+      }
     } catch (error) {
       console.warn('Failed to cache data:', error)
     }
@@ -122,7 +128,7 @@ export function useDataCache<T>(
 
   // Clear cache
   const clearCache = useCallback(() => {
-    localStorage.removeItem(cacheKey)
+    typeof window !== 'undefined' && localStorage.removeItem(cacheKey)
     setData(null)
   }, [cacheKey])
 

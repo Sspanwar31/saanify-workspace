@@ -29,7 +29,7 @@ export function SecureRevenueToggle({
 
   // Load preference from localStorage
   useEffect(() => {
-    const savedPreference = localStorage.getItem('revenue-visibility')
+    const savedPreference = typeof window !== 'undefined' ? localStorage.getItem('revenue-visibility') : null
     if (savedPreference !== null) {
       const preference = JSON.parse(savedPreference)
       if (isAdmin || !preference.requiresAdmin) {
@@ -40,7 +40,7 @@ export function SecureRevenueToggle({
 
   // Save preference to localStorage
   const savePreference = (show: boolean) => {
-    localStorage.setItem('revenue-visibility', JSON.stringify({
+    typeof window !== 'undefined' && localStorage.setItem('revenue-visibility', JSON.stringify({
       showRevenue: show,
       requiresAdmin: true,
       lastUpdated: new Date().toISOString()

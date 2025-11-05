@@ -82,7 +82,7 @@ export default function ClientDetailPage() {
         
         // Load revenue preference for admins
         if (data.user?.role === 'SUPER_ADMIN') {
-          const savedPreference = localStorage.getItem('revenue-visibility')
+          const savedPreference = typeof window !== 'undefined' ? localStorage.getItem('revenue-visibility') : null
           if (savedPreference) {
             const preference = JSON.parse(savedPreference)
             setShowRevenue(preference.showRevenue)
@@ -167,7 +167,8 @@ export default function ClientDetailPage() {
     setShowRevenue(show)
     
     // Save preference
-    localStorage.setItem('revenue-visibility', JSON.stringify({
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('revenue-visibility', JSON.stringify({
       showRevenue: show,
       requiresAdmin: true,
       lastUpdated: new Date().toISOString()

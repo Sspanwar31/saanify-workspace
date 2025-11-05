@@ -86,19 +86,19 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
 
   // Load config from localStorage
   useEffect(() => {
-    const savedConfig = localStorage.getItem('github-config')
+    const savedConfig = typeof window !== 'undefined' ? localStorage.getItem('github-config') : null
     if (savedConfig) {
       const parsed = JSON.parse(savedConfig)
       setConfig(parsed)
       setIsConfigured(true)
     }
     
-    const savedAutoBackup = localStorage.getItem('github-auto-backup')
+    const savedAutoBackup = typeof window !== 'undefined' ? localStorage.getItem('github-auto-backup') : null
     if (savedAutoBackup) {
       setAutoBackup(JSON.parse(savedAutoBackup))
     }
     
-    const savedLastBackup = localStorage.getItem('github-last-backup')
+    const savedLastBackup = typeof window !== 'undefined' ? localStorage.getItem('github-last-backup') : null
     if (savedLastBackup) {
       setLastBackupTime(savedLastBackup)
     }
@@ -135,9 +135,9 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
       setShowHistory(false)
       setAutoBackup(false)
       setLastBackupTime(null)
-      localStorage.removeItem('github-config')
-      localStorage.removeItem('github-auto-backup')
-      localStorage.removeItem('github-last-backup')
+      if (typeof window !== 'undefined') localStorage.removeItem('github-config')
+      if (typeof window !== 'undefined') localStorage.removeItem('github-auto-backup')
+      if (typeof window !== 'undefined') localStorage.removeItem('github-last-backup')
       setMessage({ type: 'info', text: '🔄 All configuration has been reset' })
       setTimeout(() => setMessage(null), 3000)
     }
@@ -178,7 +178,7 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
           type: 'success', 
           text: `✅ Validation successful! Found "${repoData.full_name}" repository` 
         })
-        localStorage.setItem('github-config', JSON.stringify(config))
+        if (typeof window !== 'undefined') localStorage.setItem('github-config', JSON.stringify(config))
         setIsConfigured(true)
       } else {
         const errorData = await repoResponse.json().catch(() => ({}))
@@ -213,7 +213,9 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
       return
     }
     
-    localStorage.setItem('github-config', JSON.stringify(config))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('github-config', JSON.stringify(config))
+    }
     setIsConfigured(true)
     setShowSettings(false)
     setMessage({ type: 'success', text: '💾 Configuration saved successfully!' })
@@ -244,7 +246,7 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
       if (data.success) {
         const now = new Date().toISOString()
         setLastBackupTime(now)
-        localStorage.setItem('github-last-backup', now)
+        if (typeof window !== 'undefined') localStorage.setItem('github-last-backup', now)
         
         if (!silent) {
           setMessage({ 
@@ -338,7 +340,7 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
   // Toggle auto backup
   const toggleAutoBackup = (enabled: boolean) => {
     setAutoBackup(enabled)
-    localStorage.setItem('github-auto-backup', JSON.stringify(enabled))
+    if (typeof window !== 'undefined') localStorage.setItem('github-auto-backup', JSON.stringify(enabled))
     
     if (enabled) {
       setMessage({ type: 'success', text: '🟢 Auto backup enabled - every 5 minutes' })
