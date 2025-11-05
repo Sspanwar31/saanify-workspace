@@ -19,6 +19,26 @@ const path = require('path');
 const { execSync } = require('child_process');
 const crypto = require('crypto');
 
+// Load environment variables from .env file
+function loadEnvFile() {
+  const envPath = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...values] = trimmed.split('=');
+        if (key && values.length > 0) {
+          process.env[key.trim()] = values.join('=').trim();
+        }
+      }
+    });
+  }
+}
+
+// Load environment variables at start
+loadEnvFile();
+
 // Configuration
 const config = {
   logsDir: 'logs',
@@ -274,23 +294,55 @@ class EnvironmentSync {
       try {
         execSync('vercel --version', { stdio: 'pipe' });
       } catch (error) {
-        this.logger.warning('Vercel CLI not found, skipping environment sync');
-        return false;
+        this.logger.warning('Vercel CLI not found, using local .env');
+        return await this.validateLocalEnv();
+      }
+
+      // Link project if not already linked
+      try {
+        execSync('vercel link --confirm', { stdio: 'pipe' });
+      } catch (error) {
+        // Project might already be linked, that's okay
       }
 
       // Pull environment variables from Vercel
       try {
         execSync('vercel env pull .env', { stdio: 'pipe' });
         this.logger.success('Environment variables synced from Vercel');
-        return true;
+        
+        // Reload environment variables
+        this.reloadEnvironment();
+        return await this.validateEnvironment();
       } catch (error) {
-        this.logger.warning('Failed to sync from Vercel, using local .env');
-        return false;
+        this.logger.warning(`Failed to sync from Vercel: ${error.message}`);
+        return await this.validateLocalEnv();
       }
     } catch (error) {
       this.logger.error(`Environment sync failed: ${error.message}`);
       return false;
     }
+  }
+
+  reloadEnvironment() {
+    // Reload environment variables from updated .env
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      envContent.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const [key, ...values] = trimmed.split('=');
+          if (key && values.length > 0) {
+            process.env[key.trim()] = values.join('=').trim();
+          }
+        }
+      });
+    }
+  }
+
+  async validateLocalEnv() {
+    this.logger.step('Validating local environment...');
+    return await this.validateEnvironment();
   }
 
   validateEnvironment() {
@@ -329,13 +381,25 @@ class DatabaseManager {
     this.logger.step('Running database migrations...');
     
     try {
+      // Check if DATABASE_URL is PostgreSQL
+      const dbUrl = process.env.DATABASE_URL || '';
+      if (!dbUrl.includes('postgresql') && !dbUrl.includes('postgres')) {
+        throw new Error('DATABASE_URL must be a PostgreSQL connection string for Supabase');
+      }
+
       // Generate Prisma client
       this.logger.info('Generating Prisma client...');
       execSync('npx prisma generate', { stdio: 'pipe' });
 
-      // Push schema changes
-      this.logger.info('Pushing schema changes...');
-      execSync('npx prisma db push', { stdio: 'pipe' });
+      // Deploy migrations (for production PostgreSQL)
+      this.logger.info('Deploying migrations to Supabase...');
+      try {
+        execSync('npx prisma migrate deploy', { stdio: 'pipe' });
+      } catch (migrateError) {
+        this.logger.warning(`Migration deploy failed, trying db push: ${migrateError.message}`);
+        // Fallback to db push if migrate deploy fails
+        execSync('npx prisma db push', { stdio: 'pipe' });
+      }
 
       this.logger.success('Database migrations completed');
       return true;
@@ -348,6 +412,26 @@ class DatabaseManager {
   async seedDefaultData() {
     this.logger.step('Seeding default data...');
     
+    try {
+      // First try to run the npm run seed script
+      this.logger.info('Running npm run seed...');
+      try {
+        execSync('npm run seed', { stdio: 'pipe' });
+        this.logger.success('Seed script completed successfully');
+        return true;
+      } catch (seedError) {
+        this.logger.warning(`Seed script failed, running manual seeding: ${seedError.message}`);
+        
+        // Fallback to manual seeding
+        return await this.manualSeeding();
+      }
+    } catch (error) {
+      this.logger.error(`Data seeding failed: ${error.message}`);
+      return false;
+    }
+  }
+
+  async manualSeeding() {
     try {
       const { PrismaClient } = require('@prisma/client');
       const bcrypt = require('bcryptjs');
@@ -401,10 +485,10 @@ class DatabaseManager {
       }
 
       await prisma.$disconnect();
-      this.logger.success('Default data seeding completed');
+      this.logger.success('Manual data seeding completed');
       return true;
     } catch (error) {
-      this.logger.error(`Data seeding failed: ${error.message}`);
+      this.logger.error(`Manual seeding failed: ${error.message}`);
       return false;
     }
   }

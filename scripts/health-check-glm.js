@@ -17,6 +17,26 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Load environment variables from .env file
+function loadEnvFile() {
+  const envPath = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...values] = trimmed.split('=');
+        if (key && values.length > 0) {
+          process.env[key.trim()] = values.join('=').trim();
+        }
+      }
+    });
+  }
+}
+
+// Load environment variables at start
+loadEnvFile();
+
 // Configuration
 const config = {
   logsDir: 'logs',
