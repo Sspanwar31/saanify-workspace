@@ -1,0 +1,30 @@
+{
+  "users": {
+    "status": "✅ Created",
+    "count": 6,
+    "accessible": true
+  },
+  "society_accounts": {
+    "status": "✅ Created",
+    "count": 4,
+    "accessible": true
+  },
+  "societies": {
+    "status": "✅ Created",
+    "count": 4,
+    "accessible": true
+  },
+  "posts": {
+    "status": "✅ Created",
+    "count": 0,
+    "accessible": true
+  },
+  "superAdmin": {
+    "status": "✅ Created",
+    "id": "user_super_admin_123"
+  },
+  "demoClient": {
+    "status": "✅ Created",
+    "id": "user_demo_client_456"
+  }
+}
