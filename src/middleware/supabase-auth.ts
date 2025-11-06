@@ -2,6 +2,7 @@
 import { createMiddleware } from 'next-intl/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { PrismaClient } from '@prisma/client';
 
 export default createMiddleware(async (req) => {
   // Skip authentication for API routes and static files
@@ -24,7 +25,6 @@ export default createMiddleware(async (req) => {
   try {
     // For now, use SQLite authentication (existing system)
     // TODO: Replace with Supabase authentication when ready
-    const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
     
     // Verify token (simplified for now)

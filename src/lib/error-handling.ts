@@ -115,3 +115,39 @@ export function asyncHandler<T extends any[]>(
     }
   }
 }
+
+// Additional exports for GitHub API compatibility
+export class ErrorHandler {
+  static handle(error: any): NextResponse {
+    return handleApiError(error)
+  }
+}
+
+export class RetryHandler {
+  static async withRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 1000
+  ): Promise<T> {
+    let lastError: any
+    
+    for (let i = 0; i <= maxRetries; i++) {
+      try {
+        return await fn()
+      } catch (error) {
+        lastError = error
+        if (i < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)))
+        }
+      }
+    }
+    
+    throw lastError
+  }
+}
+
+export const GITHUB_RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelay: 1000,
+  maxDelay: 10000
+}

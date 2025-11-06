@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
+import SupabaseProvider from "@/app/providers/SupabaseProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,10 +54,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-          <Toaster />
+          <SupabaseProvider>
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+            <Toaster />
+          </SupabaseProvider>
         </ThemeProvider>
       </body>
     </html>

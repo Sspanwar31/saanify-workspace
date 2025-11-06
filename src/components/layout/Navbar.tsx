@@ -39,14 +39,25 @@ export default function Navbar() {
   }, [])
 
   const handleNavClick = (href: string, label: string) => {
-    const element = document.getElementById(href.replace('#', ''))
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
+    if (href.startsWith('/')) {
+      // It's a page navigation
+      window.location.href = href
       setIsMobileMenuOpen(false)
       toast.success(`📍 ${label}`, {
-        description: `Navigated to ${label} section`,
+        description: `Navigated to ${label} page`,
         duration: 2000,
       })
+    } else {
+      // It's a section navigation
+      const element = document.getElementById(href.replace('#', ''))
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' })
+        setIsMobileMenuOpen(false)
+        toast.success(`📍 ${label}`, {
+          description: `Navigated to ${label} section`,
+          duration: 2000,
+        })
+      }
     }
   }
 
@@ -67,6 +78,7 @@ export default function Navbar() {
   const navItems = [
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '#pricing' },
+    { label: 'Analytics', href: '/analytics' },
     { label: 'Testimonials', href: '#testimonials' },
     { label: 'About', href: '#about' },
   ]
