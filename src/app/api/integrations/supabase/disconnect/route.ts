@@ -1,58 +1,26 @@
 import { NextResponse } from 'next/server'
-import { readFileSync, writeFileSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs'
 import { join } from 'path'
-
-// Load configuration from local file
-function loadConfig() {
-  try {
-    const configPath = join(process.cwd(), '.saanify-restore.json')
-    const configData = readFileSync(configPath, 'utf8')
-    return JSON.parse(configData)
-  } catch (error) {
-    console.log('No existing configuration found')
-    return {}
-  }
-}
-
-// Store configuration in local file
-function saveConfig(config: any) {
-  try {
-    const configPath = join(process.cwd(), '.saanify-restore.json')
-    const existingConfig = readFileSync(configPath, 'utf8')
-    const parsedConfig = existingConfig ? JSON.parse(existingConfig) : {}
-    
-    const updatedConfig = {
-      ...parsedConfig,
-      supabase: {
-        ...parsedConfig.supabase,
-        ...config
-      }
-    }
-    
-    writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2))
-    console.log('✅ Supabase configuration updated')
-    return updatedConfig
-  } catch (error) {
-    console.error('Failed to update configuration:', error)
-    throw error
-  }
-}
 
 export async function POST() {
   try {
-    // Clear Supabase configuration
-    const updatedConfig = saveConfig({
-      enabled: false,
-      autoOAuth: false,
-      organization: null,
-      project: null,
-      tokens: null
-    })
+    // Clear Supabase configuration by removing the config file
+    const configPath = join(process.cwd(), 'config', 'supabase-config.json')
+    
+    try {
+      if (existsSync(configPath)) {
+        unlinkSync(configPath)
+        console.log('✅ Supabase configuration cleared')
+      }
+    } catch (error) {
+      console.error('Failed to clear configuration:', error)
+    }
 
     return NextResponse.json({
       message: '🔌 Supabase disconnected',
       success: true,
       config: {
+        connected: false,
         enabled: false
       }
     })
@@ -67,8 +35,8 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const config = loadConfig()
-    const isConfigured = config.supabase?.enabled || false
+    const configPath = join(process.cwd(), 'config', 'supabase-config.json')
+    const isConfigured = existsSync(configPath)
     
     return NextResponse.json({
       message: 'Supabase disconnect endpoint',

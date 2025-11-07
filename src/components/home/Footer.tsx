@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Phone, Mail, MapPin, Linkedin, Twitter, Youtube, Facebook, Instagram, ArrowUpRight, ExternalLink, Database, Settings } from 'lucide-react'
 import { toast } from 'sonner'
-import SupabaseOAuth from '@/components/supabase/SupabaseOAuth'
+import SupabaseToggle from '@/components/supabase/SupabaseToggle'
 
 export default function Footer() {
   const handleLinkClick = (linkName: string, category: string) => {
@@ -89,7 +89,7 @@ export default function Footer() {
 
   return (
     <>
-      <SupabaseOAuth />
+      <SupabaseToggle />
       {/* Wave SVG Divider */}
       <div className="relative bg-muted">
         <svg 

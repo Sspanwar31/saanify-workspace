@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     // Validate URL format
     try {
-      new URL(sabaseUrl)
+      new URL(supabaseUrl)
     } catch {
       return NextResponse.json(
         { error: 'Invalid Supabase URL format' },
@@ -39,17 +39,32 @@ export async function POST(request: NextRequest) {
           details: {
             url: supabaseUrl,
             connection: "successful",
-            tables: "not_created"
+            tables: "not_created",
+            nextStep: "Click 'Save & Setup' to create tables"
           }
         })
       }
       
-      // Other errors mean invalid credentials
+      // Handle common Supabase errors
+      let errorMessage = error.message
+      if (error.code === "PGRST301") {
+        errorMessage = "Invalid API key or permissions"
+      } else if (error.code === "PGRST000") {
+        errorMessage = "Invalid database URL or connection refused"
+      } else if (error.message?.includes("refused to connect")) {
+        errorMessage = "Connection refused - Check URL and credentials"
+      }
+      
       return NextResponse.json(
         { 
           error: "Invalid Supabase credentials",
-          details: error.message,
-          code: error.code
+          details: errorMessage,
+          code: error.code,
+          suggestions: [
+            "Check your Supabase project URL",
+            "Verify anon key permissions",
+            "Ensure project is active"
+          ]
         },
         { status: 401 }
       )
@@ -63,13 +78,29 @@ export async function POST(request: NextRequest) {
       details: {
         url: supabaseUrl,
         connection: "successful",
-        tables: "exist"
+        tables: "exist",
+        nextStep: "You can now use the database"
       }
     })
 
   } catch (error: any) {
     console.error("Supabase validation error:", error)
-    return handleApiError(error)
+    
+    // Handle specific error types
+    let errorMessage = error.message
+    if (error.message?.includes("refused to connect")) {
+      errorMessage = "Connection refused - Check your URL and try again"
+    }
+    
+    return NextResponse.json({
+      error: "Validation failed",
+      details: errorMessage,
+      suggestions: [
+        "Check Supabase project URL format",
+        "Verify your API keys",
+        "Ensure project is active in Supabase dashboard"
+      ]
+    }, { status: 500 })
   }
 }
 

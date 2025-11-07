@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Eye, EyeOff, Mail, Lock, Shield, Users, AlertCircle, CheckCircle, Github, Chrome, Sparkles, Zap, Crown } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Mail, Lock, Shield, Users, AlertCircle, CheckCircle, Github, Chrome, Sparkles, Zap, Crown, Database } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
+import SupabaseToggle from '@/components/SupabaseToggle'
 
 export default function LoginPage() {
   const [clientData, setClientData] = useState({
@@ -28,6 +30,37 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [activeTab, setActiveTab] = useState('client')
+  const [useSupabase, setUseSupabase] = useState(false)
+  const [supabaseStatus, setSupabaseStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
+
+  // Check Supabase connection on mount
+  useEffect(() => {
+    checkSupabaseConnection()
+  }, [])
+
+  const checkSupabaseConnection = async () => {
+    try {
+      const response = await fetch('/api/integrations/supabase/status')
+      const data = await response.json()
+      
+      console.log('Supabase status response:', data)
+      
+      if (data.connectionType === 'local') {
+        setSupabaseStatus('disconnected')
+        setUseSupabase(false)
+      } else if (data.connected) {
+        setSupabaseStatus('connected')
+        setUseSupabase(true)
+      } else {
+        setSupabaseStatus('disconnected')
+        setUseSupabase(false)
+      }
+    } catch (error) {
+      console.error('Failed to check Supabase status:', error)
+      setSupabaseStatus('disconnected')
+      setUseSupabase(false)
+    }
+  }
 
   const validateClientForm = () => {
     const newErrors: Record<string, string> = {}
@@ -75,7 +108,9 @@ export default function LoginPage() {
     try {
       console.log('Attempting client login with:', clientData.email)
       
-      const response = await fetch('/api/auth/login', {
+      const loginEndpoint = useSupabase ? '/api/auth/supabase-login' : '/api/auth/login'
+      
+      const response = await fetch(loginEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +132,9 @@ export default function LoginPage() {
       }
       
       toast.success('🎉 Welcome back!', {
-        description: 'Successfully logged into your Saanify account',
+        description: useSupabase 
+          ? 'Successfully logged in with Supabase' 
+          : 'Successfully logged into your Saanify account',
         duration: 3000,
       })
 
@@ -129,7 +166,9 @@ export default function LoginPage() {
     try {
       console.log('Attempting admin login with:', adminData.email)
       
-      const response = await fetch('/api/auth/login', {
+      const loginEndpoint = useSupabase ? '/api/auth/supabase-login' : '/api/auth/login'
+      
+      const response = await fetch(loginEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +190,9 @@ export default function LoginPage() {
       }
       
       toast.success('👑 Admin access granted!', {
-        description: 'Welcome to Saanify Admin Panel',
+        description: useSupabase 
+          ? 'Welcome to Saanify Admin Panel (Supabase)' 
+          : 'Welcome to Saanify Admin Panel',
         duration: 3000,
       })
 
@@ -295,6 +336,32 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* Supabase Status */}
+            <div className="mb-6">
+              <Alert className={`bg-white/10 backdrop-blur-sm border-white/20 ${
+                supabaseStatus === 'connected' ? 'border-green-500/50' : 
+                supabaseStatus === 'disconnected' ? 'border-blue-500/50' : 
+                'border-yellow-500/50'
+              }`}>
+                <Database className="h-4 w-4" />
+                <AlertDescription className="text-white">
+                  <div className="flex items-center justify-between">
+                    <span>
+                      {supabaseStatus === 'connected' ? 'Supabase: Connected' : 
+                       supabaseStatus === 'disconnected' ? 'Local Database: Ready' : 
+                       'Checking...'}
+                    </span>
+                    {supabaseStatus === 'connected' && (
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                    )}
+                    {supabaseStatus === 'disconnected' && (
+                      <CheckCircle className="h-4 w-4 text-blue-400" />
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </div>
+
             {/* Features List */}
             <div className="space-y-4 mb-8">
               {[
@@ -359,7 +426,7 @@ export default function LoginPage() {
                   Sign In
                 </CardTitle>
                 <CardDescription className="text-purple-200">
-                  Access your Saanify account
+                  Access your Saanify account {useSupabase ? '(Supabase)' : '(Local Database)'}
                 </CardDescription>
               </CardHeader>
 
@@ -430,7 +497,7 @@ export default function LoginPage() {
                           <button
                             type="button"
                             onClick={() => setShowClientPassword(!showClientPassword)}
-                            className="absolute right-3 top-3 text-purple-400 hover:text-purple-300"
+                            className="absolute right-3 top-3 text-purple-400 hover:text-purple-200"
                           >
                             {showClientPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -443,40 +510,34 @@ export default function LoginPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="clientRemember"
-                            checked={clientData.rememberMe}
-                            onChange={(e) => handleClientInputChange('rememberMe', e.target.checked)}
-                            className="rounded border-purple-400 bg-white/10"
-                            disabled={isLoading}
-                          />
-                          <Label htmlFor="clientRemember" className="text-sm text-purple-200">
-                            Remember me
-                          </Label>
-                        </div>
-                        <Link href="/forgot-password" className="text-sm text-purple-300 hover:text-purple-200">
-                          Forgot password?
-                        </Link>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="clientRemember"
+                          checked={clientData.rememberMe}
+                          onChange={(e) => handleClientInputChange('rememberMe', e.target.checked)}
+                          className="rounded border-white/20 bg-white/10 text-purple-500 focus:ring-purple-500"
+                        />
+                        <Label htmlFor="clientRemember" className="text-purple-200 text-sm">
+                          Remember me for 30 days
+                        </Label>
                       </div>
 
                       <Button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 rounded-lg transition-all duration-300"
                         disabled={isLoading}
                       >
                         {isLoading ? (
-                          <div className="flex items-center">
+                          <>
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Signing In...
-                          </div>
+                            Signing in...
+                          </>
                         ) : (
-                          <div className="flex items-center">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Sign In as Client
-                          </div>
+                          <>
+                            <Users className="w-4 h-4 mr-2" />
+                            Sign in as Client
+                          </>
                         )}
                       </Button>
                     </motion.form>
@@ -492,16 +553,6 @@ export default function LoginPage() {
                       onSubmit={handleAdminLogin}
                       className="space-y-4"
                     >
-                      <div className="bg-amber-500/20 border border-amber-500/30 rounded-lg p-3 mb-4">
-                        <div className="flex items-center gap-2 text-amber-200">
-                          <Crown className="h-4 w-4" />
-                          <span className="text-sm font-medium">Administrator Access</span>
-                        </div>
-                        <p className="text-xs text-amber-300 mt-1">
-                          Only authorized administrators can access this panel
-                        </p>
-                      </div>
-
                       <div>
                         <Label htmlFor="adminEmail" className="text-purple-200">Admin Email</Label>
                         <div className="relative">
@@ -540,7 +591,7 @@ export default function LoginPage() {
                           <button
                             type="button"
                             onClick={() => setShowAdminPassword(!showAdminPassword)}
-                            className="absolute right-3 top-3 text-purple-400 hover:text-purple-300"
+                            className="absolute right-3 top-3 text-purple-400 hover:text-purple-200"
                           >
                             {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -553,103 +604,86 @@ export default function LoginPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="adminRemember"
-                            checked={adminData.rememberMe}
-                            onChange={(e) => handleAdminInputChange('rememberMe', e.target.checked)}
-                            className="rounded border-purple-400 bg-white/10"
-                            disabled={isLoading}
-                          />
-                          <Label htmlFor="adminRemember" className="text-sm text-purple-200">
-                            Remember me
-                          </Label>
-                        </div>
-                        <Link href="/forgot-password" className="text-sm text-purple-300 hover:text-purple-200">
-                          Forgot password?
-                        </Link>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="adminRemember"
+                          checked={adminData.rememberMe}
+                          onChange={(e) => handleAdminInputChange('rememberMe', e.target.checked)}
+                          className="rounded border-white/20 bg-white/10 text-amber-500 focus:ring-amber-500"
+                        />
+                        <Label htmlFor="adminRemember" className="text-purple-200 text-sm">
+                          Remember me for 30 days
+                        </Label>
                       </div>
 
                       <Button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition-all duration-300"
                         disabled={isLoading}
                       >
                         {isLoading ? (
-                          <div className="flex items-center">
+                          <>
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Signing In...
-                          </div>
+                            Authenticating...
+                          </>
                         ) : (
-                          <div className="flex items-center">
-                            <Crown className="h-4 w-4 mr-2" />
-                            Sign In as Admin
-                          </div>
+                          <>
+                            <Shield className="w-4 h-4 mr-2" />
+                            Sign in as Admin
+                          </>
                         )}
                       </Button>
                     </motion.form>
                   </TabsContent>
                 </Tabs>
 
-                {/* Divider */}
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full bg-white/20" />
+                <div className="mt-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <Separator className="w-full border-white/20" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-transparent text-purple-200">Or continue with</span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-transparent px-2 text-purple-300">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
 
-                {/* Social Login Buttons */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={handleGoogleLogin}
-                    variant="outline"
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
-                    disabled={isLoading}
-                  >
-                    <Chrome className="h-4 w-4 mr-2" />
-                    Google
-                  </Button>
-                  <Button
-                    onClick={handleGitHubLogin}
-                    variant="outline"
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
-                    disabled={isLoading}
-                  >
-                    <Github className="h-4 w-4 mr-2" />
-                    GitHub
-                  </Button>
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleGitHubLogin}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30"
+                    >
+                      <Github className="w-4 h-4 mr-2" />
+                      GitHub
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleGoogleLogin}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30"
+                    >
+                      <Chrome className="w-4 h-4 mr-2" />
+                      Google
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
 
-              <CardFooter className="flex flex-col space-y-4">
-                <div className="text-center text-sm text-purple-300">
+              <CardFooter className="text-center">
+                <p className="text-purple-200 text-sm">
                   Don't have an account?{' '}
-                  <Link href="/signup" className="text-purple-200 hover:text-white font-medium transition-colors">
-                    Sign up here
+                  <Link href="/signup" className="text-purple-400 hover:text-purple-300 underline">
+                    Sign up
                   </Link>
-                </div>
-                
-                <div className="text-center">
-                  <Link 
-                    href="/"
-                    className="inline-flex items-center text-sm text-purple-300 hover:text-purple-200 transition-colors"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Home
-                  </Link>
-                </div>
+                </p>
               </CardFooter>
             </Card>
           </motion.div>
         </div>
       </motion.div>
+      
+      {/* Supabase Toggle Component */}
+      <SupabaseToggle />
     </div>
   )
 }
