@@ -8,6 +8,7 @@ import Testimonials from '@/components/home/Testimonials'
 import Footer from '@/components/home/Footer'
 import GitHubToggle from '@/components/github/GitHubToggle'
 import AIAssistant from '@/components/ai/AIAssistant'
+import SupabaseOAuth from '@/components/supabase/SupabaseOAuth'
 
 export default function Home() {
   return (
@@ -21,6 +22,7 @@ export default function Home() {
       <Testimonials />
       <Footer />
       <AIAssistant />
+      <SupabaseOAuth />
     </div>
   )
 }

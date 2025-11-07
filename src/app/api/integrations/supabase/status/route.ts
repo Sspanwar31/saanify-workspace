@@ -1,35 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { isSupabaseConfigured } from '@/lib/supabaseClient'
+import { NextResponse } from 'next/server'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+// Load configuration from local file
+function loadConfig() {
+  try {
+    const configPath = join(process.cwd(), '.saanify-restore.json')
+    const configData = readFileSync(configPath, 'utf8')
+    return JSON.parse(configData)
+  } catch (error) {
+    console.log('No existing configuration found')
+    return {}
+  }
+}
 
 export async function GET() {
   try {
-    const isConfigured = isSupabaseConfigured()
+    const config = loadConfig()
+    const isConfigured = config.supabase?.enabled || false
     
     if (!isConfigured) {
       return NextResponse.json({
-        status: 'Not Configured',
-        message: 'Please update .env.local with Supabase credentials',
-        configured: false
+        configured: false,
+        message: 'Not connected to Supabase',
+        action: 'connect'
       })
     }
 
-    // Test connection
-    const { supabase } = await import('@/lib/supabaseClient')
-    const { data, error } = await supabase.from('users').select('count').limit(1)
-    
-    return NextResponse.json({
-      status: error ? 'Error' : 'Connected',
-      configured: true,
-      tables: error ? 'Not created' : 'Available',
-      rls: error ? 'Not applied' : 'Active'
-    })
+    // Test connection with stored access token
+    try {
+      const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env
+      const access_token = config.supabase?.tokens?.access_token
+      
+      if (!access_token) {
+        return NextResponse.json({
+          configured: true,
+          message: 'Connected but access token missing',
+          action: 'reconnect'
+        })
+      }
+
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'apikey': SUPABASE_ANON_KEY
+        }
+      })
+
+      if (!response.ok) {
+        return NextResponse.json({
+          configured: true,
+          message: 'Connected but token invalid',
+          action: 'reconnect'
+        })
+      }
+
+      const data = await response.json()
+      
+      return NextResponse.json({
+        configured: true,
+        message: '✅ Supabase connected via OAuth',
+        status: 'connected',
+        config: {
+          organization: config.supabase.organization,
+          project: config.supabase.project,
+          autoOAuth: config.supabase.autoOAuth
+        },
+        database: {
+          tables: data.length,
+          status: 'accessible'
+        }
+      })
+
+    } catch (error) {
+      return NextResponse.json({
+        configured: true,
+        message: 'Connected but connection test failed',
+        action: 'reconnect'
+      })
+    }
 
   } catch (error: any) {
     return NextResponse.json({
-      status: 'Error',
-      message: 'Failed to check Supabase status',
       configured: false,
+      message: 'Configuration error',
       error: error.message
-    }, { status: 500 })
+    })
   }
 }
