@@ -16,12 +16,12 @@ import SupabaseToggle from '@/components/SupabaseToggle'
 
 export default function LoginPage() {
   const [clientData, setClientData] = useState({
-    email: 'client@saanify.com',
+    email: 'testclient1@gmail.com',
     password: 'client123',
     rememberMe: false
   })
   const [adminData, setAdminData] = useState({
-    email: 'superadmin@saanify.com',
+    email: 'testadmin1@gmail.com',
     password: 'admin123',
     rememberMe: false
   })
@@ -229,7 +229,7 @@ export default function LoginPage() {
   // Quick demo login functions
   const handleQuickClientLogin = () => {
     setClientData({
-      email: 'client@saanify.com',
+      email: useSupabase ? 'testclient1@gmail.com' : 'client@saanify.com',
       password: 'client123',
       rememberMe: false
     })
@@ -241,7 +241,7 @@ export default function LoginPage() {
 
   const handleQuickAdminLogin = () => {
     setAdminData({
-      email: 'superadmin@saanify.com',
+      email: useSupabase ? 'testadmin1@gmail.com' : 'superadmin@saanify.com',
       password: 'admin123',
       rememberMe: false
     })
