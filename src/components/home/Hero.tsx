@@ -195,7 +195,7 @@ function FeatureCard({ icon, title, description, gradient, shadowColor, floatDur
 export default function Hero() {
   const handleStartTrial = () => {
     toast.success("🎉 Trial Started!", {
-      description: "Welcome to Saanify! Your 15-day free trial has begun.",
+      description: "Welcome to Effortless Society Management! Your 15-day free trial has begun.",
       duration: 5000,
     })
     // Redirect to signup page for trial users
@@ -249,7 +249,7 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 dark:bg-primary/20"
             >
-              ⚡ AI-Powered Society Management
+              🏘️ Complete Society Management Solution
             </motion.div>
             
             {/* Headline */}
@@ -257,7 +257,7 @@ export default function Hero() {
               Effortless Society Management,
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">
-                Guaranteed Growth.
+                Seamless Community Living.
               </span>
             </h1>
             
@@ -268,8 +268,8 @@ export default function Hero() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-lg text-muted-foreground mb-8 max-w-2xl leading-relaxed"
             >
-              Experience complete transparency in deposits, member management, and financial operations. 
-              All-in-one platform designed for modern societies.
+              Streamline society operations with member management, maintenance tracking, 
+              financial transparency, and community engagement - all in one powerful platform.
             </motion.p>
 
             {/* Buttons */}
@@ -315,10 +315,10 @@ export default function Hero() {
               transition={{ duration: 0.8, delay: 0.8 }}
               className="grid grid-cols-2 md:grid-cols-4 gap-8"
             >
-              <Counter value={12} suffix="+" label="Total Societies" delay={1000} />
-              <Counter value={45.2} suffix="K" label="Happy Members" delay={1200} />
-              <Counter value={1247} suffix="" label="Events Managed" delay={1400} />
-              <Counter value={2.4} suffix="M" label="Revenue Processed" delay={1600} />
+              <Counter value={500} suffix="+" label="Societies Managed" delay={1000} />
+              <Counter value={50} suffix="K+" label="Happy Residents" delay={1200} />
+              <Counter value={10} suffix="K+" label="Maintenance Requests" delay={1400} />
+              <Counter value={99.9} suffix="%" label="Uptime Guaranteed" delay={1600} />
             </motion.div>
           </motion.div>
 
@@ -332,13 +332,13 @@ export default function Hero() {
             <div className="grid grid-cols-1 gap-6">
               <FeatureCard
                 icon={<Users className="h-6 w-6 text-white" />}
-                title="Active Members"
-                description="Connect with 45,000+ happy members across 12+ societies seamlessly."
+                title="Member Management"
+                description="Manage 50,000+ residents seamlessly with digital profiles and communication."
                 gradient="from-sky-400 to-blue-600"
                 shadowColor="shadow-[0_8px_30px_rgba(14,165,233,0.3)]"
                 floatDuration={5}
                 floatDelay={0}
-                onClick={() => handleFeatureClick("Active Members")}
+                onClick={() => handleFeatureClick("Member Management")}
               >
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -346,20 +346,20 @@ export default function Hero() {
                   transition={{ delay: 1 }}
                   className="flex items-center justify-center text-white font-bold text-lg"
                 >
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  +45.2K
+                  <Users className="h-4 w-4 mr-1" />
+                  50K+ Residents
                 </motion.div>
               </FeatureCard>
 
               <FeatureCard
                 icon={<Shield className="h-6 w-6 text-white" />}
-                title="Secure & Protected"
-                description="Bank-level security with encrypted transactions and data protection."
+                title="Maintenance Tracking"
+                description="Track and resolve 10,000+ maintenance requests with automated workflows."
                 gradient="from-emerald-400 to-green-600"
                 shadowColor="shadow-[0_8px_30px_rgba(16,185,129,0.3)]"
                 floatDuration={4.5}
                 floatDelay={0.5}
-                onClick={() => handleFeatureClick("Security")}
+                onClick={() => handleFeatureClick("Maintenance")}
               >
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -367,20 +367,20 @@ export default function Hero() {
                   transition={{ delay: 1.2 }}
                   className="flex items-center justify-center text-white font-bold text-lg"
                 >
-                  <Shield className="h-4 w-4 mr-1" />
-                  256-bit SSL
+                  <Activity className="h-4 w-4 mr-1" />
+                  10K+ Requests
                 </motion.div>
               </FeatureCard>
 
               <FeatureCard
                 icon={<Activity className="h-6 w-6 text-white" />}
-                title="Transaction Flow"
-                description="Process $2.4M+ revenue with real-time tracking and analytics."
+                title="Financial Management"
+                description="Transparent billing, payments, and budget tracking for 500+ societies."
                 gradient="from-violet-400 to-indigo-600"
                 shadowColor="shadow-[0_8px_30px_rgba(139,92,246,0.3)]"
                 floatDuration={6}
                 floatDelay={1}
-                onClick={() => handleFeatureClick("Transactions")}
+                onClick={() => handleFeatureClick("Financial Management")}
               >
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -388,8 +388,8 @@ export default function Hero() {
                   transition={{ delay: 1.4 }}
                   className="flex items-center justify-center text-white font-bold text-lg"
                 >
-                  <Activity className="h-4 w-4 mr-1" />
-                  $2.4M+
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  500+ Societies
                 </motion.div>
               </FeatureCard>
             </div>

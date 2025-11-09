@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { Lock, Zap, BarChart, Headphones, Users, Plug, ArrowRight } from 'lucide-react'
+import { Building, Wrench, Calculator, Calendar, MessageSquare, Shield, ArrowRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -70,39 +70,39 @@ export default function Features() {
 
   const features = [
     {
-      icon: <Lock className="h-6 w-6" />,
-      title: "Bank-Grade Security",
-      description: "Your society's data is protected with enterprise-level encryption and security protocols.",
+      icon: <Building className="h-6 w-6" />,
+      title: "Society Management",
+      description: "Complete digital solution for managing society operations, residents, and daily activities.",
       delay: 0.1
     },
     {
-      icon: <Zap className="h-6 w-6" />,
-      title: "Lightning Fast",
-      description: "Experience blazing-fast performance with our optimized infrastructure and caching.",
+      icon: <Wrench className="h-6 w-6" />,
+      title: "Maintenance Tracking",
+      description: "Streamlined maintenance request system with real-time status updates and vendor management.",
       delay: 0.2
     },
     {
-      icon: <BarChart className="h-6 w-6" />,
-      title: "Smart Analytics",
-      description: "Get actionable insights with AI-powered analytics and comprehensive reporting.",
+      icon: <Calculator className="h-6 w-6" />,
+      title: "Financial Management",
+      description: "Transparent billing, automated payments, and comprehensive financial reporting.",
       delay: 0.3
     },
     {
-      icon: <Headphones className="h-6 w-6" />,
-      title: "24/7 Support",
-      description: "Round-the-clock assistance from our dedicated team of society management experts.",
+      icon: <Calendar className="h-6 w-6" />,
+      title: "Event Management",
+      description: "Organize community events, book amenities, and manage society calendars efficiently.",
       delay: 0.4
     },
     {
-      icon: <Users className="h-6 w-6" />,
-      title: "Member Engagement",
-      description: "Build stronger communities with tools designed to increase member participation.",
+      icon: <MessageSquare className="h-6 w-6" />,
+      title: "Community Communication",
+      description: "Built-in messaging system, notices, and discussion forums for better resident engagement.",
       delay: 0.5
     },
     {
-      icon: <Plug className="h-6 w-6" />,
-      title: "Easy Integration",
-      description: "Seamlessly connect with your existing tools and third-party services.",
+      icon: <Shield className="h-6 w-6" />,
+      title: "Security & Access",
+      description: "Visitor management, access control, and security monitoring for enhanced safety.",
       delay: 0.6
     }
   ]
@@ -118,7 +118,7 @@ export default function Features() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Why Choose Saanify?
+            Why Choose Effortless Society?
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Discover the features that make us the trusted choice for modern society management

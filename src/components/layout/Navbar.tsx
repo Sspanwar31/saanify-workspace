@@ -114,10 +114,10 @@ export default function Navbar() {
                 >
                   <span className="text-white font-bold text-sm">S</span>
                 </motion.div>
-                <span className={`text-xl font-bold ${
+                <span className={`text-lg font-bold ${
                   isScrolled ? 'text-foreground' : 'text-foreground'
                 }`}>
-                  Saanify
+                  Effortless Society
                 </span>
               </div>
             </motion.div>
