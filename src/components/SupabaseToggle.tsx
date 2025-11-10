@@ -67,10 +67,48 @@ export default function SupabaseToggle() {
   }
 
   const handleConfigure = () => {
-    toast.info('Supabase Configuration', {
-      description: 'Supabase configuration feature coming soon!',
-      duration: 3000,
-    })
+    // Enable local database automatically
+    enableLocalDatabase()
+  }
+
+  const enableLocalDatabase = async () => {
+    try {
+      toast.loading('Enabling local database...', { id: 'db-config' })
+      
+      // Call API to enable local database
+      const response = await fetch('/api/integrations/supabase/enable-local', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Local Database Enabled', {
+          id: 'db-config',
+          description: 'SQLite local database is now active and ready to use.',
+          duration: 3000,
+        })
+        // Refresh status after a short delay
+        setTimeout(() => {
+          checkStatus()
+        }, 1000)
+      } else {
+        toast.error('Configuration Failed', {
+          id: 'db-config',
+          description: data.message || 'Failed to enable local database',
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      toast.error('Configuration Error', {
+        id: 'db-config',
+        description: 'An error occurred while configuring the database',
+        duration: 3000,
+      })
+    }
   }
 
   return (
@@ -125,12 +163,17 @@ export default function SupabaseToggle() {
 
               {status === 'local' && (
                 <div className="space-y-2">
-                  <Badge variant="secondary" className="w-full justify-center">
+                  <Badge variant="secondary" className="w-full justify-center bg-blue-500 text-white">
                     SQLite Local Database
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    Using local SQLite database for development. All data is stored locally.
+                    ✅ Local database is active and ready to use. All data is stored locally.
                   </p>
+                  {config?.location && (
+                    <p className="text-xs text-muted-foreground">
+                      📍 Location: {config.location}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -153,15 +196,20 @@ export default function SupabaseToggle() {
                   <p className="text-sm text-muted-foreground">
                     Configure a database connection to start using Saanify.
                   </p>
-                  <Button 
-                    onClick={handleConfigure}
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configure Database
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleConfigure}
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Enable Local Database
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Or configure Supabase cloud database
+                    </p>
+                  </div>
                 </div>
               )}
 

@@ -59,20 +59,37 @@ export async function GET() {
     const supabaseConfig = loadSupabaseConfig()
     const isConfigured = !!(envConfig.NEXT_PUBLIC_SUPABASE_URL && envConfig.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     
-    // Check if local database is enabled
+    // Check if local database is enabled and exists
     const localDbEnabled = process.env.LOCAL_DB_ENABLED === 'true'
+    const localDbExists = existsSync(join(process.cwd(), 'prisma', 'dev.db'))
     
-    if (!isConfigured && localDbEnabled) {
+    if (!isConfigured && localDbEnabled && localDbExists) {
       return NextResponse.json({
-        connected: false,
-        configured: false,
-        message: 'Using local SQLite database - Supabase not configured',
+        connected: true,
+        configured: true,
+        message: '✅ Local SQLite database active',
         action: 'configure',
         connectionType: 'local',
         config: {
           type: 'local',
           status: 'active',
-          message: 'Local database is ready for use'
+          message: 'Local database is ready for use',
+          location: 'prisma/dev.db'
+        }
+      })
+    }
+    
+    if (!isConfigured && localDbEnabled && !localDbExists) {
+      return NextResponse.json({
+        connected: false,
+        configured: false,
+        message: 'Local database enabled but file not found',
+        action: 'setup',
+        connectionType: 'local',
+        config: {
+          type: 'local',
+          status: 'needs_setup',
+          message: 'Run database setup to create local SQLite file'
         }
       })
     }
