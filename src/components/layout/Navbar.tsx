@@ -105,6 +105,7 @@ export default function Navbar() {
   const navItems = [
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '#pricing' },
+    { label: 'Cloud Dashboard', href: '/cloud/dashboard' },
     { label: 'About', href: '#about' },
     { label: 'Testimonials', href: '#testimonials' },
     { label: 'Support', href: '/support' },
