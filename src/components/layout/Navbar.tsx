@@ -6,7 +6,6 @@ import { Menu, X, ArrowRight, Github, LogIn, User, Zap, Grid3x3, Settings2, Data
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
-import SupabaseToggle from '@/components/SupabaseToggle'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { toast } from 'sonner'
 
@@ -485,9 +484,6 @@ export default function Navbar() {
 
       {/* GitHub Integration Dialog */}
       <GitHubIntegration isOpen={isGitHubOpen} onOpenChange={setIsGitHubOpen} />
-      
-      {/* Supabase Toggle */}
-      <SupabaseToggle />
     </>
   )
 }
