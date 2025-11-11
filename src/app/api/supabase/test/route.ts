@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
         message: 'All API endpoints are responding correctly',
         details: {
           totalEndpoints: 25,
-          healthyEndpoints: 25
-          responseTime: 67
+          healthyEndpoints: 25,
+          responseTime: 67,
         }
       },
       {

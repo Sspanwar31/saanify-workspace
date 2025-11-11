@@ -8,6 +8,7 @@ import Testimonials from '@/components/home/Testimonials'
 import Footer from '@/components/home/Footer'
 import SupabaseToggle from '@/components/SupabaseToggle'
 import SupabaseAutoSync from '@/components/SupabaseAutoSync'
+import SupabaseCloudPanel from '@/components/SupabaseCloudPanel'
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
       <Footer />
       <SupabaseToggle />
       <SupabaseAutoSync />
+      <SupabaseCloudPanel />
     </div>
   )
 }
