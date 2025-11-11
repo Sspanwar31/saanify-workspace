@@ -25,6 +25,13 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
 export default function SupabaseIntegrationCard() {
+  // Legacy Supabase Integration UI - DISABLED
+  // Backend logic preserved for API functionality
+  
+  // Return null to hide legacy UI
+  return null
+  
+  /* Original UI code commented out - preserved for reference
   const [status, setStatus] = useState<'Not Connected' | 'Connecting' | 'Connected' | 'Error'>('Not Connected')
   const [supabaseUrl, setSupabaseUrl] = useState('')
   const [anonKey, setAnonKey] = useState('')
@@ -33,6 +40,8 @@ export default function SupabaseIntegrationCard() {
   const [showServiceKey, setShowServiceKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
+  
+  // Legacy UI rendering disabled - keeping only backend logic functions
   const handleValidate = async () => {
     if (!supabaseUrl || !anonKey) {
       toast.error("Missing Credentials", {
@@ -165,6 +174,8 @@ export default function SupabaseIntegrationCard() {
     }
   }
 
+  // Legacy UI return statement commented out
+  /*
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -360,4 +371,5 @@ export default function SupabaseIntegrationCard() {
       </Card>
     </motion.div>
   )
+  */
 }

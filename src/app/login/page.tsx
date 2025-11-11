@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
-import SupabaseToggle from '@/components/SupabaseToggle'
+
 
 export default function LoginPage() {
   const [clientData, setClientData] = useState({
@@ -682,8 +682,7 @@ export default function LoginPage() {
         </div>
       </motion.div>
       
-      {/* Supabase Toggle Component */}
-      <SupabaseToggle />
+      {/* Legacy Supabase Toggle Component - Removed */}
     </div>
   )
 }

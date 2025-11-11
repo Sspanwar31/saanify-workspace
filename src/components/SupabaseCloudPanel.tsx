@@ -308,9 +308,9 @@ export default function SupabaseCloudPanel() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-16 right-0 w-[90vw] max-w-4xl"
+            className="absolute bottom-16 right-0 w-[90vw] max-w-6xl mx-auto"
           >
-            <Card className="bg-background/95 backdrop-blur-sm border-2 shadow-xl max-h-[80vh] overflow-hidden">
+            <Card className="bg-card rounded-2xl shadow-md p-6 mx-auto mt-4 max-h-[80vh] overflow-hidden">
               {/* Gradient Header */}
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
                 <div className="flex items-center justify-between">
