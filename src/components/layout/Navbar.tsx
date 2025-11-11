@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, Github, LogIn, User, Zap, Grid3x3, Settings2, Database, Shield, BarChart3, ChevronDown } from 'lucide-react'
+import { Menu, X, ArrowRight, LogIn, User, Zap, Grid3x3, Settings2, Database, Shield, BarChart3, ChevronDown, Github } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
@@ -12,8 +12,8 @@ import { toast } from 'sonner'
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isGitHubOpen, setIsGitHubOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isGitHubOpen, setIsGitHubOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
@@ -87,8 +87,8 @@ export default function Navbar() {
       case 'github':
         setIsGitHubOpen(true)
         break
-      case 'supabase':
-        handleNavClick('/cloud', 'Saanify Cloud')
+      case 'cloud-dashboard':
+        handleNavClick('/cloud/dashboard', 'Cloud Dashboard')
         break
       case 'security':
         toast.info("🔒 Security Center", {
@@ -105,7 +105,6 @@ export default function Navbar() {
   const navItems = [
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Cloud Dashboard', href: '/cloud/dashboard' },
     { label: 'About', href: '#about' },
     { label: 'Testimonials', href: '#testimonials' },
     { label: 'Support', href: '/support' },
@@ -121,10 +120,10 @@ export default function Navbar() {
     },
     {
       icon: <Database className="h-4 w-4" />,
-      label: 'Supabase Cloud',
-      description: 'Database configuration',
-      action: 'supabase',
-      gradient: 'from-green-600 to-emerald-700'
+      label: 'Cloud Dashboard',
+      description: 'Access your cloud dashboard',
+      action: 'cloud-dashboard',
+      gradient: 'from-sky-600 to-blue-700'
     },
     {
       icon: <Shield className="h-4 w-4" />,
@@ -294,14 +293,22 @@ export default function Navbar() {
                 </motion.div>
 
                 {/* Enhanced Dropdown Menu */}
-                <AnimatePresence>
-                  {isDropdownOpen && (
+              <AnimatePresence>
+                {isDropdownOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 bg-black/20 z-[55]" 
+                      onClick={() => setIsDropdownOpen(false)} 
+                    />
+                      
+                    {/* Dropdown Content */}
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute top-full right-0 mt-2 w-72"
+                      className="absolute top-full right-0 mt-2 w-72 z-[140]"
                     >
                       <Card className="bg-background/95 backdrop-blur-md border-2 shadow-2xl overflow-hidden">
                         <CardContent className="p-1">
@@ -346,14 +353,15 @@ export default function Navbar() {
                         </CardContent>
                       </Card>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                  </>
+                )}
+              </AnimatePresence>
               </div>
             </motion.div>
 
-            {/* Mobile Menu Button */}
+        {/* Mobile Menu Button */}
             <motion.button
-              className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors z-[120]"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -376,7 +384,7 @@ export default function Navbar() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="lg:hidden bg-background border-t border-border"
+              className="lg:hidden bg-background border-t border-border z-[130] fixed top-16 left-0 right-0"
             >
               <div className="px-4 py-6 space-y-4">
                 {navItems.map((item) => (
@@ -482,8 +490,8 @@ export default function Navbar() {
           )}
         </AnimatePresence>
       </motion.nav>
-
-      {/* GitHub Integration Dialog */}
+      
+      {/* GitHub Integration Modal */}
       <GitHubIntegration isOpen={isGitHubOpen} onOpenChange={setIsGitHubOpen} />
     </>
   )

@@ -14,13 +14,15 @@ import {
   Loader2,
   RefreshCw,
   Clock,
-  FileText,
   ExternalLink,
-  RotateCcw,
-  Shield,
   Zap,
+  Activity,
+  Shield,
   Database,
-  Activity
+  ChevronDown,
+  ChevronUp,
+  GitBranch,
+  Cloud
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +33,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
 
 interface GitHubConfig {
   owner: string
@@ -83,6 +86,7 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
   const [autoBackup, setAutoBackup] = useState(false)
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   // Load config from localStorage
   useEffect(() => {
@@ -188,9 +192,9 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
         if (repoResponse.status === 401) {
           errorMessage = '❌ Invalid or expired token. Please check your GitHub personal access token'
         } else if (repoResponse.status === 403) {
-          errorMessage = '❌ Token lacks required permissions. Please ensure the token has "repo" scope'
+          errorMessage = '❌ Token lacks required permissions. Please ensure token has "repo" scope'
         } else if (repoResponse.status === 404) {
-          errorMessage = `❌ Repository "${config.owner}/${config.repo}" not found or you don\'t have access`
+          errorMessage = `❌ Repository "${config.owner}/${config.repo}" not found or you don't have access`
         }
         
         setMessage({ 
@@ -379,220 +383,279 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
   }, [showHistory, isConfigured])
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto bg-white">
-        <DialogHeader className="border-b pb-4">
-          <DialogTitle className="flex items-center gap-3 text-xl font-bold text-gray-900">
-            <Github className="h-6 w-6 text-gray-700" />
-            GitHub Integration
-            <Badge className="ml-auto" variant={isConfigured ? "default" : "secondary"}>
-              {isConfigured ? 'Connected' : 'Not Connected'}
-            </Badge>
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      {/* Main Dialog */}
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-white border-0 shadow-2xl">
+          <DialogHeader className="border-b border-slate-200 pb-6 bg-gradient-to-r from-slate-100 to-white">
+            <DialogTitle className="flex items-center justify-between text-2xl font-bold text-slate-900">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <Github className="h-8 w-8 text-slate-700" />
+                </motion.div>
+                <span>GitHub Integration</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge 
+                  className={`text-sm px-3 py-1 ${
+                    isConfigured 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0' 
+                      : 'bg-gradient-to-r from-red-500 to-pink-600 text-white border-0'
+                  }`}
+                >
+                  {isConfigured ? 'Connected' : 'Not Connected'}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-slate-600 hover:text-slate-900"
+                >
+                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          {/* Left Column - Status & Quick Actions */}
-          <div className="space-y-4">
-            {/* Connection Status */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-blue-600" />
-                  Connection Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isConfigured ? (
-                      <>
-                        <Check className="h-5 w-5 text-green-500" />
-                        <span className="text-green-700 font-medium">Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <X className="h-5 w-5 text-red-500" />
-                        <span className="text-red-700 font-medium">Not Configured</span>
-                      </>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSettings(!showSettings)}
-                    className="shrink-0"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    {showSettings ? 'Hide' : 'Settings'}
-                  </Button>
-                </div>
-
-                {isConfigured && (
-                  <div className="text-sm">
-                    <Badge variant="outline" className="text-xs">
-                      {config.owner}/{config.repo}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Auto Backup Toggle */}
-                {isConfigured && (
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-blue-600" />
-                      <div>
-                        <p className="text-sm font-medium text-blue-900">Auto Backup</p>
-                        <p className="text-xs text-blue-600">Every 5 minutes</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={autoBackup}
-                      onCheckedChange={toggleAutoBackup}
-                      className="shrink-0"
-                    />
-                  </div>
-                )}
-
-                {/* Last Backup Info */}
-                {isConfigured && (
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-green-600" />
-                      <div>
-                        <p className="text-sm font-medium text-green-900">Last Backup</p>
-                        <p className="text-xs text-green-600">{formatLastBackupTime()}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            {isConfigured && (
-              <Card>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+            {/* Left Column - Status & Quick Actions */}
+            <div className="xl:col-span-1 space-y-4">
+              {/* Connection Status Card */}
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-purple-600" />
-                    Quick Actions
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2 text-blue-900">
+                    <Activity className="h-5 w-5" />
+                    Connection Status
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    onClick={() => createBackup(false)}
-                    disabled={isLoading}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-2" />
-                    )}
-                    Create Backup
-                  </Button>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {isConfigured ? (
+                        <>
+                          <Check className="h-5 w-5 text-green-500" />
+                          <span className="text-green-700 font-medium">Connected</span>
+                        </>
+                      ) : (
+                        <>
+                          <X className="h-5 w-5 text-red-500" />
+                          <span className="text-red-700 font-medium">Not Configured</span>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSettings(!showSettings)}
+                      className="shrink-0 border-blue-200 hover:bg-blue-50"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      {showSettings ? 'Hide' : 'Settings'}
+                    </Button>
+                  </div>
 
-                  <Button
-                    onClick={restoreFromBackup}
-                    disabled={isRestoring}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {isRestoring ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    Restore Project
-                  </Button>
+                  {isConfigured && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs bg-white border-blue-200">
+                        <GitBranch className="h-3 w-3 mr-1" />
+                        {config.owner}/{config.repo}
+                      </Badge>
+                    </div>
+                  )}
 
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(`https://github.com/${config.owner}/${config.repo}`, '_blank')}
-                    className="w-full"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Repository
-                  </Button>
+                  {/* Auto Backup Toggle */}
+                  {isConfigured && (
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-100 to-cyan-50 rounded-xl border border-blue-200">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500 rounded-lg">
+                          <Zap className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-blue-900">Auto Backup</p>
+                          <p className="text-xs text-blue-600">Every 5 minutes</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={autoBackup}
+                        onCheckedChange={toggleAutoBackup}
+                        className="shrink-0"
+                      />
+                    </div>
+                  )}
+
+                  {/* Last Backup Info */}
+                  {isConfigured && (
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-100 to-emerald-50 rounded-xl border border-green-200">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-500 rounded-lg">
+                          <Clock className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-green-900">Last Backup</p>
+                          <p className="text-xs text-green-600">{formatLastBackupTime()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
-          </div>
 
-          {/* Right Column - Settings & History */}
-          <div className="space-y-4">
-            {/* Settings Panel */}
-            {showSettings && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <Card>
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-slate-600" />
-                      GitHub Configuration
+              {/* Quick Actions Card */}
+              {isConfigured && (
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-purple-900">
+                      <Zap className="h-5 w-5" />
+                      Quick Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button
+                      onClick={() => createBackup(false)}
+                      disabled={isLoading}
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating Backup...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Create Backup
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={restoreFromBackup}
+                      disabled={isRestoring}
+                      variant="outline"
+                      className="w-full border-purple-200 hover:bg-purple-50 text-purple-700"
+                    >
+                      {isRestoring ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Restoring...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Restore Project
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={() => setShowHistory(!showHistory)}
+                      variant="outline"
+                      className="w-full border-purple-200 hover:bg-purple-50 text-purple-700"
+                    >
+                      <History className="h-4 w-4 mr-2" />
+                      View Repository
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Repository Info */}
+              {isConfigured && (
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-900">
+                      <Database className="h-5 w-5" />
+                      Repository Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Repository:</span>
+                      <Badge variant="outline" className="bg-white">
+                        {config.owner}/{config.repo}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Branch:</span>
+                      <Badge variant="outline" className="bg-white">
+                        <GitBranch className="h-3 w-3 mr-1" />
+                        {config.branch}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Status:</span>
+                      <Badge className="bg-green-100 text-green-800 border-0">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Secured
+                      </Badge>
+                    </div>
+                    <Separator />
+                    <Button
+                      onClick={resetConfig}
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-red-200 hover:bg-red-50 text-red-600"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reset Configuration
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Middle Column - Settings */}
+            <div className="xl:col-span-1">
+              {showSettings && (
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-orange-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-amber-900">
+                      <Settings className="h-5 w-5" />
+                      GitHub Settings
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="owner">Repository Owner</Label>
-                        <Input
-                          id="owner"
-                          value={config.owner}
-                          onChange={(e) => setConfig({ ...config, owner: e.target.value })}
-                          placeholder="GitHub username"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="repo">Repository Name</Label>
-                        <Input
-                          id="repo"
-                          value={config.repo}
-                          onChange={(e) => setConfig({ ...config, repo: e.target.value })}
-                          placeholder="repository-name"
-                          className="mt-1"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="owner" className="text-sm font-medium text-amber-900">Repository Owner</Label>
+                      <Input
+                        id="owner"
+                        placeholder="Sspanwar31"
+                        value={config.owner}
+                        onChange={(e) => setConfig(prev => ({ ...prev, owner: e.target.value }))}
+                        className="border-amber-200 focus:border-amber-400"
+                      />
                     </div>
-
-                    <div>
-                      <Label htmlFor="token">GitHub Personal Access Token</Label>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="repo" className="text-sm font-medium text-amber-900">Repository Name</Label>
+                      <Input
+                        id="repo"
+                        placeholder="saanify-workspace"
+                        value={config.repo}
+                        onChange={(e) => setConfig(prev => ({ ...prev, repo: e.target.value }))}
+                        className="border-amber-200 focus:border-amber-400"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="token" className="text-sm font-medium text-amber-900">Personal Access Token</Label>
                       <Input
                         id="token"
                         type="password"
+                        placeholder="ghp_... or github_pat_..."
                         value={config.token}
-                        onChange={(e) => setConfig({ ...config, token: e.target.value })}
-                        placeholder="ghp_xxxxxxxxxxxx or github_pat_xxxxxxxxxxxx"
-                        className="mt-1"
+                        onChange={(e) => setConfig(prev => ({ ...prev, token: e.target.value }))}
+                        className="border-amber-200 focus:border-amber-400"
                       />
-                      <div className="mt-2 text-xs text-gray-500">
-                        <p className="font-medium mb-1">📝 Token Format:</p>
-                        <ul className="space-y-1 ml-4">
-                          <li>• Classic: <code className="bg-gray-100 px-1 rounded">ghp_</code>xxxxxxxxxxxx</li>
-                          <li>• Fine-grained: <code className="bg-gray-100 px-1 rounded">github_pat_</code>xxxxxxxxxxxx</li>
-                        </ul>
-                        <p className="mt-2 text-blue-600">
-                          🔑 Need a token? 
-                          <a 
-                            href="https://github.com/settings/tokens" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="underline ml-1"
-                          >
-                            Create one here
-                          </a>
-                        </p>
-                      </div>
                     </div>
-
-                    <div>
-                      <Label htmlFor="branch">Branch</Label>
-                      <Select value={config.branch} onValueChange={(value) => setConfig({ ...config, branch: value })}>
-                        <SelectTrigger className="mt-1">
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="branch" className="text-sm font-medium text-amber-900">Default Branch</Label>
+                      <Select value={config.branch} onValueChange={(value) => setConfig(prev => ({ ...prev, branch: value }))}>
+                        <SelectTrigger className="border-amber-200 focus:border-amber-400">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -603,127 +666,101 @@ export default function GitHubIntegration({ isOpen, onOpenChange }: GitHubIntegr
                       </Select>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-2 pt-4">
                       <Button
                         onClick={validateConfig}
                         disabled={isValidatingConfig}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white border-0"
                       >
                         {isValidatingConfig ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Validating...
+                          </>
                         ) : (
-                          <Shield className="h-4 w-4 mr-2" />
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Validate & Save
+                          </>
                         )}
-                        Validate
-                      </Button>
-                      <Button
-                        onClick={saveConfig}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        Save
-                      </Button>
-                      <Button
-                        onClick={resetConfig}
-                        variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
-            )}
+              )}
+            </div>
 
-            {/* Backup History */}
-            {isConfigured && (
-              <Card>
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <History className="h-5 w-5 text-indigo-600" />
+            {/* Right Column - Backup History */}
+            <div className="xl:col-span-1">
+              {showHistory && (
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-teal-50 to-cyan-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-teal-900">
+                      <History className="h-5 w-5" />
                       Backup History
                     </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowHistory(!showHistory)}
-                    >
-                      {showHistory ? 'Hide' : 'Show'}
-                    </Button>
-                  </div>
-                </CardHeader>
-                {showHistory && (
+                  </CardHeader>
                   <CardContent>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {backupHistory.length > 0 ? (
-                        backupHistory.map((commit) => (
-                          <div
-                            key={commit.sha}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        backupHistory.map((backup, index) => (
+                          <motion.div
+                            key={backup.sha}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="p-3 bg-white rounded-lg border border-teal-200 hover:bg-teal-50 transition-colors cursor-pointer"
+                            onClick={() => window.open(backup.url, '_blank')}
                           >
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-4 w-4 text-gray-500" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{commit.message}</p>
-                                <p className="text-xs text-gray-500">
-                                  {commit.author} • {new Date(commit.date).toLocaleDateString()}
-                                </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <GitBranch className="h-3 w-3 text-teal-600" />
+                                <span className="text-sm font-medium text-teal-900">{backup.message}</span>
                               </div>
+                              <ExternalLink className="h-3 w-3 text-teal-600" />
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(commit.url, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </div>
+                            <div className="text-xs text-teal-600 mt-1">
+                              {backup.author} • {backup.date}
+                            </div>
+                          </motion.div>
                         ))
                       ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <Database className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                          <p className="text-sm">No backup history found</p>
-                          <p className="text-xs mt-1">Create your first backup to see history here</p>
+                        <div className="text-center py-8 text-teal-600">
+                          <Cloud className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No backup history available</p>
                         </div>
                       )}
                     </div>
                   </CardContent>
-                )}
-              </Card>
-            )}
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Messages */}
-        <AnimatePresence>
-          {message && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 right-6 z-50"
-            >
-              <Alert className={`shadow-lg ${
-                message.type === 'success' ? 'border-green-500 bg-green-50 text-green-800' :
-                message.type === 'error' ? 'border-red-500 bg-red-50 text-red-800' :
-                'border-blue-500 bg-blue-50 text-blue-800'
-              }`}>
-                <AlertCircle className={`h-4 w-4 ${
-                  message.type === 'success' ? 'text-green-600' :
-                  message.type === 'error' ? 'text-red-600' :
-                  'text-blue-600'
-                }`} />
-                <AlertDescription className="font-medium">
-                  {message.text}
-                </AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+          {/* Messages */}
+          <AnimatePresence>
+            {message && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50"
+              >
+                <Alert className={`max-w-md ${
+                  message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+                  message.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+                  'bg-blue-50 border-blue-200 text-blue-800'
+                }`}>
+                  <AlertDescription className="text-sm font-medium">
+                    {message.text}
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
