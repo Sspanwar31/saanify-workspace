@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, Github, LogIn, User, Zap } from 'lucide-react'
+import { Menu, X, ArrowRight, Github, LogIn, User, Zap, Plus, Settings, Database, Shield, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
+import SupabaseToggle from '@/components/SupabaseToggle'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { toast } from 'sonner'
 
@@ -12,6 +14,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isGitHubOpen, setIsGitHubOpen] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
@@ -43,6 +46,7 @@ export default function Navbar() {
       // It's a page navigation
       window.location.href = href
       setIsMobileMenuOpen(false)
+      setIsDropdownOpen(false)
       toast.success(`📍 ${label}`, {
         description: `Navigated to ${label} page`,
         duration: 2000,
@@ -53,6 +57,7 @@ export default function Navbar() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })
         setIsMobileMenuOpen(false)
+        setIsDropdownOpen(false)
         toast.success(`📍 ${label}`, {
           description: `Navigated to ${label} section`,
           duration: 2000,
@@ -75,12 +80,65 @@ export default function Navbar() {
     }, 1000)
   }
 
+  const handleDropdownAction = (action: string) => {
+    setIsDropdownOpen(false)
+    setIsMobileMenuOpen(false)
+    
+    switch (action) {
+      case 'github':
+        setIsGitHubOpen(true)
+        break
+      case 'supabase':
+        toast.info("🔗 Supabase Cloud", {
+          description: "Opening Supabase control panel...",
+          duration: 3000,
+        })
+        break
+      case 'security':
+        toast.info("🔒 Security Center", {
+          description: "Opening security settings...",
+          duration: 3000,
+        })
+        break
+      case 'analytics':
+        handleNavClick('/analytics', 'Analytics')
+        break
+    }
+  }
+
   const navItems = [
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Analytics', href: '/analytics' },
-    { label: 'Testimonials', href: '#testimonials' },
     { label: 'About', href: '#about' },
+    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'Support', href: '/support' },
+  ]
+
+  const dropdownItems = [
+    {
+      icon: <Github className="h-4 w-4" />,
+      label: 'GitHub Integration',
+      description: 'Connect and sync with GitHub',
+      action: 'github'
+    },
+    {
+      icon: <Database className="h-4 w-4" />,
+      label: 'Supabase Cloud',
+      description: 'Database configuration',
+      action: 'supabase'
+    },
+    {
+      icon: <Shield className="h-4 w-4" />,
+      label: 'Security Center',
+      description: 'Security and privacy settings',
+      action: 'security'
+    },
+    {
+      icon: <BarChart3 className="h-4 w-4" />,
+      label: 'Analytics',
+      description: 'View detailed analytics',
+      action: 'analytics'
+    }
   ]
 
   return (
@@ -117,14 +175,21 @@ export default function Navbar() {
                 <span className={`text-lg font-bold ${
                   isScrolled ? 'text-foreground' : 'text-foreground'
                 }`}>
-                  Effortless Society
+                  Saanify
                 </span>
+                <motion.span 
+                  className="text-primary font-bold"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  ⚡
+                </motion.span>
               </div>
             </motion.div>
 
             {/* Desktop Navigation */}
             <motion.div 
-              className="hidden md:flex items-center space-x-8"
+              className="hidden lg:flex items-center space-x-6"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -156,30 +221,16 @@ export default function Navbar() {
               ))}
             </motion.div>
 
-            {/* CTA Button */}
+            {/* Right Side Actions */}
             <motion.div 
-              className="hidden md:flex items-center space-x-4"
+              className="hidden lg:flex items-center space-x-3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <ThemeToggle />
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setIsGitHubOpen(true)}
-                  className={`font-medium border border-transparent hover:border-border hover:bg-accent transition-all duration-200 ${
-                    isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Github className="h-4 w-4 mr-2" />
-                  GitHub
-                </Button>
-              </motion.div>
+              
+              {/* Sign In Button */}
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -196,6 +247,8 @@ export default function Navbar() {
                   Sign In
                 </Button>
               </motion.div>
+
+              {/* Get Started Button */}
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -205,16 +258,76 @@ export default function Navbar() {
                   size="sm"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 >
-                  <Zap className="h-4 w-4 mr-2" />
                   Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </motion.div>
+
+              {/* Dropdown Menu with + Icon */}
+              <div className="relative">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className={`font-medium ${
+                      isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
+                    } ${isDropdownOpen ? 'bg-accent' : ''}`}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-full right-0 mt-2 w-64"
+                    >
+                      <Card className="bg-background/95 backdrop-blur-sm border-2 shadow-xl">
+                        <CardContent className="p-2">
+                          {dropdownItems.map((item, index) => (
+                            <motion.button
+                              key={item.action}
+                              onClick={() => handleDropdownAction(item.action)}
+                              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.2, delay: index * 0.05 }}
+                              whileHover={{ x: 5 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <div className="flex-shrink-0 text-primary">
+                                {item.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-foreground">
+                                  {item.label}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {item.description}
+                                </div>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
 
             {/* Mobile Menu Button */}
             <motion.button
-              className="md:hidden p-2 rounded-lg hover:bg-accent transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -237,7 +350,7 @@ export default function Navbar() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden bg-background border-t border-border"
+              className="lg:hidden bg-background border-t border-border"
             >
               <div className="px-4 py-6 space-y-4">
                 {navItems.map((item) => (
@@ -255,27 +368,41 @@ export default function Navbar() {
                     {item.label}
                   </motion.button>
                 ))}
+
                 <div className="pt-4 border-t border-border space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">Theme</span>
                     <ThemeToggle />
                   </div>
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start font-medium text-foreground hover:text-foreground hover:bg-accent border border-transparent hover:border-border transition-all duration-200"
-                      onClick={() => {
-                        setIsGitHubOpen(true)
-                        setIsMobileMenuOpen(false)
-                      }}
-                    >
-                      <Github className="h-4 w-4 mr-2" />
-                      GitHub
-                    </Button>
-                  </motion.div>
+
+                  {/* Mobile Dropdown Options */}
+                  <div className="space-y-2">
+                    {dropdownItems.map((item, index) => (
+                      <motion.button
+                        key={item.action}
+                        onClick={() => handleDropdownAction(item.action)}
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.05 }}
+                        whileHover={{ x: 5 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <div className="flex-shrink-0 text-primary">
+                          {item.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-foreground">
+                            {item.label}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.description}
+                          </div>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -292,6 +419,7 @@ export default function Navbar() {
                       Sign In
                     </Button>
                   </motion.div>
+                  
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -317,6 +445,9 @@ export default function Navbar() {
 
       {/* GitHub Integration Dialog */}
       <GitHubIntegration isOpen={isGitHubOpen} onOpenChange={setIsGitHubOpen} />
+      
+      {/* Supabase Toggle */}
+      <SupabaseToggle />
     </>
   )
 }
