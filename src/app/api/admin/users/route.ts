@@ -37,7 +37,6 @@ export const GET = withAdmin(async (req: AuthenticatedRequest) => {
           id: true,
           email: true,
           name: true,
-          phone: true,
           role: true,
           isActive: true,
           lastLoginAt: true,

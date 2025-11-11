@@ -404,10 +404,6 @@ export default function ClientDetailPage() {
                         <Progress 
                           value={subscriptionInfo.percentage} 
                           className="h-3"
-                          indicatorClassName={
-                            subscriptionInfo.percentage > 60 ? 'bg-emerald-500' :
-                            subscriptionInfo.percentage > 30 ? 'bg-amber-500' : 'bg-red-500'
-                          }
                         />
                       </div>
                     )}
@@ -714,10 +710,6 @@ export default function ClientDetailPage() {
                         <Progress 
                           value={subscriptionInfo.percentage} 
                           className="h-2"
-                          indicatorClassName={
-                            subscriptionInfo.percentage > 60 ? 'bg-emerald-500' :
-                            subscriptionInfo.percentage > 30 ? 'bg-amber-500' : 'bg-red-500'
-                          }
                         />
                       </div>
                     )}

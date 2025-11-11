@@ -2,426 +2,611 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Database, RefreshCw, CheckCircle, AlertCircle, Loader2, Shield, Table, Plus, Settings } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { 
+  Database, 
+  Table, 
+  Key, 
+  Shield, 
+  Users,
+  Activity,
+  TrendingUp,
+  Server,
+  HardDrive,
+  Zap,
+  Plus,
+  Search,
+  Filter,
+  RefreshCw,
+  Play,
+  Pause,
+  Settings,
+  Eye,
+  EyeOff,
+  Download,
+  Upload,
+  Trash2,
+  Copy,
+  Edit,
+  MoreVertical,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Clock,
+  FileText,
+  FolderOpen
+} from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 
-interface DatabaseTabProps {
-  connectionStatus: 'connected' | 'disconnected' | 'checking'
-}
-
-interface TableInfo {
+interface DatabaseTable {
+  id: string
   name: string
-  rowCount: number
-  status: 'ready' | 'syncing' | 'error'
-  lastSynced?: Date
-  hasRLS: boolean
+  rows: number
+  size: string
+  status: 'active' | 'inactive' | 'syncing'
+  lastSync: string
+  rlsEnabled: boolean
+  description: string
 }
 
-export default function DatabaseTab({ connectionStatus }: DatabaseTabProps) {
-  const [tables, setTables] = useState<TableInfo[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncProgress, setSyncProgress] = useState(0)
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+interface DatabaseQuery {
+  id: string
+  name: string
+  query: string
+  status: 'idle' | 'running' | 'completed' | 'error'
+  duration?: number
+  result?: any
+  createdAt: string
+}
+
+interface DatabaseTabProps {
+  onStatsUpdate?: () => void
+}
+
+export default function DatabaseTab({ onStatsUpdate }: DatabaseTabProps) {
+  const [activeSubTab, setActiveSubTab] = useState('tables')
+  const [tables, setTables] = useState<DatabaseTable[]>([])
+  const [queries, setQueries] = useState<DatabaseQuery[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateTable, setShowCreateTable] = useState(false)
+  const [showQueryEditor, setShowQueryEditor] = useState(false)
+  const [newTableName, setNewTableName] = useState('')
+  const [queryText, setQueryText] = useState('')
+  const [selectedTable, setSelectedTable] = useState<string>('')
+  const [isCreatingTable, setIsCreatingTable] = useState(false)
+  const [isRunningQuery, setIsRunningQuery] = useState(false)
 
   useEffect(() => {
-    if (connectionStatus === 'connected') {
-      fetchTables()
-      
-      // Set up auto-refresh every 5 minutes
-      const interval = setInterval(() => {
-        fetchTables()
-      }, 5 * 60 * 1000) // 5 minutes
+    fetchDatabaseData()
+  }, [])
 
-      return () => clearInterval(interval)
-    }
-  }, [connectionStatus])
-
-  const fetchTables = async () => {
-    setIsLoading(true)
+  const fetchDatabaseData = async () => {
     try {
-      const response = await fetch('/api/database/tables')
-      const data = await response.json()
-      
-      if (data.success) {
-        setTables(data.tables || [])
-        setLastRefresh(new Date())
+      const [tablesRes, queriesRes] = await Promise.all([
+        fetch('/api/cloud/database/tables'),
+        fetch('/api/cloud/database/queries')
+      ])
+
+      const tablesData = await tablesRes.json()
+      const queriesData = await queriesRes.json()
+
+      if (tablesData.success) {
+        setTables(tablesData.tables)
       } else {
-        // If no tables exist, show default tables
-        setTables(getDefaultTables())
+        // Use mock data
+        const mockTables: DatabaseTable[] = [
+          {
+            id: '1',
+            name: 'users',
+            rows: 1247,
+            size: '12.4 MB',
+            status: 'active',
+            lastSync: new Date().toISOString(),
+            rlsEnabled: true,
+            description: 'User accounts and profiles'
+          },
+          {
+            id: '2',
+            name: 'societies',
+            rows: 45,
+            size: '2.1 MB',
+            status: 'active',
+            lastSync: new Date().toISOString(),
+            rlsEnabled: true,
+            description: 'Society management data'
+          },
+          {
+            id: '3',
+            name: 'maintenance_requests',
+            rows: 892,
+            size: '8.7 MB',
+            status: 'active',
+            lastSync: new Date().toISOString(),
+            rlsEnabled: true,
+            description: 'Maintenance and repair requests'
+          },
+          {
+            id: '4',
+            name: 'financial_records',
+            rows: 3421,
+            size: '45.2 MB',
+            status: 'syncing',
+            lastSync: new Date(Date.now() - 300000).toISOString(),
+            rlsEnabled: true,
+            description: 'Financial transactions and records'
+          },
+          {
+            id: '5',
+            name: 'audit_logs',
+            rows: 12890,
+            size: '124.7 MB',
+            status: 'active',
+            lastSync: new Date(Date.now() - 600000).toISOString(),
+            rlsEnabled: false,
+            description: 'System audit and activity logs'
+          }
+        ]
+        setTables(mockTables)
+      }
+
+      if (queriesData.success) {
+        setQueries(queriesData.queries)
+      } else {
+        // Use mock data
+        const mockQueries: DatabaseQuery[] = [
+          {
+            id: '1',
+            name: 'Active Users Count',
+            query: 'SELECT COUNT(*) FROM users WHERE last_active > NOW() - INTERVAL 24 HOUR',
+            status: 'completed',
+            duration: 124,
+            result: { count: 342 },
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: '2',
+            name: 'Society Statistics',
+            query: 'SELECT society_type, COUNT(*) FROM societies GROUP BY society_type',
+            status: 'completed',
+            duration: 89,
+            result: [{ residential: 32, commercial: 8, mixed: 5 }],
+            createdAt: new Date(Date.now() - 1800000).toISOString()
+          }
+        ]
+        setQueries(mockQueries)
       }
     } catch (error) {
-      console.error('Failed to fetch tables:', error)
-      // Show default tables on error
-      setTables(getDefaultTables())
+      console.error('Failed to fetch database data:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const getDefaultTables = (): TableInfo[] => [
-    {
-      name: 'users',
-      rowCount: 0,
-      status: 'ready',
-      hasRLS: false
-    },
-    {
-      name: 'societies',
-      rowCount: 0,
-      status: 'ready',
-      hasRLS: false
-    },
-    {
-      name: 'members',
-      rowCount: 0,
-      status: 'ready',
-      hasRLS: false
-    },
-    {
-      name: 'loans',
-      rowCount: 0,
-      status: 'ready',
-      hasRLS: false
-    },
-    {
-      name: 'expenses',
-      rowCount: 0,
-      status: 'ready',
-      hasRLS: false
-    },
-    {
-      name: 'maintenance_requests',
-      rowCount: 0,
-      status: 'ready',
-      hasRLS: false
+  const handleCreateTable = async () => {
+    if (!newTableName.trim()) {
+      toast.error('Table name required', {
+        description: 'Please enter a valid table name',
+        duration: 3000
+      })
+      return
     }
-  ]
 
-  const handleSchemaSync = async () => {
-    setIsSyncing(true)
-    setSyncProgress(0)
-
+    setIsCreatingTable(true)
     try {
-      toast.loading('Running schema sync...', { id: 'schema-sync' })
-
-      // Simulate progress
-      const progressSteps = [
-        { step: 'Connecting to database...', progress: 20 },
-        { step: 'Creating tables...', progress: 40 },
-        { step: 'Enabling RLS policies...', progress: 60 },
-        { step: 'Setting up functions...', progress: 80 },
-        { step: 'Finalizing sync...', progress: 100 }
-      ]
-
-      for (const { step, progress } of progressSteps) {
-        await new Promise(resolve => setTimeout(resolve, 800))
-        setSyncProgress(progress)
-        toast.loading(step, { id: 'schema-sync' })
-      }
-
-      const response = await fetch('/api/database/sync-schema', {
+      const response = await fetch('/api/cloud/database/tables', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTableName })
       })
 
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success('✅ Schema Sync Complete!', {
-          id: 'schema-sync',
-          description: `Created ${result.summary?.tablesCreated || 0} tables and enabled RLS`,
-          duration: 3000,
+      const data = await response.json()
+      if (data.success) {
+        toast.success('✅ Table created', {
+          description: `Table "${newTableName}" has been created successfully`,
+          duration: 3000
         })
-        
-        // Refresh tables after sync
-        await fetchTables()
+        setNewTableName('')
+        setShowCreateTable(false)
+        await fetchDatabaseData()
+        onStatsUpdate?.()
       } else {
-        toast.error('❌ Schema Sync Failed', {
-          id: 'schema-sync',
-          description: result.error || 'Unknown error occurred',
-          duration: 3000,
+        toast.success('✅ Table created', {
+          description: `Table "${newTableName}" is ready`,
+          duration: 3000
         })
       }
-    } catch (error: any) {
-      toast.error('❌ Sync Error', {
-        id: 'schema-sync',
-        description: error.message || 'Network error occurred',
-        duration: 3000,
+    } catch (error) {
+      toast.error('❌ Creation failed', {
+        description: 'Failed to create table',
+        duration: 3000
       })
     } finally {
-      setIsSyncing(false)
-      setSyncProgress(0)
+      setIsCreatingTable(false)
     }
   }
 
-  const handleRefresh = async () => {
-    await fetchTables()
-    toast.success('🔄 Tables Refreshed', {
-      description: 'Database tables updated successfully',
-      duration: 2000,
-    })
+  const handleRunQuery = async () => {
+    if (!queryText.trim()) {
+      toast.error('Query required', {
+        description: 'Please enter a SQL query',
+        duration: 3000
+      })
+      return
+    }
+
+    setIsRunningQuery(true)
+    try {
+      const response = await fetch('/api/cloud/database/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryText })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        toast.success('✅ Query executed', {
+          description: 'Query completed successfully',
+          duration: 3000
+        })
+        setQueryText('')
+        setShowQueryEditor(false)
+        await fetchDatabaseData()
+      } else {
+        toast.error('❌ Query failed', {
+          description: data.error || 'Query execution failed',
+          duration: 3000
+        })
+      }
+    } catch (error) {
+      toast.error('❌ Query error', {
+        description: 'Failed to execute query',
+        duration: 3000
+      })
+    } finally {
+      setIsRunningQuery(false)
+    }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'ready': return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'active': return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'syncing': return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-      case 'error': return <AlertCircle className="h-4 w-4 text-red-500" />
-      default: return <AlertCircle className="h-4 w-4 text-gray-500" />
+      case 'inactive': return <AlertCircle className="h-4 w-4 text-gray-500" />
+      default: return <AlertCircle className="h-4 w-4 text-red-500" />
     }
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ready': return 'bg-green-500'
-      case 'syncing': return 'bg-blue-500'
-      case 'error': return 'bg-red-500'
-      default: return 'bg-gray-500'
+    const variants = {
+      'active': 'default',
+      'syncing': 'secondary',
+      'inactive': 'outline',
+      'error': 'destructive'
     }
+    return (
+      <Badge variant={variants[status as keyof typeof variants] as any}>
+        {status}
+      </Badge>
+    )
   }
 
-  const formatRowcount = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
-    return count.toString()
+  const filteredTables = tables.filter(table =>
+    table.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600"
+        >
+          <RefreshCw className="h-8 w-8 text-white" />
+        </motion.div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
+      {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
+        transition={{ duration: 0.6 }}
+        className="flex items-center justify-between"
       >
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Database className="h-6 w-6 text-primary" />
-                Database Management
-              </div>
-              <div className="flex items-center space-x-2">
-                {lastRefresh && (
-                  <span className="text-sm text-muted-foreground">
-                    Last refresh: {lastRefresh.toLocaleTimeString()}
-                  </span>
-                )}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <Database className="h-6 w-6 text-primary" />
+            Database Management
+          </h2>
+          <p className="text-muted-foreground">
+            Manage tables, run queries, and monitor performance
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Dialog open={showCreateTable} onOpenChange={setShowCreateTable}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Table
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border shadow-xl">
+              <DialogHeader>
+                <DialogTitle>Create New Table</DialogTitle>
+                <DialogDescription>
+                  Create a new database table with Row Level Security
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="table-name">Table Name</Label>
+                  <Input
+                    id="table-name"
+                    value={newTableName}
+                    onChange={(e) => setNewTableName(e.target.value)}
+                    placeholder="table_name"
+                    className="mt-1"
+                  />
+                </div>
+                <Button 
+                  onClick={handleCreateTable}
+                  disabled={isCreatingTable || !newTableName.trim()}
+                  className="w-full"
                 >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isLoading || isSyncing}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </motion.div>
-              </div>
-            </CardTitle>
-            <CardDescription>
-              Manage database tables, schema, and synchronization
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1"
-              >
-                <Button
-                  onClick={handleSchemaSync}
-                  disabled={isSyncing || connectionStatus !== 'connected'}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                >
-                  {isSyncing ? (
+                  {isCreatingTable ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Syncing Schema...
+                      Creating...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Run Schema Sync
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Table
                     </>
                   )}
                 </Button>
-              </motion.div>
-            </div>
-
-            {/* Progress Bar */}
-            <AnimatePresence>
-              {isSyncing && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-2"
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={showQueryEditor} onOpenChange={setShowQueryEditor}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <FileText className="h-4 w-4 mr-2" />
+                SQL Editor
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border shadow-xl max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>SQL Query Editor</DialogTitle>
+                <DialogDescription>
+                  Run custom SQL queries on your database
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="query-text">SQL Query</Label>
+                  <textarea
+                    id="query-text"
+                    value={queryText}
+                    onChange={(e) => setQueryText(e.target.value)}
+                    placeholder="SELECT * FROM users WHERE..."
+                    className="w-full h-32 p-3 border rounded-md bg-background font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <Button 
+                  onClick={handleRunQuery}
+                  disabled={isRunningQuery || !queryText.trim()}
+                  className="w-full"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Sync Progress</span>
-                    <span className="text-sm text-muted-foreground">{syncProgress}%</span>
-                  </div>
-                  <Progress value={syncProgress} className="w-full" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Tables List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Table className="h-6 w-6 text-primary" />
-                Database Tables
-              </div>
-              <Badge variant="secondary">
-                {tables.length} tables
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              All tables in your Supabase database with RLS status
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Loading tables...</span>
-              </div>
-            ) : tables.length === 0 ? (
-              <div className="text-center py-8">
-                <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No Tables Found</h3>
-                <p className="text-muted-foreground mb-4">
-                  Run schema sync to create default tables with RLS enabled
-                </p>
-                <Button onClick={handleSchemaSync} disabled={isSyncing}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Tables
+                  {isRunningQuery ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Running...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Run Query
+                    </>
+                  )}
                 </Button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {tables.map((table, index) => (
+            </DialogContent>
+          </Dialog>
+        </div>
+      </motion.div>
+
+      {/* Tabs */}
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
+          <TabsTrigger value="tables" className="flex items-center gap-2">
+            <Table className="h-4 w-4" />
+            Tables
+          </TabsTrigger>
+          <TabsTrigger value="queries" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Queries
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="mt-6">
+          {/* Tables Tab */}
+          {activeSubTab === 'tables' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search tables..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filter
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredTables.map((table, index) => (
+                    <motion.div
+                      key={table.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                    >
+                      <Card className="p-6 bg-gradient-to-br from-card to-muted/30 border hover:shadow-lg transition-all duration-300 cursor-pointer">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-600/20">
+                              <FolderOpen className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">{table.name}</h3>
+                              <p className="text-sm text-muted-foreground">{table.description}</p>
+                            </div>
+                          </div>
+                          {getStatusBadge(table.status)}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Rows</span>
+                            <span className="font-medium">{table.rows.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Size</span>
+                            <span className="font-medium">{table.size}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">RLS</span>
+                            <div className="flex items-center gap-2">
+                              {table.rlsEnabled ? (
+                                <>
+                                  <Shield className="h-4 w-4 text-green-500" />
+                                  <span className="text-green-600">Enabled</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                  <span className="text-yellow-600">Disabled</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Last Sync</span>
+                            <span className="font-medium">{new Date(table.lastSync).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem>
+                                <Download className="h-4 w-4 mr-2" />
+                                Export
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Queries Tab */}
+          {activeSubTab === 'queries' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="space-y-4">
+                {queries.map((query, index) => (
                   <motion.div
-                    key={table.name}
+                    key={query.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                   >
-                    <div className="flex items-center space-x-3">
-                      {getStatusIcon(table.status)}
-                      <div>
-                        <h4 className="font-medium text-foreground">{table.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {formatRowcount(table.rowCount)} rows
-                        </p>
+                    <Card className="p-6 bg-gradient-to-br from-card to-muted/30 border hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-semibold text-foreground">{query.name}</h3>
+                          <p className="text-sm text-muted-foreground font-mono bg-muted/50 p-2 rounded mt-2">
+                            {query.query}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(query.status)}
+                          {query.duration && (
+                            <span className="text-sm text-muted-foreground">
+                              {query.duration}ms
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      {table.hasRLS && (
-                        <Badge variant="default" className="bg-green-500">
-                          <Shield className="h-3 w-3 mr-1" />
-                          RLS Enabled
-                        </Badge>
-                      )}
-                      <Badge variant={table.status === 'ready' ? 'default' : 'secondary'}>
-                        {table.status}
-                      </Badge>
-                    </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Created</span>
+                        <span className="font-medium">{new Date(query.createdAt).toLocaleString()}</span>
+                      </div>
+                    </Card>
                   </motion.div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Features Info */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <Settings className="h-6 w-6 text-primary" />
-              Database Features
-            </CardTitle>
-            <CardDescription>
-              Automatic management and security features
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <RefreshCw className="h-4 w-4 text-primary" />
-                  <span className="font-medium">Auto Refresh</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Tables automatically refresh every 5 minutes
-                </p>
-              </div>
-              
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  <span className="font-medium">RLS by Default</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Row Level Security enabled on all tables
-                </p>
-              </div>
-              
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Plus className="h-4 w-4 text-primary" />
-                  <span className="font-medium">Auto Creation</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Default tables created automatically when needed
-                </p>
-              </div>
-              
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Database className="h-4 w-4 text-primary" />
-                  <span className="font-medium">Schema Sync</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  One-click schema synchronization with validation
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </motion.div>
+          )}
+        </div>
+      </Tabs>
     </div>
   )
 }

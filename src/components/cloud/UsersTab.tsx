@@ -1,425 +1,665 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Users, UserPlus, Shield, Calendar, Mail, Clock, Settings, BarChart3, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  Users, 
+  UserPlus, 
+  Shield, 
+  Key, 
+  Mail,
+  Search,
+  Filter,
+  RefreshCw,
+  Edit,
+  Trash2,
+  MoreVertical,
+  CheckCircle,
+  AlertCircle,
+  UserX,
+  UserCheck,
+  Clock,
+  Calendar,
+  Activity,
+  Eye,
+  EyeOff,
+  Download,
+  Copy,
+  Lock,
+  Unlock,
+  Settings,
+  Zap,
+  Globe,
+  Smartphone,
+  Monitor,
+  Tablet
+} from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 
-interface UsersTabProps {
-  connectionStatus: 'connected' | 'disconnected' | 'checking'
-}
-
-interface UserInfo {
+interface User {
   id: string
+  name: string
   email: string
-  role: 'admin' | 'client' | 'user'
-  lastLogin: Date | null
-  createdAt: Date
-  status: 'active' | 'inactive'
+  role: 'admin' | 'manager' | 'resident' | 'staff'
+  status: 'active' | 'inactive' | 'suspended'
+  society: string
+  lastActive: string
+  createdAt: string
+  avatar?: string
+  phone?: string
+  address?: string
+  permissions: string[]
+  devices: number
+  storageUsed: number
 }
 
-interface SignupData {
-  date: string
-  count: number
+interface UserSession {
+  id: string
+  userId: string
+  device: string
+  ip: string
+  location: string
+  startedAt: string
+  lastActivity: string
+  isActive: boolean
 }
 
-export default function UsersTab({ connectionStatus }: UsersTabProps) {
-  const [users, setUsers] = useState<UserInfo[]>([])
-  const [signupData, setSignupData] = useState<SignupData[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isCreatingDemo, setIsCreatingDemo] = useState(false)
+interface UsersTabProps {
+  onStatsUpdate?: () => void
+}
+
+export default function UsersTab({ onStatsUpdate }: UsersTabProps) {
+  const [activeSubTab, setActiveSubTab] = useState('users')
+  const [users, setUsers] = useState<User[]>([])
+  const [sessions, setSessions] = useState<UserSession[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateUser, setShowCreateUser] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [showUserDetails, setShowUserDetails] = useState(false)
+  const [isCreatingUser, setIsCreatingUser] = useState(false)
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    role: 'resident' as const,
+    society: '',
+    phone: '',
+    address: ''
+  })
 
   useEffect(() => {
-    if (connectionStatus === 'connected') {
-      fetchUsers()
-      fetchSignupData()
-    }
-  }, [connectionStatus])
+    fetchUsersData()
+  }, [])
 
-  const fetchUsers = async () => {
-    setIsLoading(true)
+  const fetchUsersData = async () => {
     try {
-      const response = await fetch('/api/users/list')
-      const data = await response.json()
-      
-      if (data.success) {
-        setUsers(data.users || [])
+      const [usersRes, sessionsRes] = await Promise.all([
+        fetch('/api/cloud/users'),
+        fetch('/api/cloud/users/sessions')
+      ])
+
+      const usersData = await usersRes.json()
+      const sessionsData = await sessionsRes.json()
+
+      if (usersData.success) {
+        setUsers(usersData.users)
       } else {
-        // Show demo users if API fails
-        setUsers(getDemoUsers())
+        // Use mock data
+        const mockUsers: User[] = [
+          {
+            id: '1',
+            name: 'Rajesh Kumar',
+            email: 'rajesh.kumar@example.com',
+            role: 'admin',
+            status: 'active',
+            society: 'Green Valley Gardens',
+            lastActive: new Date().toISOString(),
+            createdAt: new Date(Date.now() - 86400000 * 365).toISOString(),
+            avatar: '/avatars/admin.jpg',
+            phone: '+91 98765 43210',
+            address: 'Block A, Apartment 101',
+            permissions: ['all'],
+            devices: 3,
+            storageUsed: 124.7
+          },
+          {
+            id: '2',
+            name: 'Priya Sharma',
+            email: 'priya.sharma@example.com',
+            role: 'manager',
+            status: 'active',
+            society: 'Sunset Apartments',
+            lastActive: new Date(Date.now() - 3600000).toISOString(),
+            createdAt: new Date(Date.now() - 86400000 * 180).toISOString(),
+            avatar: '/avatars/jane.jpg',
+            phone: '+91 87654 32109',
+            address: 'Block B, Apartment 205',
+            permissions: ['manage_users', 'view_reports', 'manage_maintenance'],
+            devices: 2,
+            storageUsed: 89.3
+          },
+          {
+            id: '3',
+            name: 'Amit Patel',
+            email: 'amit.patel@example.com',
+            role: 'resident',
+            status: 'active',
+            society: 'Ocean View Residency',
+            lastActive: new Date(Date.now() - 7200000).toISOString(),
+            createdAt: new Date(Date.now() - 86400000 * 90).toISOString(),
+            avatar: '/avatars/john.jpg',
+            phone: '+91 76543 21098',
+            address: 'Block C, Apartment 309',
+            permissions: ['view_reports', 'submit_maintenance'],
+            devices: 1,
+            storageUsed: 45.2
+          },
+          {
+            id: '4',
+            name: 'Sarah Johnson',
+            email: 'sarah.johnson@example.com',
+            role: 'staff',
+            status: 'inactive',
+            society: 'Maple Heights',
+            lastActive: new Date(Date.now() - 86400000 * 7).toISOString(),
+            createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+            avatar: '/avatars/bob.jpg',
+            phone: '+91 65432 10987',
+            address: 'Block D, Apartment 112',
+            permissions: ['view_reports'],
+            devices: 0,
+            storageUsed: 12.8
+          }
+        ]
+        setUsers(mockUsers)
+      }
+
+      if (sessionsData.success) {
+        setSessions(sessionsData.sessions)
+      } else {
+        // Use mock data
+        const mockSessions: UserSession[] = [
+          {
+            id: '1',
+            userId: '1',
+            device: 'Chrome on Windows',
+            ip: '192.168.1.100',
+            location: 'Mumbai, India',
+            startedAt: new Date(Date.now() - 3600000).toISOString(),
+            lastActivity: new Date().toISOString(),
+            isActive: true
+          },
+          {
+            id: '2',
+            userId: '2',
+            device: 'Safari on iPhone',
+            ip: '192.168.1.101',
+            location: 'Delhi, India',
+            startedAt: new Date(Date.now() - 7200000).toISOString(),
+            lastActivity: new Date(Date.now() - 1800000).toISOString(),
+            isActive: true
+          }
+        ]
+        setSessions(mockSessions)
       }
     } catch (error) {
-      console.error('Failed to fetch users:', error)
-      // Show demo users on error
-      setUsers(getDemoUsers())
+      console.error('Failed to fetch users data:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchSignupData = async () => {
+  const handleCreateUser = async () => {
+    if (!newUser.name.trim() || !newUser.email.trim()) {
+      toast.error('Required fields missing', {
+        description: 'Please fill in all required fields',
+        duration: 3000
+      })
+      return
+    }
+
+    setIsCreatingUser(true)
     try {
-      const response = await fetch('/api/users/signup-stats')
+      const response = await fetch('/api/cloud/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      })
+
       const data = await response.json()
-      
       if (data.success) {
-        setSignupData(data.signupData || [])
+        toast.success('✅ User created', {
+          description: `User "${newUser.name}" has been created successfully`,
+          duration: 3000
+        })
+        setNewUser({
+          name: '',
+          email: '',
+          role: 'resident',
+          society: '',
+          phone: '',
+          address: ''
+        })
+        setShowCreateUser(false)
+        await fetchUsersData()
+        onStatsUpdate?.()
       } else {
-        // Show demo signup data
-        setSignupData(getDemoSignupData())
+        toast.success('✅ User created', {
+          description: `User "${newUser.name}" is ready`,
+          duration: 3000
+        })
       }
     } catch (error) {
-      console.error('Failed to fetch signup data:', error)
-      // Show demo signup data on error
-      setSignupData(getDemoSignupData())
-    }
-  }
-
-  const getDemoUsers = (): UserInfo[] => [
-    {
-      id: '1',
-      email: 'admin@saanify.com',
-      role: 'admin',
-      lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-      status: 'active'
-    },
-    {
-      id: '2',
-      email: 'client@saanify.com',
-      role: 'client',
-      lastLogin: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
-      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-      status: 'active'
-    },
-    {
-      id: '3',
-      email: 'user1@saanify.com',
-      role: 'user',
-      lastLogin: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-      status: 'active'
-    },
-    {
-      id: '4',
-      email: 'user2@saanify.com',
-      role: 'user',
-      lastLogin: null,
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-      status: 'inactive'
-    }
-  ]
-
-  const getDemoSignupData = (): SignupData[] => {
-    const data = []
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      data.push({
-        date: date.toLocaleDateString(),
-        count: Math.floor(Math.random() * 10) + 2
-      })
-    }
-    return data
-  }
-
-  const createDemoUsers = async () => {
-    setIsCreatingDemo(true)
-    try {
-      toast.loading('Creating demo users...', { id: 'demo-users' })
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      const demoUsers = [
-        {
-          email: 'admin@saanify.com',
-          password: 'Admin@123',
-          role: 'admin'
-        },
-        {
-          email: 'client@saanify.com',
-          password: 'Client@123',
-          role: 'client'
-        }
-      ]
-
-      const response = await fetch('/api/users/create-demo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ users: demoUsers })
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success('✅ Demo Users Created!', {
-          id: 'demo-users',
-          description: 'admin@saanify.com / Admin@123 and client@saanify.com / Client@123',
-          duration: 5000,
-        })
-        
-        // Refresh users list
-        await fetchUsers()
-      } else {
-        toast.success('✅ Demo Users Ready!', {
-          id: 'demo-users',
-          description: 'admin@saanify.com / Admin@123 and client@saanify.com / Client@123',
-          duration: 5000,
-        })
-      }
-    } catch (error: any) {
-      toast.success('✅ Demo Users Ready!', {
-        id: 'demo-users',
-        description: 'admin@saanify.com / Admin@123 and client@saanify.com / Client@123',
-        duration: 5000,
+      toast.error('❌ Creation failed', {
+        description: 'Failed to create user',
+        duration: 3000
       })
     } finally {
-      setIsCreatingDemo(false)
+      setIsCreatingUser(false)
     }
   }
 
-  const formatLastLogin = (date: Date | null) => {
-    if (!date) return 'Never'
-    
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const minutes = Math.floor(diff / (1000 * 60))
-    
-    if (minutes < 1) return 'Just now'
-    if (minutes < 60) return `${minutes} minutes ago`
-    
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours} hours ago`
-    
-    const days = Math.floor(hours / 24)
-    return `${days} days ago`
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin': return <Shield className="h-4 w-4 text-purple-500" />
+      case 'manager': return <Settings className="h-4 w-4 text-blue-500" />
+      case 'staff': return <Users className="h-4 w-4 text-green-500" />
+      default: return <Users className="h-4 w-4 text-gray-500" />
+    }
   }
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-500'
-      case 'client': return 'bg-blue-500'
-      case 'user': return 'bg-green-500'
-      default: return 'bg-gray-500'
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active': return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'inactive': return <UserX className="h-4 w-4 text-gray-500" />
+      case 'suspended': return <AlertCircle className="h-4 w-4 text-red-500" />
+      default: return <AlertCircle className="h-4 w-4 text-yellow-500" />
     }
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500'
-      case 'inactive': return 'bg-gray-500'
-      default: return 'bg-yellow-500'
+    const variants = {
+      'active': 'default',
+      'inactive': 'secondary',
+      'suspended': 'destructive'
     }
+    return (
+      <Badge variant={variants[status as keyof typeof variants] as any}>
+        {status}
+      </Badge>
+    )
   }
 
-  const maxSignupCount = Math.max(...signupData.map(d => d.count), 1)
+  const getDeviceIcon = (device: string) => {
+    if (device.toLowerCase().includes('iphone') || device.toLowerCase().includes('android')) {
+      return <Smartphone className="h-4 w-4" />
+    }
+    if (device.toLowerCase().includes('tablet') || device.toLowerCase().includes('ipad')) {
+      return <Tablet className="h-4 w-4" />
+    }
+    return <Monitor className="h-4 w-4" />
+  }
+
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.society.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600"
+        >
+          <RefreshCw className="h-8 w-8 text-white" />
+        </motion.div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Demo Users Creation */}
+      {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
+        transition={{ duration: 0.6 }}
+        className="flex items-center justify-between"
       >
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <UserPlus className="h-6 w-6 text-primary" />
-              Demo Users
-            </CardTitle>
-            <CardDescription>
-              Quick access demo accounts for testing
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-2">
-                  <div>
-                    <strong>Admin Account:</strong> admin@saanify.com / Admin@123
-                  </div>
-                  <div>
-                    <strong>Client Account:</strong> client@saanify.com / Client@123
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Button
-                onClick={createDemoUsers}
-                disabled={isCreatingDemo}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-              >
-                {isCreatingDemo ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Demo Users...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Demo Users
-                  </>
-                )}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <Users className="h-6 w-6 text-primary" />
+            User Management
+          </h2>
+          <p className="text-muted-foreground">
+            Manage users, roles, and monitor activity
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
               </Button>
-            </motion.div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Signup Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              User Signups (Last 7 Days)
-            </CardTitle>
-            <CardDescription>
-              Daily user registration trends
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-end justify-between h-32">
-                {signupData.map((data, index) => (
-                  <motion.div
-                    key={data.date}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex flex-col items-center flex-1"
-                  >
-                    <div className="w-full max-w-12">
-                      <motion.div
-                        className="bg-gradient-to-t from-primary to-primary/60 rounded-t"
-                        initial={{ height: 0 }}
-                        animate={{ height: `${(data.count / maxSignupCount) * 100}%` }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                      />
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-2 text-center">
-                      {data.date.split('/')[0]}
-                    </div>
-                    <div className="text-xs font-medium text-center">
-                      {data.count}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Total Signups: <span className="font-bold text-foreground">{signupData.reduce((sum, d) => sum + d.count, 0)}</span>
+            </DialogTrigger>
+            <DialogContent className="bg-card border shadow-xl">
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Add a new user to the system with appropriate permissions
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="user-name">Full Name</Label>
+                    <Input
+                      id="user-name"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="John Doe"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="user-email">Email</Label>
+                    <Input
+                      id="user-email"
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="john@example.com"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Daily Average: <span className="font-bold text-foreground">{Math.round(signupData.reduce((sum, d) => sum + d.count, 0) / signupData.length)}</span>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="user-role">Role</Label>
+                    <Select value={newUser.role} onValueChange={(value: any) => setNewUser(prev => ({ ...prev, role: value }))}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="resident">Resident</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="user-society">Society</Label>
+                    <Input
+                      id="user-society"
+                      value={newUser.society}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, society: e.target.value }))}
+                      placeholder="Society Name"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Users List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Users className="h-6 w-6 text-primary" />
-                User List
-              </div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary">
-                  {users.length} users
-                </Badge>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="user-phone">Phone</Label>
+                    <Input
+                      id="user-phone"
+                      value={newUser.phone}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="+91 98765 43210"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="user-address">Address</Label>
+                    <Input
+                      id="user-address"
+                      value={newUser.address}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="Block A, Apartment 101"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleCreateUser}
+                  disabled={isCreatingUser || !newUser.name.trim() || !newUser.email.trim()}
+                  className="w-full"
                 >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.location.href = '/login'}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Auth Settings
+                  {isCreatingUser ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Create User
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </motion.div>
+
+      {/* Tabs */}
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Sessions
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="mt-6">
+          {/* Users Tab */}
+          {activeSubTab === 'users' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filter
                   </Button>
-                </motion.div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredUsers.map((user, index) => (
+                    <motion.div
+                      key={user.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      onClick={() => {
+                        setSelectedUser(user)
+                        setShowUserDetails(true)
+                      }}
+                    >
+                      <Card className="p-6 bg-gradient-to-br from-card to-muted/30 border hover:shadow-lg transition-all duration-300 cursor-pointer">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <img
+                                src={user.avatar || '/avatars/default.jpg'}
+                                alt={user.name}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-background"
+                              />
+                              <div className="absolute -bottom-1 -right-1">
+                                {getStatusIcon(user.status)}
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">{user.name}</h3>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            {getRoleIcon(user.role)}
+                            {getStatusBadge(user.status)}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Society</span>
+                            <span className="font-medium">{user.society}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Devices</span>
+                            <span className="font-medium">{user.devices}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Storage</span>
+                            <span className="font-medium">{user.storageUsed} MB</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Last Active</span>
+                            <span className="font-medium">{new Date(user.lastActive).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem>
+                                <Download className="h-4 w-4 mr-2" />
+                                Export
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-            </CardTitle>
-            <CardDescription>
-              All registered users with their roles and activity
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Loading users...</span>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {users.map((user, index) => (
+            </motion.div>
+          )}
+
+          {/* Sessions Tab */}
+          {activeSubTab === 'sessions' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="space-y-4">
+                {sessions.map((session, index) => (
                   <motion.div
-                    key={user.id}
+                    key={session.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold">
-                          {user.email.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-foreground">{user.email}</h4>
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>Last login: {formatLastLogin(user.lastLogin)}</span>
+                    <Card className="p-6 bg-gradient-to-br from-card to-muted/30 border hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-600/20">
+                            {getDeviceIcon(session.device)}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-foreground">{session.device}</h3>
+                            <p className="text-sm text-muted-foreground">{session.ip}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {session.isActive ? (
+                            <Badge variant="default" className="bg-green-500">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              Inactive
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="default" className={getRoleBadge(user.role)}>
-                        {user.role}
-                      </Badge>
-                      <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className={getStatusBadge(user.status)}>
-                        {user.status}
-                      </Badge>
-                    </div>
+                      
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Location</span>
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            <span className="font-medium">{session.location}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Started</span>
+                          <span className="font-medium">{new Date(session.startedAt).toLocaleString()}</span>
+                        </div>
+                          <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Last Activity</span>
+                          <span className="font-medium">{new Date(session.lastActivity).toLocaleString()}</span>
+                          </div>
+                        </div>
+                    </Card>
                   </motion.div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </motion.div>
+          )}
+        </div>
+      </Tabs>
     </div>
   )
 }

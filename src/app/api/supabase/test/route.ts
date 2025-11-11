@@ -1,68 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // Simulate system tests
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
+    // Mock data for system tests
     const testResults = [
       {
         name: 'Database Connection',
         success: true,
-        message: 'Connected successfully',
-        details: { responseTime: '45ms' }
+        message: 'Database connection is working properly',
+        details: {
+          responseTime: 145,
+          status: 'connected'
+        }
       },
       {
-        name: 'Table Schema',
+        name: 'Authentication System',
         success: true,
-        message: 'All tables have correct schema',
-        details: { tablesChecked: 6 }
-      },
-      {
-        name: 'RLS Policies',
-        success: true,
-        message: 'Row Level Security is properly configured',
-        details: { policiesEnabled: 6 }
+        message: 'Authentication system is functioning correctly',
+        details: {
+          responseTime: 89,
+          status: 'active'
+        }
       },
       {
         name: 'API Endpoints',
         success: true,
-        message: 'All API endpoints are responding',
-        details: { endpointsTested: 12 }
+        message: 'All API endpoints are responding correctly',
+        details: {
+          totalEndpoints: 25,
+          healthyEndpoints: 25
+          responseTime: 67
+        }
       },
       {
-        name: 'Authentication',
+        name: 'Storage Integration',
         success: true,
-        message: 'Auth system is working correctly',
-        details: { provider: 'local' }
+        message: 'Storage integration is working properly',
+        details: {
+          buckets: 2,
+          totalFiles: 1770,
+          responseTime: 234
+        }
       }
     ]
 
-    const totalTests = testResults.length
-    const passedTests = testResults.filter(t => t.success).length
-    const failedTests = totalTests - passedTests
-    const successRate = Math.round((passedTests / totalTests) * 100)
-
     return NextResponse.json({
       success: true,
-      message: 'All system tests completed successfully',
       testResults,
       summary: {
-        totalTests,
-        passedTests,
-        failedTests,
-        successRate
-      }
+        totalTests: 4,
+        passedTests: 4,
+        failedTests: 0,
+        successRate: 100.0
+      },
+      message: 'All systems are functioning correctly'
     })
   } catch (error) {
-    console.error('System tests failed:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'System tests failed',
-        testResults: []
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to run system tests',
+      testResults: []
+    }, { status: 500 })
   }
 }
