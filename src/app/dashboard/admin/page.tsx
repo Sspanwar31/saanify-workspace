@@ -168,7 +168,7 @@ export default function AdminDashboard() {
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-bold">
-                        {userData?.name?.charAt(0) || 'S'}
+                        {(userData?.name?.charAt(0) ?? "S").toUpperCase()}
                       </span>
                     </div>
                   </Button>

@@ -135,13 +135,13 @@ export default function SupabaseCloudPanel() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch data:', error)
+      console.error("Safe fallback:", error);
     }
   }
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
-    toast.success(`📋 Switched to ${value.charAt(0).toUpperCase() + value.slice(1)} tab`, {
+    toast.success(`📋 Switched to ${(value?.charAt(0) ?? "").toUpperCase() + (value?.slice(1) ?? "")} tab`, {
       description: "Loading panel components...",
       duration: 2000,
     })
@@ -398,7 +398,7 @@ export default function SupabaseCloudPanel() {
                                 <span className="text-sm font-medium">Automation</span>
                               </div>
                               <div className="text-2xl font-bold">
-                                {status.automationStatus.charAt(0).toUpperCase() + status.automationStatus.slice(1)}
+                                {(status.automationStatus?.charAt(0) ?? "").toUpperCase() + (status.automationStatus?.slice(1) ?? "")}
                               </div>
                               <Badge 
                                 variant={status.automationStatus === 'running' ? "default" : "outline"}

@@ -6,6 +6,8 @@ import CoreTools from '@/components/home/CoreTools'
 import Pricing from '@/components/home/Pricing'
 import Testimonials from '@/components/home/Testimonials'
 import Footer from '@/components/home/Footer'
+import SupabaseToggle from '@/components/SupabaseToggle'
+import SupabaseAutoSync from '@/components/SupabaseAutoSync'
 import SupabaseCloudPanel from '@/components/SupabaseCloudPanel'
 
 export default function Home() {
@@ -19,6 +21,8 @@ export default function Home() {
       <Pricing />
       <Testimonials />
       <Footer />
+      <SupabaseToggle />
+      <SupabaseAutoSync />
       <SupabaseCloudPanel />
     </div>
   )

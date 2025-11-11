@@ -290,7 +290,7 @@ export default function ReportsTable({
                         >
                           <td className="p-4">
                             <Badge className={getTypeColor(report.type)}>
-                              {report.type.charAt(0).toUpperCase() + report.type.slice(1)}
+                              {(report.type?.charAt(0) ?? "").toUpperCase() + (report.type?.slice(1) ?? "")}
                             </Badge>
                           </td>
                           <td className="p-4">
@@ -327,7 +327,7 @@ export default function ReportsTable({
                           </td>
                           <td className="p-4">
                             <Badge className={getStatusColor(report.status)}>
-                              {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                              {(report.status?.charAt(0) ?? "").toUpperCase() + (report.status?.slice(1) ?? "")}
                             </Badge>
                           </td>
                           <td className="p-4">

@@ -214,15 +214,15 @@ export default function LoginPage() {
 
   const handleClientInputChange = (field: string, value: string | boolean) => {
     setClientData(prev => ({ ...prev, [field]: value }))
-    if (errors[`client${field.charAt(0).toUpperCase() + field.slice(1)}`]) {
-      setErrors(prev => ({ ...prev, [`client${field.charAt(0).toUpperCase() + field.slice(1)}`]: '' }))
+    if (errors[`client${(field?.charAt(0) ?? "").toUpperCase() + (field?.slice(1) ?? "")}`]) {
+      setErrors(prev => ({ ...prev, [`client${(field?.charAt(0) ?? "").toUpperCase() + (field?.slice(1) ?? "")}`]: '' }))
     }
   }
 
   const handleAdminInputChange = (field: string, value: string | boolean) => {
     setAdminData(prev => ({ ...prev, [field]: value }))
-    if (errors[`admin${field.charAt(0).toUpperCase() + field.slice(1)}`]) {
-      setErrors(prev => ({ ...prev, [`admin${field.charAt(0).toUpperCase() + field.slice(1)}`]: '' }))
+    if (errors[`admin${(field?.charAt(0) ?? "").toUpperCase() + (field?.slice(1) ?? "")}`]) {
+      setErrors(prev => ({ ...prev, [`admin${(field?.charAt(0) ?? "").toUpperCase() + (field?.slice(1) ?? "")}`]: '' }))
     }
   }
 

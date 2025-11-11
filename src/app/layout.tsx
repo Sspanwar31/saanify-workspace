@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorBoundaryClass } from "@/components/error-boundary-new";
 import SupabaseProvider from "@/app/providers/SupabaseProvider";
 
 const geistSans = Geist({
@@ -54,12 +54,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SupabaseProvider>
-            <ErrorBoundary>
+          <ErrorBoundaryClass>
+            <SupabaseProvider>
               {children}
-            </ErrorBoundary>
-            <Toaster />
-          </SupabaseProvider>
+            </SupabaseProvider>
+          </ErrorBoundaryClass>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

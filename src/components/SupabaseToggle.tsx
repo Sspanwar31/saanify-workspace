@@ -105,7 +105,7 @@ export default function SupabaseToggle() {
     } catch (error) {
       toast.error('Configuration Error', {
         id: 'db-config',
-        description: 'An error occurred while configuring the database',
+        description: 'An error occurred while configuring database',
         duration: 3000,
       })
     }

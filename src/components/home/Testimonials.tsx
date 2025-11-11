@@ -43,7 +43,7 @@ function TestimonialCard({ name, role, society, content, rating, delay, isActive
               animate={{ rotate: isHovered ? 360 : 0, scale: isHovered ? 1.1 : 1 }}
               transition={{ duration: 0.6 }}
             >
-              {name.charAt(0)}
+              {(name?.charAt(0) ?? "").toUpperCase()}
             </motion.div>
             <div>
               <h4 className="font-semibold text-foreground">{name}</h4>

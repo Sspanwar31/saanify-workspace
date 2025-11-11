@@ -5,6 +5,7 @@ import { Cloud, Database, Cpu, Brain, ArrowRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import ErrorBoundaryClass from '@/components/error-boundary-new'
 
 export default function CloudPage() {
   const features = [
@@ -12,7 +13,7 @@ export default function CloudPage() {
       icon: Database,
       title: 'Storage Management',
       description: 'Upload, organize, and manage files with automatic public bucket creation',
-      href: '/cloud',
+      href: '/cloud/dashboard',
       color: 'from-blue-500 to-blue-600',
       delay: 0.1
     },
@@ -20,7 +21,7 @@ export default function CloudPage() {
       icon: Cpu,
       title: 'Edge Functions',
       description: 'Deploy serverless functions with auto-deployment and demo functions included',
-      href: '/cloud',
+      href: '/cloud/dashboard',
       color: 'from-purple-500 to-purple-600',
       delay: 0.2
     },
@@ -28,14 +29,15 @@ export default function CloudPage() {
       icon: Brain,
       title: 'AI Services',
       description: 'Monitor AI usage, optimize costs, and track performance across models',
-      href: '/cloud',
+      href: '/cloud/dashboard',
       color: 'from-green-500 to-green-600',
       delay: 0.3
     }
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-sky-50/10 to-sky-100/10 dark:from-background dark:via-sky-950/50 dark:to-sky-900/50">
+    <ErrorBoundaryClass>
+      <div className="min-h-screen bg-gradient-to-br from-background via-sky-50/10 to-sky-100/10 dark:from-background dark:via-sky-950/50 dark:to-sky-900/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <motion.div
@@ -147,7 +149,7 @@ export default function CloudPage() {
             size="lg"
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg px-8 py-4"
           >
-            <Link href="/cloud" className="flex items-center">
+            <Link href="/cloud/dashboard" className="flex items-center">
               Launch Cloud Dashboard
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
@@ -155,5 +157,6 @@ export default function CloudPage() {
         </motion.div>
       </div>
     </div>
+    </ErrorBoundaryClass>
   )
 }

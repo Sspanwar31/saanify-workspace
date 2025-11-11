@@ -12,7 +12,7 @@ interface ErrorBoundaryProps {
   fallback?: React.ComponentType<{ error: Error; retry: () => void }>
 }
 
-export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundaryClass extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { hasError: false }
@@ -83,3 +83,6 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     return this.props.children
   }
 }
+
+export { ErrorBoundaryClass }
+export default ErrorBoundaryClass

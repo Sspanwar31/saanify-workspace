@@ -46,7 +46,7 @@ export default function Footer() {
   const handleScrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
     toast.success("⬆️ Back to Top", {
-      description: "Welcome back to the top!",
+      description: "Welcome back to top!",
       duration: 2000,
     })
   }

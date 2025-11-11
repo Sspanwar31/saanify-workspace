@@ -203,7 +203,7 @@ export default function SupabaseAutoSync() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-4 left-4 z-50">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -227,7 +227,7 @@ export default function SupabaseAutoSync() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-16 right-0 w-96 max-h-[80vh] overflow-y-auto"
+            className="absolute bottom-16 left-0 w-96 max-h-[80vh] overflow-y-auto"
           >
             <Card className="bg-background/95 backdrop-blur-sm border-2 shadow-xl">
               <CardHeader className="pb-4">
@@ -339,111 +339,6 @@ export default function SupabaseAutoSync() {
                     )}
                   </Button>
                 </div>
-
-                {/* Test Results */}
-                {testResult && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">System Test Results</span>
-                      <Badge variant={testResult.success ? "default" : "destructive"}>
-                        {testResult.success ? '✅ Passed' : '⚠️ Issues Found'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {testResult.testResults.map((test, index) => (
-                        <motion.div
-                          key={test.name}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center justify-between p-2 rounded-md bg-muted/50"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={test.success ? 'text-green-500' : 'text-red-500'}>
-                              {test.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium">{test.name}</span>
-                              <p className="text-xs text-muted-foreground">{test.message}</p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {testResult.summary && (
-                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                          📊 Test Summary
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>Total Tests: {testResult.summary.totalTests}</div>
-                          <div>Passed: {testResult.summary.passedTests}</div>
-                          <div>Failed: {testResult.summary.failedTests}</div>
-                          <div>Success Rate: {testResult.summary.successRate}%</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Sync Progress */}
-                {syncResult && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Sync Progress</span>
-                      <Badge variant={syncResult.success ? "default" : "destructive"}>
-                        {syncResult.success ? '✅ Success' : '❌ Failed'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {syncResult.steps.map((step, index) => (
-                        <motion.div
-                          key={step.name}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center justify-between p-2 rounded-md bg-muted/50"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={getStatusColor(step.status)}>
-                              {getStatusIcon(step.status)}
-                            </div>
-                            <span className="text-sm">{step.name}</span>
-                          </div>
-                          {step.status === 'error' && (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {syncResult.summary && (
-                      <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                        <h4 className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-                          📊 Sync Summary
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>Tables Created: {syncResult.summary.tablesCreated}</div>
-                          <div>RLS Enabled: {syncResult.summary.rlsEnabled}</div>
-                          <div>Functions: {syncResult.summary.functionsCreated}</div>
-                          <div>Triggers: {syncResult.summary.triggersCreated}</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {syncResult.error && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="text-xs">
-                          {syncResult.error}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                )}
 
                 {/* Features */}
                 <div className="space-y-2">

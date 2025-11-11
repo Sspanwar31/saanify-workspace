@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
+import ErrorBoundaryClass from '@/components/error-boundary-new'
 import StorageTab from './StorageTab'
 import EdgeFunctionsTab from './EdgeFunctionsTab'
 import AITab from './AITab'
@@ -56,6 +57,10 @@ interface CloudDashboardProps {
 }
 
 export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
+  // Safe defaults for Supabase configs
+  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://demo-project.supabase.co";
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "demo-service-role";
+
   const [activeTab, setActiveTab] = useState('storage')
   const [stats, setStats] = useState<CloudStats>({
     storageUsed: 0,
@@ -70,6 +75,16 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   useEffect(() => {
     fetchCloudStats()
   }, [])
+
+  // Pre-check before rendering panel
+  if (!projectUrl || !serviceKey) {
+    return (
+      <div className="p-6 text-center text-muted-foreground">
+        Supabase not configured.<br />
+        Please connect your Supabase Integration first.
+      </div>
+    );
+  }
 
   const fetchCloudStats = async () => {
     try {
@@ -91,6 +106,7 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
         setStats(mockStats)
       }
     } catch (error) {
+      console.error("Safe fallback:", error);
       // Use mock data
       const mockStats: CloudStats = {
         storageUsed: 45.2,
@@ -107,7 +123,8 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundaryClass>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -199,13 +216,13 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="storage" className="data-[state=activeTab === 'storage']">
+              <TabsTrigger value="storage">
                 Database
               </TabsTrigger>
-              <TabsTrigger value="functions" className="data-[state=activeTab === 'functions']">
+              <TabsTrigger value="functions">
                 Cpu
               </TabsTrigger>
-              <TabsTrigger value="ai" className="data-[state=activeTab === 'ai']">
+              <TabsTrigger value="ai">
                 Brain
               </TabsTrigger>
             </TabsList>
@@ -233,5 +250,6 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundaryClass>
   )
 }
