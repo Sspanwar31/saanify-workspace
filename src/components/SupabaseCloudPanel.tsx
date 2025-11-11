@@ -188,6 +188,8 @@ export default function SupabaseCloudPanel() {
   const [activeTab, setActiveTab] = useState('overview')
   const [showValues, setShowValues] = useState<Record<string, boolean>>({})
   const [logFilter, setLogFilter] = useState('all')
+  const [storageFilter, setStorageFilter] = useState('all')
+  const [functionFilter, setFunctionFilter] = useState('all')
   const [secrets, setSecrets] = useState([
     {
       id: '1',
@@ -217,14 +219,20 @@ export default function SupabaseCloudPanel() {
     databases: 5,
     storage: 85,
     functions: 12,
-    uptime: 99.7
+    uptime: 99.7,
+    requests: 1247,
+    aiCalls: 892,
+    bandwidth: 62.4,
+    activeUsers: 156
   }
 
   const automationStatus = {
     schemaSync: { active: true, lastRun: '2 mins ago' },
     autoBackup: { active: true, lastRun: '1 hour ago' },
     healthChecks: { active: true, lastRun: '5 mins ago' },
-    logRotation: { active: true, lastRun: '30 mins ago' }
+    logRotation: { active: true, lastRun: '30 mins ago' },
+    aiOptimization: { active: true, lastRun: '15 mins ago' },
+    securityScan: { active: true, lastRun: '6 hours ago' }
   }
 
   // Lock body scroll when panel is open
@@ -325,10 +333,10 @@ export default function SupabaseCloudPanel() {
       >
         <Button
           onClick={() => setIsOpen(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+          className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-700 hover:via-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm border border-white/20"
         >
           <Cloud className="h-4 w-4 mr-2" />
-          Open Cloud Panel
+          Saanify Cloud Dashboard
         </Button>
       </motion.div>
     )
@@ -340,21 +348,21 @@ export default function SupabaseCloudPanel() {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"></div>
       
       {/* Main Panel Container with proper scaling */}
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-start bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-y-auto max-h-[90vh] w-full md:w-[80%] lg:w-[70%] xl:w-[60%] mx-auto my-8 p-6 border border-gray-200/50 dark:border-gray-700/50 scale-[0.98] md:scale-100 transition-all duration-300">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-start bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-y-auto max-h-[95vh] w-full md:w-[85%] lg:w-[75%] xl:w-[65%] mx-auto my-4 p-4 md:p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300">
         
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <motion.div 
-              className="w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg"
+              className="w-14 h-14 bg-gradient-to-br from-sky-500 via-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg"
               whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ duration: 0.2 }}
             >
-              <Cloud className="h-6 w-6" />
+              <Cloud className="h-7 w-7" />
             </motion.div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Supabase Cloud</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Modern Database Management</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Saanify Cloud Dashboard</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Complete Infrastructure Management</p>
             </div>
           </div>
           <Button
@@ -369,11 +377,14 @@ export default function SupabaseCloudPanel() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Overview</TabsTrigger>
-            <TabsTrigger value="secrets" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Secrets</TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Logs</TabsTrigger>
-            <TabsTrigger value="automation" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Automation</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">Overview</TabsTrigger>
+            <TabsTrigger value="storage" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">Storage</TabsTrigger>
+            <TabsTrigger value="functions" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">Functions</TabsTrigger>
+            <TabsTrigger value="ai" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">AI</TabsTrigger>
+            <TabsTrigger value="logs" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">Logs</TabsTrigger>
+            <TabsTrigger value="secrets" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">Secrets</TabsTrigger>
+            <TabsTrigger value="automation" className="data-[state=active]:bg-white data-[state=active]:text-sky-600 dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-sky-400 rounded-lg text-xs font-medium">Automation</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -383,23 +394,489 @@ export default function SupabaseCloudPanel() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Stats Grid - All metrics visible */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.1 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-xl border border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-900/20 dark:to-blue-800/20 p-4 md:p-6 rounded-xl border border-sky-200/50 dark:border-sky-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <Database className="h-8 w-8 text-blue-600" />
+                    <Database className="h-6 w-6 md:h-8 md:w-8 text-sky-600" />
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                     >
-                      <RefreshCw className="h-4 w-4 text-blue-500" />
+                      <RefreshCw className="h-3 w-3 md:h-4 md:w-4 text-sky-500" />
                     </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                      {stats.projects}
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Projects</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/20 p-4 md:p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Server className="h-6 w-6 md:h-8 md:w-8 text-emerald-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Activity className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                      {stats.databases}
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Databases</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-900/20 dark:to-purple-800/20 p-4 md:p-6 rounded-xl border border-violet-200/50 dark:border-violet-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <HardDrive className="h-6 w-6 md:h-8 md:w-8 text-violet-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Zap className="h-3 w-3 md:h-4 md:w-4 text-violet-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.4 }}
+                    >
+                      {stats.storage}%
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.4 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-800/20 p-4 md:p-6 rounded-xl border border-amber-200/50 dark:border-amber-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Cpu className="h-6 w-6 md:h-8 md:w-8 text-amber-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
+                    >
+                      <BarChart3 className="h-3 w-3 md:h-4 md:w-4 text-amber-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.5 }}
+                    >
+                      {stats.functions}
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Functions</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-900/20 dark:to-pink-800/20 p-4 md:p-6 rounded-xl border border-rose-200/50 dark:border-rose-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Globe className="h-6 w-6 md:h-8 md:w-8 text-rose-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Wifi className="h-3 w-3 md:h-4 md:w-4 text-rose-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.6 }}
+                    >
+                      {stats.uptime}%
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Uptime</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.6 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-indigo-900/20 dark:to-blue-800/20 p-4 md:p-6 rounded-xl border border-indigo-200/50 dark:border-indigo-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-indigo-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Activity className="h-3 w-3 md:h-4 md:w-4 text-indigo-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.7 }}
+                    >
+                      {stats.requests}
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Requests</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.7 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-cyan-50 to-teal-100 dark:from-cyan-900/20 dark:to-teal-800/20 p-4 md:p-6 rounded-xl border border-cyan-200/50 dark:border-cyan-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Monitor className="h-6 w-6 md:h-8 md:w-8 text-cyan-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Cpu className="h-3 w-3 md:h-4 md:w-4 text-cyan-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.8 }}
+                    >
+                      {stats.aiCalls}
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">AI Calls</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.8 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-teal-50 to-emerald-100 dark:from-teal-900/20 dark:to-emerald-800/20 p-4 md:p-6 rounded-xl border border-teal-200/50 dark:border-teal-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Users className="h-6 w-6 md:h-8 md:w-8 text-teal-600" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 5.5, repeat: Infinity, ease: "linear" }}
+                    >
+                      <UserCheck className="h-3 w-3 md:h-4 md:w-4 text-teal-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-center">
+                    <motion.div 
+                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.9 }}
+                    >
+                      {stats.activeUsers}
+                    </motion.div>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active Users</p>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Bandwidth Card */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.9 }}
+                whileHover={{ scale: 1.01, y: -1 }}
+                className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 p-6 rounded-xl border border-indigo-200/50 dark:border-indigo-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">System Healthy</span>
+                  </div>
+                  <TrendingUp className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div className="text-center">
+                  <motion.div 
+                    className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5, delay: 1.0 }}
+                  >
+                    {stats.bandwidth} GB
+                  </motion.div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Bandwidth This Month</p>
+                </div>
+              </motion.div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Storage Tab */}
+          <TabsContent value="storage" className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={storageFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStorageFilter('all')}
+                    className="text-xs"
+                  >
+                    All Files
+                  </Button>
+                  <Button
+                    variant={storageFilter === 'images' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStorageFilter('images')}
+                    className="text-xs"
+                  >
+                    Images
+                  </Button>
+                  <Button
+                    variant={storageFilter === 'documents' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStorageFilter('documents')}
+                    className="text-xs"
+                  >
+                    Documents
+                  </Button>
+                  <Button
+                    variant={storageFilter === 'backups' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStorageFilter('backups')}
+                    className="text-xs"
+                  >
+                    Backups
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => toast.info('Upload feature coming soon!')}
+                  className="bg-sky-600 hover:bg-sky-700 text-white text-xs"
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Upload
+                </Button>
+              </div>
+
+              {/* Storage Files Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { name: 'user-avatars', type: 'images', size: '245 MB', modified: '2 hours ago', icon: '🖼️' },
+                  { name: 'society-docs', type: 'documents', size: '1.2 GB', modified: '1 day ago', icon: '📄' },
+                  { name: 'backup-2024', type: 'backups', size: '3.8 GB', modified: '1 week ago', icon: '💾' },
+                  { name: 'maintenance-logs', type: 'documents', size: '128 MB', modified: '3 hours ago', icon: '📋' },
+                  { name: 'financial-reports', type: 'documents', size: '456 MB', modified: '5 hours ago', icon: '📊' },
+                  { name: 'property-images', type: 'images', size: '2.1 GB', modified: '2 days ago', icon: '🏠' }
+                ].map((file, index) => (
+                  <motion.div
+                    key={file.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">{file.icon}</div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{file.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{file.type}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>{file.size}</span>
+                      <span>{file.modified}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Storage Usage Bar */}
+              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage Usage</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{stats.storage}% of 100 GB</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <motion.div 
+                    className="bg-gradient-to-r from-sky-500 to-blue-600 h-2 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stats.storage}%` }}
+                    transition={{ duration: 1, delay: 0.5 }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Functions Tab */}
+          <TabsContent value="functions" className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={functionFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFunctionFilter('all')}
+                    className="text-xs"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={functionFilter === 'active' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFunctionFilter('active')}
+                    className="text-xs"
+                  >
+                    Active
+                  </Button>
+                  <Button
+                    variant={functionFilter === 'idle' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFunctionFilter('idle')}
+                    className="text-xs"
+                  >
+                    Idle
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => toast.info('Deploy function feature coming soon!')}
+                  className="bg-sky-600 hover:bg-sky-700 text-white text-xs"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Deploy Function
+                </Button>
+              </div>
+
+              {/* Functions Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { name: 'user-auth', status: 'active', invocations: 1247, avgLatency: '45ms', errorRate: '0.1%' },
+                  { name: 'data-sync', status: 'active', invocations: 892, avgLatency: '120ms', errorRate: '0.3%' },
+                  { name: 'email-service', status: 'idle', invocations: 45, avgLatency: '200ms', errorRate: '0%' },
+                  { name: 'backup-automation', status: 'active', invocations: 234, avgLatency: '500ms', errorRate: '0.2%' },
+                  { name: 'report-generator', status: 'active', invocations: 67, avgLatency: '1.2s', errorRate: '0.5%' },
+                  { name: 'notification-push', status: 'idle', invocations: 12, avgLatency: '80ms', errorRate: '0%' }
+                ].map((func, index) => (
+                  <motion.div
+                    key={func.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${func.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{func.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{func.status}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Invocations:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{func.invocations}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Avg Latency:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{func.avgLatency}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Error Rate:</span>
+                        <span className={`font-medium ${func.errorRate === '0%' ? 'text-green-600' : 'text-orange-600'}`}>{func.errorRate}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* AI Tab */}
+          <TabsContent value="ai" className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-800/20 p-6 rounded-xl border border-purple-200/50 dark:border-purple-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <Cpu className="h-8 w-8 text-purple-600" />
+                    <Badge className="bg-purple-100 text-purple-800 text-xs">Active</Badge>
                   </div>
                   <div className="text-center">
                     <motion.div 
@@ -408,9 +885,9 @@ export default function SupabaseCloudPanel() {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                      {stats.projects}
+                      {stats.aiCalls}
                     </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Projects</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">AI Calls Today</p>
                   </div>
                 </motion.div>
 
@@ -418,17 +895,12 @@ export default function SupabaseCloudPanel() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-xl border border-green-200/50 dark:border-green-700/50 backdrop-blur-sm"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-800/20 p-6 rounded-xl border border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <Server className="h-8 w-8 text-green-600" />
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Activity className="h-4 w-4 text-green-500" />
-                    </motion.div>
+                  <div className="flex items-center justify-between mb-4">
+                    <Zap className="h-8 w-8 text-blue-600" />
+                    <Badge className="bg-blue-100 text-blue-800 text-xs">Optimized</Badge>
                   </div>
                   <div className="text-center">
                     <motion.div 
@@ -437,9 +909,9 @@ export default function SupabaseCloudPanel() {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                      {stats.databases}
+                      98.5%
                     </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Databases</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Accuracy Rate</p>
                   </div>
                 </motion.div>
 
@@ -447,17 +919,12 @@ export default function SupabaseCloudPanel() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.3 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-xl border border-purple-200/50 dark:border-purple-700/50 backdrop-blur-sm"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/20 p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <HardDrive className="h-8 w-8 text-purple-600" />
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Zap className="h-4 w-4 text-purple-500" />
-                    </motion.div>
+                  <div className="flex items-center justify-between mb-4">
+                    <TrendingUp className="h-8 w-8 text-emerald-600" />
+                    <Badge className="bg-emerald-100 text-emerald-800 text-xs">Fast</Badge>
                   </div>
                   <div className="text-center">
                     <motion.div 
@@ -466,69 +933,46 @@ export default function SupabaseCloudPanel() {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.5, delay: 0.4 }}
                     >
-                      {stats.storage}%
+                      1.2s
                     </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.4 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-6 rounded-xl border border-orange-200/50 dark:border-orange-700/50 backdrop-blur-sm"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Cpu className="h-8 w-8 text-orange-600" />
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
-                    >
-                      <BarChart3 className="h-4 w-4 text-orange-500" />
-                    </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.5 }}
-                    >
-                      {stats.functions}
-                    </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Functions Deployed</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Avg Response</p>
                   </div>
                 </motion.div>
               </div>
 
-              {/* Uptime Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.5 }}
-                whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 backdrop-blur-sm"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Live</span>
-                  </div>
-                  <TrendingUp className="h-5 w-5 text-emerald-600" />
+              {/* AI Models */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">AI Models & Services</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { name: 'GPT-4', type: 'Language Model', status: 'active', usage: '45%' },
+                    { name: 'Claude-3', type: 'Language Model', status: 'active', usage: '30%' },
+                    { name: 'DALL-E 3', type: 'Image Generation', status: 'active', usage: '15%' },
+                    { name: 'Embeddings', type: 'Vector Search', status: 'active', usage: '10%' }
+                  ].map((model, index) => (
+                    <motion.div
+                      key={model.name}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${model.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm">{model.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{model.type}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{model.usage}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">usage</div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-                <div className="text-center">
-                  <motion.div 
-                    className="text-4xl font-bold text-gray-900 dark:text-white"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.6 }}
-                  >
-                    {stats.uptime}%
-                  </motion.div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Uptime</p>
-                </div>
-              </motion.div>
+              </div>
             </motion.div>
           </TabsContent>
 
@@ -741,14 +1185,14 @@ export default function SupabaseCloudPanel() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {Object.entries(automationStatus).map(([key, status], index) => (
                   <motion.div
                     key={key}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
                     className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
                   >
                     <CardHeader className="pb-3">
@@ -758,11 +1202,15 @@ export default function SupabaseCloudPanel() {
                           {key === 'autoBackup' && <Archive className="h-5 w-5 text-green-600" />}
                           {key === 'healthChecks' && <Activity className="h-5 w-5 text-purple-600" />}
                           {key === 'logRotation' && <Clock className="h-5 w-5 text-orange-600" />}
+                          {key === 'aiOptimization' && <Cpu className="h-5 w-5 text-cyan-600" />}
+                          {key === 'securityScan' && <Shield className="h-5 w-5 text-rose-600" />}
                           <span className="capitalize">
                             {key === 'schemaSync' && 'Schema Sync'}
                             {key === 'autoBackup' && 'Auto Backup'}
                             {key === 'healthChecks' && 'Health Checks'}
                             {key === 'logRotation' && 'Log Rotation'}
+                            {key === 'aiOptimization' && 'AI Optimization'}
+                            {key === 'securityScan' && 'Security Scan'}
                           </span>
                         </div>
                         <Badge 
@@ -774,9 +1222,11 @@ export default function SupabaseCloudPanel() {
                       </CardTitle>
                       <CardDescription className="text-sm">
                         {key === 'schemaSync' && 'Automated schema sync for optimal performance'}
-                        {key === 'autoBackup' && 'Automated backups for optimal performance'}
-                        {key === 'healthChecks' && 'Automated health checks for optimal performance'}
-                        {key === 'logRotation' && 'Automated log rotation for optimal performance'}
+                        {key === 'autoBackup' && 'Automated backups for data protection'}
+                        {key === 'healthChecks' && 'Automated health checks for system monitoring'}
+                        {key === 'logRotation' && 'Automated log rotation for storage optimization'}
+                        {key === 'aiOptimization' && 'AI-powered performance optimization'}
+                        {key === 'securityScan' && 'Automated security vulnerability scanning'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0">
@@ -786,7 +1236,7 @@ export default function SupabaseCloudPanel() {
                         </div>
                         <Button
                           onClick={() => runAutomation(key)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                          className="bg-sky-600 hover:bg-sky-700 text-white text-sm"
                           disabled={!status.active}
                         >
                           <Play className="h-4 w-4 mr-2" />
@@ -800,6 +1250,14 @@ export default function SupabaseCloudPanel() {
             </motion.div>
           </TabsContent>
         </Tabs>
+
+        {/* Security Notice */}
+        <Alert className="mt-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            <strong>🔒 Security Notice:</strong> All sensitive operations are logged and monitored. Service role keys are server-only and never exposed to clients.
+          </AlertDescription>
+        </Alert>
       </div>
     </>
   )
