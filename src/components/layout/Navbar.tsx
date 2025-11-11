@@ -89,10 +89,7 @@ export default function Navbar() {
         setIsGitHubOpen(true)
         break
       case 'supabase':
-        toast.info("🔗 Supabase Cloud", {
-          description: "Opening Supabase control panel...",
-          duration: 3000,
-        })
+        handleNavClick('/cloud', 'Saanify Cloud')
         break
       case 'security':
         toast.info("🔒 Security Center", {
