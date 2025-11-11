@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, Github, LogIn, User, Zap, Plus, Settings, Database, Shield, BarChart3 } from 'lucide-react'
+import { Menu, X, ArrowRight, Github, LogIn, User, Zap, Grid3x3, Settings2, Database, Shield, BarChart3, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
@@ -119,25 +119,29 @@ export default function Navbar() {
       icon: <Github className="h-4 w-4" />,
       label: 'GitHub Integration',
       description: 'Connect and sync with GitHub',
-      action: 'github'
+      action: 'github',
+      gradient: 'from-gray-600 to-gray-800'
     },
     {
       icon: <Database className="h-4 w-4" />,
       label: 'Supabase Cloud',
       description: 'Database configuration',
-      action: 'supabase'
+      action: 'supabase',
+      gradient: 'from-green-600 to-emerald-700'
     },
     {
       icon: <Shield className="h-4 w-4" />,
       label: 'Security Center',
       description: 'Security and privacy settings',
-      action: 'security'
+      action: 'security',
+      gradient: 'from-blue-600 to-indigo-700'
     },
     {
       icon: <BarChart3 className="h-4 w-4" />,
       label: 'Analytics',
       description: 'View detailed analytics',
-      action: 'analytics'
+      action: 'analytics',
+      gradient: 'from-purple-600 to-pink-700'
     }
   ]
 
@@ -263,7 +267,7 @@ export default function Navbar() {
                 </Button>
               </motion.div>
 
-              {/* Dropdown Menu with + Icon */}
+              {/* Modern Grid3x3 Dropdown */}
               <div className="relative">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
@@ -273,46 +277,71 @@ export default function Navbar() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className={`font-medium ${
+                    className={`font-medium relative overflow-hidden ${
                       isScrolled ? 'text-foreground hover:text-foreground' : 'text-foreground hover:text-foreground'
-                    } ${isDropdownOpen ? 'bg-accent' : ''}`}
+                    } ${isDropdownOpen ? 'bg-accent/50' : ''}`}
                   >
-                    <Plus className="h-4 w-4" />
+                    <motion.div
+                      className="flex items-center space-x-1"
+                      animate={{ rotate: isDropdownOpen ? 45 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Grid3x3 className="h-4 w-4" />
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40"
+                        animate={{ opacity: isDropdownOpen ? 1 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    </motion.div>
                   </Button>
                 </motion.div>
 
-                {/* Dropdown Menu */}
+                {/* Enhanced Dropdown Menu */}
                 <AnimatePresence>
                   {isDropdownOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full right-0 mt-2 w-64"
+                      transition={{ duration: 0.3 }}
+                      className="absolute top-full right-0 mt-2 w-72"
                     >
-                      <Card className="bg-background/95 backdrop-blur-sm border-2 shadow-xl">
-                        <CardContent className="p-2">
+                      <Card className="bg-background/95 backdrop-blur-md border-2 shadow-2xl overflow-hidden">
+                        <CardContent className="p-1">
                           {dropdownItems.map((item, index) => (
                             <motion.button
                               key={item.action}
                               onClick={() => handleDropdownAction(item.action)}
-                              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-all duration-300 text-left group relative overflow-hidden"
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.2, delay: index * 0.05 }}
-                              whileHover={{ x: 5 }}
-                              whileTap={{ scale: 0.95 }}
+                              transition={{ duration: 0.3, delay: index * 0.08 }}
+                              whileHover={{ x: 5, scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
                             >
-                              <div className="flex-shrink-0 text-primary">
-                                {item.icon}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-foreground">
-                                  {item.label}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {item.description}
+                              {/* Background gradient effect */}
+                              <motion.div
+                                className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                                initial={{ x: -100 }}
+                                animate={{ x: isDropdownOpen ? 0 : -100 }}
+                                transition={{ duration: 0.5, delay: 0.2 }}
+                              />
+                              
+                              <div className="relative z-10 flex items-center space-x-3">
+                                <motion.div
+                                  className={`p-2 rounded-lg bg-gradient-to-br ${item.gradient} text-white shadow-lg`}
+                                  whileHover={{ scale: 1.1, rotate: 5 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  {item.icon}
+                                </motion.div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-semibold text-foreground">
+                                    {item.label}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {item.description}
+                                  </div>
                                 </div>
                               </div>
                             </motion.button>
@@ -381,22 +410,36 @@ export default function Navbar() {
                       <motion.button
                         key={item.action}
                         onClick={() => handleDropdownAction(item.action)}
-                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors text-left group relative overflow-hidden"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.05 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
                         whileHover={{ x: 5 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <div className="flex-shrink-0 text-primary">
-                          {item.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-foreground">
-                            {item.label}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.description}
+                        {/* Background gradient effect */}
+                        <motion.div
+                          className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                          initial={{ x: -100 }}
+                          animate={{ x: 0 }}
+                          transition={{ duration: 0.5 }}
+                        />
+                        
+                        <div className="relative z-10 flex items-center space-x-3">
+                          <motion.div
+                            className={`p-2 rounded-lg bg-gradient-to-br ${item.gradient} text-white shadow-lg`}
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {item.icon}
+                          </motion.div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-foreground">
+                              {item.label}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.description}
+                            </div>
                           </div>
                         </div>
                       </motion.button>
