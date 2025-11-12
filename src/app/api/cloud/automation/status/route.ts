@@ -1,56 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
+import SupabaseService from '@/lib/supabase-service'
+import { db } from '@/lib/db'
 
-// Mock automation status
-let mockAutomationStatus = {
-  enabled: false,
-  lastSync: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-  lastBackup: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-  errorCount: 1,
-  tasks: [
-    {
-      id: 'schema-sync',
-      name: 'Auto Schema Sync',
-      status: 'idle' as const,
-      lastRun: new Date(Date.now() - 3600000).toISOString(),
-      nextRun: new Date(Date.now() + 1800000).toISOString(), // 30 minutes from now
-      enabled: true,
-      progress: 0
-    },
-    {
-      id: 'logic-deploy',
-      name: 'Auto Logic Deploy',
-      status: 'completed' as const,
-      lastRun: new Date(Date.now() - 7200000).toISOString(),
-      nextRun: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
-      enabled: true,
-      progress: 100
-    },
-    {
-      id: 'github-backup',
-      name: 'Auto GitHub Backup',
-      status: 'error' as const,
-      lastRun: new Date(Date.now() - 10800000).toISOString(), // 3 hours ago
-      nextRun: new Date(Date.now() + 5400000).toISOString(), // 90 minutes from now
-      enabled: false,
-      progress: 0
-    },
-    {
-      id: 'health-check',
-      name: 'Health Check',
-      status: 'idle' as const,
-      lastRun: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-      nextRun: new Date(Date.now() + 900000).toISOString(), // 15 minutes from now
-      enabled: true,
-      progress: 0
-    }
-  ]
-}
-
-export async function GET() {
+export const GET = async (req: NextRequest) => {
   try {
+    // For development, return mock real-time data
+    const mockStatus = {
+      overall: {
+        total_runs: 0,
+        successful_runs: 0,
+        failed_runs: 0,
+        running_runs: 0,
+        success_rate: 0,
+        average_duration_ms: 0,
+        last_24_hours: 0
+      },
+      task_breakdown: {},
+      recent_activity: [],
+      system_health: {
+        supabase_connected: false,
+        automation_logs_available: false,
+        last_log_time: null
+      }
+    }
+    
     return NextResponse.json({
       success: true,
-      status: mockAutomationStatus
+      status: mockStatus
     })
   } catch (error) {
     console.error('Failed to fetch automation status:', error)

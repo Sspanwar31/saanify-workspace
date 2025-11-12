@@ -95,3 +95,17 @@ model Secret {
   
   @@map("secrets")
 }
+
+model AutomationLog {
+  id          String   @id @default(cuid())
+  taskName    String   @map("task_name")
+  status      String
+  durationMs  Int?     @map("duration_ms")
+  details     String?
+  error       String?
+  runTime     DateTime @default(now()) @map("run_time")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("automation_logs")
+}

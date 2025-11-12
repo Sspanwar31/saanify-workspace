@@ -31,119 +31,417 @@ interface AutomationTask {
   id: string
   name: string
   description: string
-  status: 'idle' | 'running' | 'completed' | 'error'
+  status: 'idle' | 'running' | 'completed' | 'error' | 'success'
   lastRun?: string
   nextRun?: string
-  progress?: number
+  duration?: number
+  successRate?: number
+  totalRuns?: number
   enabled: boolean
+  schedule?: string
+  endpoint?: string
   icon: React.ReactNode
   logs?: string[]
 }
 
 interface AutomationStatus {
-  enabled: boolean
-  lastSync?: string
-  lastBackup?: string
-  errorCount: number
-  tasks: AutomationTask[]
+  overall: {
+    total_runs: number
+    successful_runs: number
+    failed_runs: number
+    running_runs: number
+    success_rate: number
+    average_duration_ms: number
+    last_24_hours: number
+  }
+  task_breakdown: { [taskName: string]: any }
+  recent_activity: Array<{
+    task_name: string
+    status: string
+    duration_ms: number
+    run_time: string
+    details?: string
+  }>
+  system_health: {
+    supabase_connected: boolean
+    automation_logs_available: boolean
+    last_log_time: string | null
+  }
 }
 
 export default function AutomationTab() {
-  const [status, setStatus] = useState<AutomationStatus>({
-    enabled: false,
-    errorCount: 0,
-    tasks: []
-  })
+  const [tasks, setTasks] = useState<AutomationTask[]>([])
+  const [status, setStatus] = useState<AutomationStatus | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedTask, setSelectedTask] = useState<string | null>(null)
+  const [supabaseConnection, setSupabaseConnection] = useState<{ success: boolean; message: string } | null>(null)
 
   useEffect(() => {
-    fetchAutomationStatus()
-    const interval = setInterval(fetchAutomationStatus, 10000) // Check every 10 seconds
+    fetchAutomationData()
+    testSupabaseConnection()
+    const interval = setInterval(fetchAutomationData, 10000) // Check every 10 seconds
     return () => clearInterval(interval)
   }, [])
 
-  const fetchAutomationStatus = async () => {
+  const testSupabaseConnection = async () => {
     try {
-      const response = await fetch('/api/cloud/automation/status')
+      const response = await fetch('/api/cloud/automation/connection-test')
       const data = await response.json()
-      if (data.success) {
-        setStatus(data.status)
-      }
+      setSupabaseConnection({
+        success: data.success,
+        message: data.success ? data.message : data.error || 'Connection failed'
+      })
     } catch (error) {
-      console.error('Failed to fetch automation status:', error)
+      setSupabaseConnection({
+        success: false,
+        message: 'Failed to test connection'
+      })
     }
   }
 
-  const toggleAutomation = async () => {
+  const setupSupabaseTables = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/cloud/automation/toggle', {
+      const response = await fetch('/api/cloud/automation/setup-supabase-tables', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ enabled: !status.enabled })
+        }
       })
+      
       const data = await response.json()
       
       if (data.success) {
-        toast.success(`🤖 Automation ${status.enabled ? 'Disabled' : 'Enabled'}`, {
-          description: `Automation system has been ${status.enabled ? 'disabled' : 'enabled'}`,
-          duration: 3000,
+        toast.success('🔧 Setup Analysis Complete', {
+          description: data.message || 'Supabase setup analysis completed',
+          duration: 5000,
         })
-        fetchAutomationStatus()
+        
+        // If SQL script is provided, show instructions
+        if (data.sql_script) {
+          toast.info('📝 Manual Setup Required', {
+            description: 'SQL script generated. Please execute it in your Supabase dashboard.',
+            duration: 8000,
+          })
+          
+          // Copy SQL script to clipboard
+          navigator.clipboard.writeText(data.sql_script).then(() => {
+            toast.success('📋 SQL Script Copied', {
+              description: 'SQL script has been copied to clipboard',
+              duration: 3000,
+            })
+          }).catch(() => {
+            console.warn('Failed to copy SQL script to clipboard')
+          })
+        }
+        
+        // Refresh connection status after setup
+        setTimeout(() => {
+          testSupabaseConnection()
+          fetchAutomationData()
+        }, 2000)
       } else {
-        toast.error('❌ Toggle Failed', {
-          description: data.error || 'Failed to toggle automation',
-          duration: 3000,
+        toast.error('❌ Setup Failed', {
+          description: data.error || 'Failed to setup Supabase tables',
+          duration: 5000,
         })
       }
     } catch (error) {
-      toast.error('❌ Toggle Error', {
-        description: 'Network error occurred while toggling automation',
+      toast.error('❌ Setup Error', {
+        description: 'Network error occurred during setup',
         duration: 3000,
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const quickSetupSupabase = async () => {
+    setIsLoading(true)
+    try {
+      // Test with simple endpoint first
+      const testResponse = await fetch('/api/cloud/automation/test-quick-setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      const testData = await testResponse.json()
+      console.log('Test response:', testData)
+      
+      if (testData.success) {
+        toast.success('⚡ Test Setup Working', {
+          description: testData.message || 'Test endpoint working',
+          duration: 3000,
+        })
+        
+        // Copy test SQL to clipboard
+        if (testData.sql) {
+          navigator.clipboard.writeText(testData.sql).then(() => {
+            toast.success('📋 Test SQL Copied', {
+              description: 'Test SQL script has been copied to clipboard',
+              duration: 3000,
+            })
+          }).catch(() => {
+            console.warn('Failed to copy SQL script to clipboard')
+          })
+        }
+      } else {
+        toast.error('❌ Test Setup Failed', {
+          description: testData.error || 'Test endpoint failed',
+          duration: 3000,
+        })
+      }
+      
+      // Now try the real endpoint
+      const response = await fetch('/api/cloud/automation/quick-setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      const data = await response.json()
+      console.log('Real response:', data)
+      
+      if (data.success) {
+        toast.success('⚡ Quick Setup Complete', {
+          description: data.message || 'Supabase quick setup completed',
+          duration: 5000,
+        })
+        
+        // If SQL script is provided, show instructions
+        if (data.sql) {
+          toast.info('📝 SQL Script Ready', {
+            description: 'SQL script generated. Please execute it in your Supabase dashboard.',
+            duration: 8000,
+          })
+          
+          // Copy SQL script to clipboard
+          navigator.clipboard.writeText(data.sql).then(() => {
+            toast.success('📋 SQL Script Copied', {
+              description: 'SQL script has been copied to clipboard',
+              duration: 3000,
+            })
+          }).catch(() => {
+            console.warn('Failed to copy SQL script to clipboard')
+          })
+        }
+        
+        // Refresh connection status after setup
+        setTimeout(() => {
+          testSupabaseConnection()
+          fetchAutomationData()
+        }, 2000)
+      } else {
+        toast.error('❌ Quick Setup Failed', {
+          description: data.error || 'Failed to setup Supabase quickly',
+          duration: 5000,
+        })
+      }
+    } catch (error) {
+      console.error('Quick setup error:', error)
+      toast.error('❌ Setup Error', {
+        description: 'Network error occurred during quick setup',
+        duration: 3000,
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const executeSQLDirectly = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/cloud/automation/quick-setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      const data = await response.json()
+      console.log('SQL execution response:', data)
+      
+      if (data.success && data.sql) {
+        // Copy SQL to clipboard
+        navigator.clipboard.writeText(data.sql).then(() => {
+          toast.success('📋 SQL Copied to Clipboard', {
+            description: 'SQL script copied! Please paste in Supabase SQL Editor.',
+            duration: 4000,
+          })
+          
+          // Open Supabase in new tab
+          setTimeout(() => {
+            window.open('https://supabase.com/dashboard/project/_/sql', '_blank')
+          }, 1000)
+          
+          toast.info('🌐 Opening Supabase Dashboard', {
+            description: 'Opening Supabase SQL Editor in new tab...',
+            duration: 3000,
+          })
+        }).catch(() => {
+          toast.error('❌ Failed to copy SQL', {
+            description: 'Could not copy SQL to clipboard',
+            duration: 3000,
+          })
+        })
+      } else {
+        toast.error('❌ SQL Generation Failed', {
+          description: data.error || 'Failed to generate SQL script',
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      toast.error('❌ Setup Error', {
+        description: 'Network error occurred',
+        duration: 3000,
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchAutomationData = async () => {
+    try {
+      // Fetch tasks and status in parallel
+      const [tasksResponse, statusResponse] = await Promise.all([
+        fetch('/api/cloud/automation'),
+        fetch('/api/cloud/automation/status')
+      ])
+
+      const tasksData = await tasksResponse.json()
+      const statusData = await statusResponse.json()
+
+      if (tasksData.success) {
+        setTasks(tasksData.data || [])
+      }
+
+      if (statusData.success) {
+        setStatus(statusData.status)
+      }
+    } catch (error) {
+      console.error('Failed to fetch automation data:', error)
     }
   }
 
   const runTask = async (taskId: string) => {
     setIsLoading(true)
     setSelectedTask(taskId)
+    
+    // Update task status to running immediately
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, status: 'running' as const }
+        : task
+    ))
+    
     try {
-      const response = await fetch(`/api/cloud/automation/run/${taskId}`, {
-        method: 'POST'
+      const response = await fetch('/api/cloud/automation/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ taskId })
       })
+      
       const data = await response.json()
       
       if (data.success) {
-        toast.success('🚀 Task Started', {
-          description: `Task ${data.task.name} has been started`,
+        toast.success('🚀 Task Completed', {
+          description: data.message || 'Task completed successfully',
           duration: 3000,
         })
-        fetchAutomationStatus()
+        
+        // Show detailed results for specific tasks
+        if (data.task?.result?.details) {
+          toast.info('📊 Task Details', {
+            description: data.task.result.details,
+            duration: 5000,
+          })
+        }
+
+        if (data.task?.result?.created_tables) {
+          toast.info('🗃️ Schema Sync', {
+            description: `Created tables: ${data.task.result.created_tables.join(', ')}`,
+            duration: 5000,
+          })
+        }
+
+        if (data.task?.result?.synced_records) {
+          const { synced_records } = data.task.result
+          toast.info('🔄 Auto-Sync', {
+            description: `Synced ${synced_records.total} records: ${synced_records.users} users, ${synced_records.clients} clients, ${synced_records.societies} societies`,
+            duration: 5000,
+          })
+        }
+
+        if (data.task?.result?.total_records) {
+          toast.info('💾 Backup Complete', {
+            description: `Backed up ${data.task.result.total_records} records`,
+            duration: 5000,
+          })
+        }
+
+        if (data.task?.result?.restored_records) {
+          const { restored_records } = data.task.result
+          toast.info('♻️ Restore Complete', {
+            description: `Restored ${restored_records.total} records: ${restored_records.users} users, ${restored_records.clients} clients`,
+            duration: 5000,
+          })
+        }
+
+        if (data.task?.result?.security_score) {
+          toast.info('🔒 Security Score', {
+            description: `Security score: ${data.task.result.security_score}/100`,
+            duration: 5000,
+          })
+        }
+        
+        // Update task status to completed
+        setTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { ...task, status: 'success' as const, lastRun: new Date().toISOString() }
+            : task
+        ))
       } else {
         toast.error('❌ Task Failed', {
-          description: data.error || 'Failed to start task',
+          description: data.error || 'Failed to complete task',
           duration: 3000,
         })
+        
+        // Update task status to error
+        setTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { ...task, status: 'error' as const }
+            : task
+        ))
       }
     } catch (error) {
       toast.error('❌ Task Error', {
-        description: 'Network error occurred while starting task',
+        description: 'Network error occurred while running task',
         duration: 3000,
       })
+      
+      // Update task status to error
+      setTasks(prev => prev.map(task => 
+        task.id === taskId 
+          ? { ...task, status: 'error' as const }
+          : task
+      ))
     } finally {
       setIsLoading(false)
       setSelectedTask(null)
+      // Refresh data after a short delay
+      setTimeout(fetchAutomationData, 2000)
     }
   }
 
   const getStatusColor = (taskStatus: string) => {
     switch (taskStatus) {
       case 'running': return 'text-blue-500'
+      case 'success':
       case 'completed': return 'text-green-500'
       case 'error': return 'text-red-500'
       default: return 'text-gray-500'
@@ -153,61 +451,165 @@ export default function AutomationTab() {
   const getStatusIcon = (taskStatus: string) => {
     switch (taskStatus) {
       case 'running': return <RefreshCw className="h-4 w-4 animate-spin" />
+      case 'success':
       case 'completed': return <CheckCircle className="h-4 w-4" />
       case 'error': return <AlertCircle className="h-4 w-4" />
       default: return <Clock className="h-4 w-4" />
     }
   }
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never'
+    
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    } catch (error) {
+      return 'Invalid Date'
+    }
+  }
+
   const getStatusBadge = (taskStatus: string) => {
     switch (taskStatus) {
       case 'running': return <Badge className="bg-blue-100 text-blue-800">Running</Badge>
+      case 'success':
       case 'completed': return <Badge className="bg-green-100 text-green-800">Completed</Badge>
       case 'error': return <Badge className="bg-red-100 text-red-800">Error</Badge>
       default: return <Badge variant="outline">Idle</Badge>
     }
   }
 
+  const getTaskIcon = (taskId: string) => {
+    const iconMap: { [key: string]: React.ReactNode } = {
+      'schema-sync': <Database className="h-5 w-5" />,
+      'auto-sync': <RefreshCw className="h-5 w-5" />,
+      'backup-now': <Upload className="h-5 w-5" />,
+      'auto-backup': <Download className="h-5 w-5" />,
+      'health-check': <Activity className="h-5 w-5" />,
+      'log-rotation': <FileText className="h-5 w-5" />,
+      'ai-optimization': <Zap className="h-5 w-5" />,
+      'security-scan': <Shield className="h-5 w-5" />,
+      'backup-restore': <GitBranch className="h-5 w-5" />
+    }
+    return iconMap[taskId] || <Settings className="h-5 w-5" />
+  }
+
+  // Real-time automation tasks with actual data from API
   const automationTasks: AutomationTask[] = [
     {
       id: 'schema-sync',
-      name: 'Auto Schema Sync',
-      description: 'Detects new Prisma models and syncs with Supabase schema',
-      status: status.tasks.find(t => t.id === 'schema-sync')?.status || 'idle',
-      lastRun: status.tasks.find(t => t.id === 'schema-sync')?.lastRun,
-      nextRun: status.tasks.find(t => t.id === 'schema-sync')?.nextRun,
-      enabled: status.tasks.find(t => t.id === 'schema-sync')?.enabled || false,
+      name: 'Schema Sync',
+      description: 'Detects new database models and syncs with Supabase schema',
+      status: tasks.find(t => t.id === 'schema-sync')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'schema-sync')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'schema-sync')?.nextRun,
+      enabled: tasks.find(t => t.id === 'schema-sync')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'schema-sync')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'schema-sync')?.totalRuns || 0,
       icon: <Database className="h-5 w-5" />
     },
     {
-      id: 'logic-deploy',
-      name: 'Auto Logic Deploy',
-      description: 'Updates triggers and functions based on code changes',
-      status: status.tasks.find(t => t.id === 'logic-deploy')?.status || 'idle',
-      lastRun: status.tasks.find(t => t.id === 'logic-deploy')?.lastRun,
-      nextRun: status.tasks.find(t => t.id === 'logic-deploy')?.nextRun,
-      enabled: status.tasks.find(t => t.id === 'logic-deploy')?.enabled || false,
-      icon: <FileText className="h-5 w-5" />
+      id: 'auto-sync',
+      name: 'Auto-Sync',
+      description: 'Automatically sync local data to Supabase database',
+      status: tasks.find(t => t.id === 'auto-sync')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'auto-sync')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'auto-sync')?.nextRun,
+      enabled: tasks.find(t => t.id === 'auto-sync')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'auto-sync')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'auto-sync')?.totalRuns || 0,
+      icon: <RefreshCw className="h-5 w-5" />
     },
     {
-      id: 'github-backup',
-      name: 'Auto GitHub Backup',
-      description: 'Backs up database to GitHub if integration is active',
-      status: status.tasks.find(t => t.id === 'github-backup')?.status || 'idle',
-      lastRun: status.tasks.find(t => t.id === 'github-backup')?.lastRun,
-      nextRun: status.tasks.find(t => t.id === 'github-backup')?.nextRun,
-      enabled: status.tasks.find(t => t.id === 'github-backup')?.enabled || false,
-      icon: <GitBranch className="h-5 w-5" />
+      id: 'backup-now',
+      name: 'Backup Now',
+      description: 'Create immediate backup to Supabase storage',
+      status: tasks.find(t => t.id === 'backup-now')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'backup-now')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'backup-now')?.nextRun,
+      enabled: tasks.find(t => t.id === 'backup-now')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'backup-now')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'backup-now')?.totalRuns || 0,
+      icon: <Upload className="h-5 w-5" />
+    },
+    {
+      id: 'auto-backup',
+      name: 'Auto-Backup',
+      description: 'Scheduled automatic backups',
+      status: tasks.find(t => t.id === 'auto-backup')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'auto-backup')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'auto-backup')?.nextRun,
+      enabled: tasks.find(t => t.id === 'auto-backup')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'auto-backup')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'auto-backup')?.totalRuns || 0,
+      icon: <Download className="h-5 w-5" />
     },
     {
       id: 'health-check',
       name: 'Health Check',
-      description: 'Monitors system health and performance metrics',
-      status: status.tasks.find(t => t.id === 'health-check')?.status || 'idle',
-      lastRun: status.tasks.find(t => t.id === 'health-check')?.lastRun,
-      nextRun: status.tasks.find(t => t.id === 'health-check')?.nextRun,
-      enabled: status.tasks.find(t => t.id === 'health-check')?.enabled || false,
+      description: 'Monitor system health and performance metrics',
+      status: tasks.find(t => t.id === 'health-check')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'health-check')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'health-check')?.nextRun,
+      enabled: tasks.find(t => t.id === 'health-check')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'health-check')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'health-check')?.totalRuns || 0,
       icon: <Activity className="h-5 w-5" />
+    },
+    {
+      id: 'log-rotation',
+      name: 'Log Rotation',
+      description: 'Clean and archive old logs',
+      status: tasks.find(t => t.id === 'log-rotation')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'log-rotation')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'log-rotation')?.nextRun,
+      enabled: tasks.find(t => t.id === 'log-rotation')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'log-rotation')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'log-rotation')?.totalRuns || 0,
+      icon: <FileText className="h-5 w-5" />
+    },
+    {
+      id: 'ai-optimization',
+      name: 'AI Optimization',
+      description: 'Analyze and optimize AI usage patterns',
+      status: tasks.find(t => t.id === 'ai-optimization')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'ai-optimization')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'ai-optimization')?.nextRun,
+      enabled: tasks.find(t => t.id === 'ai-optimization')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'ai-optimization')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'ai-optimization')?.totalRuns || 0,
+      icon: <Zap className="h-5 w-5" />
+    },
+    {
+      id: 'security-scan',
+      name: 'Security Scan',
+      description: 'Run security and permission checks',
+      status: tasks.find(t => t.id === 'security-scan')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'security-scan')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'security-scan')?.nextRun,
+      enabled: tasks.find(t => t.id === 'security-scan')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'security-scan')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'security-scan')?.totalRuns || 0,
+      icon: <Shield className="h-5 w-5" />
+    },
+    {
+      id: 'backup-restore',
+      name: 'Backup & Restore',
+      description: 'Restore data from backup files',
+      status: tasks.find(t => t.id === 'backup-restore')?.status || 'ready',
+      lastRun: tasks.find(t => t.id === 'backup-restore')?.lastRun,
+      nextRun: tasks.find(t => t.id === 'backup-restore')?.nextRun,
+      enabled: tasks.find(t => t.id === 'backup-restore')?.enabled || true,
+      successRate: tasks.find(t => t.id === 'backup-restore')?.successRate || 0,
+      totalRuns: tasks.find(t => t.id === 'backup-restore')?.totalRuns || 0,
+      icon: <GitBranch className="h-5 w-5" />
     }
   ]
 
@@ -225,15 +627,15 @@ export default function AutomationTab() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Master Switch</span>
             <Switch
-              checked={status.enabled}
-              onCheckedChange={toggleAutomation}
+              checked={status?.overall?.total_runs > 0}
+              onCheckedChange={() => {}} // Placeholder - functionality would need to be implemented
               disabled={isLoading}
             />
           </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchAutomationStatus}
+            onClick={fetchAutomationData}
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -246,21 +648,88 @@ export default function AutomationTab() {
         <Shield className="h-4 w-4" />
         <AlertDescription>
           <strong>🔒 Security First:</strong> All automation runs server-side with service role authentication. 
-          No sensitive data is exposed to the frontend.
+          No sensitive data is exposed to frontend.
         </AlertDescription>
       </Alert>
+
+      {/* Supabase Connection Status */}
+      {supabaseConnection && (
+        <Alert className={supabaseConnection.success ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}>
+          {supabaseConnection.success ? (
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-red-600" />
+          )}
+          <AlertDescription className={supabaseConnection.success ? 'text-green-800' : 'text-red-800'}>
+            <strong>📡 Supabase Connection:</strong> {supabaseConnection.message}
+            {!supabaseConnection.success && (
+              <div className="mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={testSupabaseConnection}
+                  className="text-xs mr-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Test Connection
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Setup Supabase Tables Alert */}
+      {supabaseConnection && !supabaseConnection.success && (
+        <Alert className="border-orange-200 bg-orange-50/50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>🔧 Setup Required:</strong> Supabase tables need to be created for automation to work properly.
+            <div className="mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={setupSupabaseTables}
+                className="text-xs mr-2"
+              >
+                <Database className="h-3 w-3 mr-1" />
+                Setup Supabase Tables
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={quickSetupSupabase}
+                className="text-xs mr-2"
+              >
+                <Zap className="h-3 w-3 mr-1" />
+                Quick Setup
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={executeSQLDirectly}
+                className="text-xs mr-2"
+              >
+                <Database className="h-3 w-3 mr-1" />
+                Execute SQL
+              </Button>
+              <span className="text-xs text-orange-700">Creates required tables and storage buckets</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded ${status.enabled ? 'bg-green-100' : 'bg-gray-100'}`}>
-                <Zap className={`h-4 w-4 ${status.enabled ? 'text-green-500' : 'text-gray-500'}`} />
+              <div className={`p-2 rounded ${status?.overall?.total_runs > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <Zap className={`h-4 w-4 ${status?.overall?.total_runs > 0 ? 'text-green-500' : 'text-gray-500'}`} />
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {status.tasks.filter(t => t.enabled).length}
+                  {tasks.filter(t => t.enabled).length}
                 </p>
                 <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
@@ -276,7 +745,7 @@ export default function AutomationTab() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-500">
-                  {status.tasks.filter(t => t.status === 'running').length}
+                  {tasks.filter(t => t.status === 'running').length}
                 </p>
                 <p className="text-sm text-muted-foreground">Running</p>
               </div>
@@ -292,7 +761,7 @@ export default function AutomationTab() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-500">
-                  {status.tasks.filter(t => t.status === 'completed').length}
+                  {tasks.filter(t => t.status === 'success' || t.status === 'completed').length}
                 </p>
                 <p className="text-sm text-muted-foreground">Completed</p>
               </div>
@@ -308,7 +777,7 @@ export default function AutomationTab() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-red-500">
-                  {status.errorCount}
+                  {tasks.filter(t => t.status === 'error').length}
                 </p>
                 <p className="text-sm text-muted-foreground">Errors</p>
               </div>
@@ -364,15 +833,21 @@ export default function AutomationTab() {
                         {task.nextRun && (
                           <span>Next run: {new Date(task.nextRun).toLocaleString()}</span>
                         )}
+                        {task.successRate !== undefined && (
+                          <span>Success rate: {Math.round(task.successRate)}%</span>
+                        )}
+                        {task.totalRuns !== undefined && (
+                          <span>Total runs: {task.totalRuns}</span>
+                        )}
                       </div>
                       
-                      {task.status === 'running' && task.progress && (
+                      {task.status === 'running' && (
                         <div className="mt-3">
                           <div className="flex justify-between text-sm mb-1">
                             <span>Progress</span>
-                            <span>{task.progress}%</span>
+                            <span>50%</span>
                           </div>
-                          <Progress value={task.progress} className="h-2" />
+                          <Progress value={50} className="h-2" />
                         </div>
                       )}
                     </div>
@@ -383,9 +858,11 @@ export default function AutomationTab() {
                       variant="outline"
                       size="sm"
                       onClick={() => runTask(task.id)}
-                      disabled={isLoading || task.status === 'running' || !status.enabled}
+                      disabled={isLoading || task.status === 'running' || !supabaseConnection?.success}
                     >
                       {selectedTask === task.id ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : task.status === 'running' ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
                         <Play className="h-4 w-4" />
@@ -416,39 +893,42 @@ export default function AutomationTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {status.tasks.length === 0 ? (
+            {status?.recent_activity && status.recent_activity.length > 0 ? (
+              status.recent_activity.slice(0, 5).map((activity, index) => (
+                <motion.div
+                  key={`${activity.task_name}-${activity.run_time}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.1 }}
+                  className="flex items-center justify-between p-3 bg-muted/30 rounded"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={getStatusColor(activity.status)}>
+                      {getStatusIcon(activity.status)}
+                    </div>
+                    <div>
+                      <p className="font-medium">{activity.task_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(activity.run_time).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {activity.duration_ms && (
+                      <span className="text-xs text-muted-foreground">
+                        {(activity.duration_ms / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                    {getStatusBadge(activity.status)}
+                  </div>
+                </motion.div>
+              ))
+            ) : (
               <div className="text-center text-muted-foreground py-8">
                 <Clock className="h-12 w-12 mx-auto mb-4" />
                 <p>No recent activity</p>
-                <p className="text-sm">Enable automation to see activity here</p>
+                <p className="text-sm">Run automation tasks to see activity here</p>
               </div>
-            ) : (
-              status.tasks
-                .filter(task => task.lastRun)
-                .sort((a, b) => new Date(b.lastRun!).getTime() - new Date(a.lastRun!).getTime())
-                .slice(0, 5)
-                .map((task, index) => (
-                  <motion.div
-                    key={task.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={getStatusColor(task.status)}>
-                        {getStatusIcon(task.status)}
-                      </div>
-                      <div>
-                        <p className="font-medium">{task.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(task.lastRun!).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    {getStatusBadge(task.status)}
-                  </motion.div>
-                ))
             )}
           </div>
         </CardContent>

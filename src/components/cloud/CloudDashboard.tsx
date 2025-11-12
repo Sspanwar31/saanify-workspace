@@ -235,7 +235,125 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   const [storageFiles, setStorageFiles] = useState<StorageFile[]>([])
   const [functions, setFunctions] = useState<CloudFunction[]>([])
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([])
+  const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([
+    {
+      id: 'schema-sync',
+      name: 'Schema Sync',
+      description: 'Automatically sync database schema changes',
+      enabled: true,
+      schedule: '0 */6 * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'auto-sync',
+      name: 'Auto-Sync',
+      description: 'Automatically sync data to Supabase',
+      enabled: true,
+      schedule: '0 */2 * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'backup-now',
+      name: 'Backup Now',
+      description: 'Create immediate backup to Supabase storage',
+      enabled: true,
+      schedule: 'manual',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'auto-backup',
+      name: 'Auto-Backup',
+      description: 'Scheduled automatic backups',
+      enabled: true,
+      schedule: '0 2 * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'health-check',
+      name: 'Health Check',
+      description: 'Monitor system health and performance metrics',
+      enabled: true,
+      schedule: '*/5 * * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'log-rotation',
+      name: 'Log Rotation',
+      description: 'Clean and archive old logs',
+      enabled: true,
+      schedule: '0 0 * * 0',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'ai-optimization',
+      name: 'AI Optimization',
+      description: 'Analyze and optimize AI usage patterns',
+      enabled: true,
+      schedule: '0 */4 * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'security-scan',
+      name: 'Security Scan',
+      description: 'Run security and permission checks',
+      enabled: true,
+      schedule: '0 3 * * 1',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'backup-restore',
+      name: 'Backup & Restore',
+      description: 'Restore data from backup files',
+      enabled: true,
+      schedule: 'manual',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    }
+  ])
   
   // UI states
   const [logPage, setLogPage] = useState(1)
@@ -246,6 +364,10 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   const [editingSecret, setEditingSecret] = useState<Secret | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [actualSecretValues, setActualSecretValues] = useState<Record<string, string>>({})
+  
+  // Restore states
+  const [selectedBackupFile, setSelectedBackupFile] = useState<File | null>(null)
+  const [includeSecretsInRestore, setIncludeSecretsInRestore] = useState(false)
 
   // Fetch cloud status
   const fetchCloudStatus = async () => {
@@ -333,10 +455,16 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   // Fetch automation tasks
   const fetchAutomationTasks = async () => {
     try {
+      console.log('Fetching automation tasks...')
       const response = await fetch('/api/cloud/automation')
       const result = await response.json()
+      console.log('Automation tasks response:', result)
       if (result.success) {
+        console.log('Setting automation tasks:', result.data)
         setAutomationTasks(result.data || [])
+      } else {
+        console.error('API returned error:', result.error)
+        setAutomationTasks([])
       }
     } catch (error) {
       console.error('Error fetching automation tasks:', error)
@@ -543,7 +671,10 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
       const result = await response.json()
       
       if (result.success) {
-        toast.success('💾 Backup initiated successfully')
+        toast.success('💾 Backup initiated successfully', {
+          description: result.message || `Backup process started`,
+          duration: 3000,
+        })
       } else {
         toast.error(result.error || 'Failed to initiate backup')
       }
@@ -551,6 +682,57 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
       toast.error('Failed to initiate backup')
     } finally {
       setLoading({ ...loading, [`backup_${type}`]: false })
+    }
+  }
+
+  // Handle file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedBackupFile(file)
+      toast.info('📁 Backup file selected', {
+        description: `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`,
+        duration: 2000,
+      })
+    }
+  }
+
+  // Handle restore
+  const handleRestore = async () => {
+    if (!selectedBackupFile) {
+      toast.error('❌ No backup file selected')
+      return
+    }
+
+    setLoading({ ...loading, restore: true })
+    try {
+      const formData = new FormData()
+      formData.append('backupFile', selectedBackupFile)
+      formData.append('includeSecrets', includeSecretsInRestore.toString())
+
+      const response = await fetch('/api/cloud/restore', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('🔄 Restore process started', {
+          description: result.message || 'Restore initiated successfully',
+          duration: 3000,
+        })
+        setSelectedBackupFile(null)
+        // Reset file input
+        const fileInput = document.getElementById('backup-file-input') as HTMLInputElement
+        if (fileInput) fileInput.value = ''
+      } else {
+        toast.error(result.error || 'Failed to initiate restore')
+      }
+    } catch (error) {
+      toast.error('Failed to initiate restore')
+    } finally {
+      setLoading({ ...loading, restore: false })
     }
   }
 
@@ -624,23 +806,48 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
 
   // Run automation task
   const runAutomationTask = async (taskId: string) => {
+    console.log(`🚀 Starting automation task: ${taskId}`)
     setLoading({ ...loading, [`run_${taskId}`]: true })
+    
     try {
+      console.log('📡 Sending API request...')
       const response = await fetch('/api/cloud/automation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'run', taskId })
       })
+      
+      console.log('📨 Waiting for response...')
       const result = await response.json()
+      console.log('📋 API Response received:', result)
       
       if (result.success) {
-        toast.success(`🚀 ${result.message}`)
+        console.log('✅ Task completed successfully')
+        toast.success(`🚀 ${result.message}`, {
+          description: `Task "${taskId}" completed successfully`,
+          duration: 3000,
+        })
+        
+        // Refresh automation tasks to get updated status
+        setTimeout(() => {
+          console.log('🔄 Refreshing automation tasks...')
+          fetchAutomationTasks()
+        }, 1000)
       } else {
-        toast.error(result.error || 'Failed to run task')
+        console.error('❌ Task failed:', result.error)
+        toast.error(`❌ ${result.error || 'Failed to run task'}`, {
+          description: `Task "${taskId}" failed to complete`,
+          duration: 5000,
+        })
       }
     } catch (error) {
-      toast.error('Failed to run task')
+      console.error('💥 Network error:', error)
+      toast.error('💥 Failed to run task', {
+        description: `Network error occurred while running task "${taskId}"`,
+        duration: 3000,
+      })
     } finally {
+      console.log('🏁 Task execution finished')
       setLoading({ ...loading, [`run_${taskId}`]: false })
     }
   }
@@ -1720,6 +1927,57 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
+              {/* Test Button */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-yellow-800 dark:text-yellow-200">🧪 Test Automation</h4>
+                    <p className="text-sm text-yellow-600 dark:text-yellow-400">Click to test if automation buttons are working</p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      console.log('Test button clicked!')
+                      console.log('Current automation tasks:', automationTasks)
+                      toast.success('🧪 Test Button Working!', {
+                        description: 'Automation section is loaded and functional',
+                        duration: 3000,
+                      })
+                      
+                      // Test direct API call
+                      fetch('/api/cloud/automation/run', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'run', taskId: 'backup-now' })
+                      }).then(response => response.json())
+                      .then(result => {
+                        console.log('Direct API test result:', result)
+                        if (result.success) {
+                          toast.success('✅ Direct API Test Success!', {
+                            description: result.message || 'API call successful',
+                            duration: 3000,
+                          })
+                        } else {
+                          toast.error('❌ Direct API Test Failed', {
+                            description: result.error || 'API call failed',
+                            duration: 3000,
+                          })
+                        }
+                      })
+                      .catch(error => {
+                        console.error('Direct API test error:', error)
+                        toast.error('❌ Direct API Test Error', {
+                          description: 'Network error occurred',
+                          duration: 3000,
+                        })
+                      })
+                    }}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    Test Direct API
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Automation Tasks</h3>
                 <div className="flex items-center gap-2">
@@ -1783,11 +2041,11 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 dark:text-gray-400">Last Run:</span>
-                        <span className="font-medium">{new Date(task.lastRun).toLocaleString()}</span>
+                        <span className="font-medium">{task.lastRun ? new Date(task.lastRun).toLocaleString() : 'Never'}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 dark:text-gray-400">Next Run:</span>
-                        <span className="font-medium">{new Date(task.nextRun).toLocaleString()}</span>
+                        <span className="font-medium">{task.nextRun ? new Date(task.nextRun).toLocaleString() : 'Not Scheduled'}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 dark:text-gray-400">Total Runs:</span>
@@ -1795,6 +2053,18 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                       </div>
 
                       <div className="flex items-center gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            console.log(`Testing ${task.name} button...`)
+                            runAutomationTask(task.id)
+                          }}
+                          disabled={loading[`run_${task.id}`] || !task.enabled}
+                          className="bg-sky-600 hover:bg-sky-700 text-white text-xs mr-2"
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          Test {task.name}
+                        </Button>
                         <Button
                           size="sm"
                           onClick={() => runAutomationTask(task.id)}
@@ -1853,6 +2123,58 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                       Last backup completed 1 hour ago. Next automatic backup scheduled in 23 hours.
                     </AlertDescription>
                   </Alert>
+
+                  {/* Restore Section */}
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Restore from Backup</h4>
+                    <div className="space-y-3">
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                        <input
+                          type="file"
+                          id="backup-file-input"
+                          accept=".tar.gz,.zip,.sql"
+                          onChange={(e) => handleFileUpload(e)}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="backup-file-input"
+                          className="cursor-pointer flex flex-col items-center gap-2"
+                        >
+                          <Upload className="h-8 w-8 text-gray-400 mx-auto" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Click to upload backup file or drag and drop
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Supports: .tar.gz, .zip, .sql files
+                          </span>
+                        </label>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="include-secrets"
+                            checked={includeSecretsInRestore}
+                            onChange={(e) => setIncludeSecretsInRestore(e.target.checked)}
+                            className="rounded border-gray-300"
+                          />
+                          <label htmlFor="include-secrets" className="text-sm text-gray-700 dark:text-gray-300">
+                            Include secrets in restore
+                          </label>
+                        </div>
+                        
+                        <Button
+                          onClick={handleRestore}
+                          disabled={!selectedBackupFile || loading.restore}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <ArchiveRestore className="h-4 w-4 mr-2" />
+                          {loading.restore ? 'Restoring...' : 'Restore Backup'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
