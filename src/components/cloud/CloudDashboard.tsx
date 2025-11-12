@@ -47,109 +47,74 @@ import {
   Timer,
   Bell,
   BellRing,
-  Volume2,
-  VolumeX,
-  Maximize2,
-  Minimize2,
-  Fullscreen,
-  Sun,
-  Moon,
-  MonitorSpeaker,
-  Smartphone,
-  Tablet,
-  Laptop,
-  WifiOff,
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
-  Battery,
-  BatteryCharging,
-  Power,
-  PowerOff,
-  LogOut,
-  LogIn,
-  User,
-  UserPlus,
-  UserMinus,
   Settings2,
-  Wrench,
-  Tool,
   Package,
-  Box,
-  PackageOpen,
   ArchiveRestore,
-  ArchiveX,
   File,
   FilePlus,
   FileMinus,
   FileX,
   FileSearch,
-  FileText,
-  FileCheck,
-  FileWarning,
-  FileQuestion,
   FileLock,
   FileUnlock,
-  FileCode,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileArchive,
-  FileDown,
-  FileUp,
-  FileSymlink,
-  FileBroken,
-  FileQuestionMark,
-  FileUnknown,
-  FileCopy,
-  FileMove,
-  FileRename,
-  FileEdit,
-  FileDelete,
-  FileDownload,
-  FileUpload,
-  FileExport,
-  FileImport,
-  FileSave,
-  FilePrint,
-  FileShare,
-  FileLock2,
-  FileUnlock2,
-  FileCheck2,
-  FileX2,
-  FilePlus2,
-  FileMinus2,
-  FileCopy2,
-  FileMove2,
-  FileRename2,
-  FileEdit2,
-  FileDelete2,
-  FileDownload2,
-  FileUpload2,
-  FileExport2,
-  FileImport2,
-  FileSave2,
-  FilePrint2,
-  FileShare2,
-  FileLock3,
-  FileUnlock3,
-  FileCheck3,
-  FileX3,
-  FilePlus3,
-  FileMinus3,
-  FileCopy3,
-  FileMove3,
-  FileRename3,
-  FileEdit3,
-  FileDelete3,
-  FileDownload3,
-  FileUpload3,
-  FileExport3,
-  FileImport3,
-  FileSave3,
-  FilePrint3,
-  FileShare3
+  Code,
+  Terminal,
+  CpuChip,
+  Brain,
+  ZapIcon,
+  History,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  ChevronLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  SkipForward,
+  SkipBack,
+  Pause,
+  Square,
+  Circle,
+  Triangle,
+  Hexagon,
+  Diamond,
+  Star,
+  Heart,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Send,
+  Paperclip,
+  Link,
+  Unlink,
+  Lock,
+  Unlock,
+  Key,
+  Fingerprint,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  User,
+  UserPlus,
+  UserMinus,
+  UserCheck,
+  UserX,
+  Mail,
+  Phone,
+  MapPin,
+  CalendarDays,
+  Clock1,
+  Clock2,
+  Clock3,
+  Clock4,
+  Clock5,
+  Clock6,
+  Clock7,
+  Clock8,
+  Clock9,
+  Clock10,
+  Clock11,
+  Clock12
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -160,11 +125,98 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import ErrorBoundaryClass from '@/components/error-boundary-new'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface CloudDashboardProps {
   onStatsUpdate: () => void
+}
+
+interface CloudStatus {
+  uptime: number
+  project: {
+    name: string
+    region: string
+    status: string
+    version: string
+  }
+  resources: {
+    storage: { used: number; total: number; unit: string }
+    functions: { deployed: number; total: number; active: number }
+    databases: { connected: number; total: number; healthy: number }
+  }
+  performance: {
+    requests: number
+    aiCalls: number
+    bandwidth: number
+    activeUsers: number
+    responseTime: number
+  }
+  lastUpdated: string
+}
+
+interface Secret {
+  id: string
+  name: string
+  value: string
+  description: string
+  lastRotated: string
+  createdAt: string
+}
+
+interface StorageFile {
+  id: string
+  name: string
+  type: string
+  size: string
+  modified: string
+  path: string
+  fileCount?: number
+  icon: string
+}
+
+interface CloudFunction {
+  id: string
+  name: string
+  description: string
+  status: string
+  runtime: string
+  memory: number
+  timeout: number
+  invocations: number
+  errors: number
+  avgLatency: number
+  lastDeployed: string
+  endpoint: string
+}
+
+interface LogEntry {
+  id: string
+  timestamp: string
+  level: string
+  service: string
+  message: string
+  requestId: string
+  userId?: string
+  duration: number
+  statusCode: number
+}
+
+interface AutomationTask {
+  id: string
+  name: string
+  description: string
+  enabled: boolean
+  schedule: string
+  lastRun: string
+  nextRun: string
+  status: string
+  duration: number
+  successRate: number
+  totalRuns: number
 }
 
 export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
@@ -173,63 +225,146 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   const [logFilter, setLogFilter] = useState('all')
   const [storageFilter, setStorageFilter] = useState('all')
   const [functionFilter, setFunctionFilter] = useState('all')
-  const [secrets, setSecrets] = useState([
-    {
-      id: '1',
-      name: 'SUPABASE_URL',
-      value: 'https://your-project.supabase.co',
-      description: 'Your Supabase project URL',
-      lastRotated: new Date('2024-01-15').toISOString()
-    },
-    {
-      id: '2', 
-      name: 'SUPABASE_ANON_KEY',
-      value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      description: 'Anonymous key for public access',
-      lastRotated: new Date('2024-01-10').toISOString()
-    },
-    {
-      id: '3',
-      name: 'SUPABASE_SERVICE_KEY',
-      value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      description: 'Service role key for admin access',
-      lastRotated: new Date('2024-01-05').toISOString()
+  const [loading, setLoading] = useState<Record<string, boolean>>({})
+  
+  // Data states
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus | null>(null)
+  const [secrets, setSecrets] = useState<Secret[]>([])
+  const [storageFiles, setStorageFiles] = useState<StorageFile[]>([])
+  const [functions, setFunctions] = useState<CloudFunction[]>([])
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([])
+  
+  // UI states
+  const [logPage, setLogPage] = useState(1)
+  const [logSearch, setLogSearch] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
+  const [showAddSecret, setShowAddSecret] = useState(false)
+  const [newSecret, setNewSecret] = useState({ name: '', value: '', description: '' })
+
+  // Fetch cloud status
+  const fetchCloudStatus = async () => {
+    try {
+      const response = await fetch('/api/cloud/status')
+      const result = await response.json()
+      if (result.success) {
+        setCloudStatus(result.data || {})
+      }
+    } catch (error) {
+      console.error('Error fetching cloud status:', error)
+      toast.error('Failed to fetch cloud status')
     }
-  ])
-
-  const stats = {
-    projects: 3,
-    databases: 5,
-    storage: 85,
-    functions: 12,
-    uptime: 99.7,
-    requests: 1247,
-    aiCalls: 892,
-    bandwidth: 62.4,
-    activeUsers: 156
   }
 
-  const automationStatus = {
-    schemaSync: { active: true, lastRun: '2 mins ago' },
-    autoBackup: { active: true, lastRun: '1 hour ago' },
-    healthChecks: { active: true, lastRun: '5 mins ago' },
-    logRotation: { active: true, lastRun: '30 mins ago' },
-    aiOptimization: { active: true, lastRun: '15 mins ago' },
-    securityScan: { active: true, lastRun: '6 hours ago' }
+  // Fetch secrets
+  const fetchSecrets = async () => {
+    try {
+      const response = await fetch('/api/cloud/secrets')
+      const result = await response.json()
+      if (result.success) {
+        setSecrets(result.secrets || [])
+      }
+    } catch (error) {
+      console.error('Error fetching secrets:', error)
+      toast.error('Failed to fetch secrets')
+      setSecrets([]) // Set to empty array on error to prevent undefined
+    }
   }
 
-  // Auto-refresh secrets every 30 seconds
+  // Fetch storage files
+  const fetchStorageFiles = async () => {
+    try {
+      const params = new URLSearchParams({ type: storageFilter })
+      const response = await fetch(`/api/cloud/storage?${params}`)
+      const result = await response.json()
+      if (result.success) {
+        setStorageFiles(result.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching storage files:', error)
+      toast.error('Failed to fetch storage files')
+      setStorageFiles([]) // Set to empty array on error
+    }
+  }
+
+  // Fetch functions
+  const fetchFunctions = async () => {
+    try {
+      const params = new URLSearchParams({ status: functionFilter })
+      const response = await fetch(`/api/cloud/functions?${params}`)
+      const result = await response.json()
+      if (result.success) {
+        setFunctions(result.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching functions:', error)
+      toast.error('Failed to fetch functions')
+      setFunctions([]) // Set to empty array on error
+    }
+  }
+
+  // Fetch logs
+  const fetchLogs = async () => {
+    try {
+      const params = new URLSearchParams({
+        level: logFilter,
+        page: logPage.toString(),
+        limit: '50',
+        ...(logSearch && { search: logSearch }),
+        ...(selectedDate && { date: selectedDate })
+      })
+      const response = await fetch(`/api/cloud/logs?${params}`)
+      const result = await response.json()
+      if (result.success) {
+        setLogs(result.data?.logs || [])
+      }
+    } catch (error) {
+      console.error('Error fetching logs:', error)
+      toast.error('Failed to fetch logs')
+      setLogs([]) // Set to empty array on error
+    }
+  }
+
+  // Fetch automation tasks
+  const fetchAutomationTasks = async () => {
+    try {
+      const response = await fetch('/api/cloud/automation')
+      const result = await response.json()
+      if (result.success) {
+        setAutomationTasks(result.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching automation tasks:', error)
+      toast.error('Failed to fetch automation tasks')
+      setAutomationTasks([]) // Set to empty array on error
+    }
+  }
+
+  // Initial data fetch
   useEffect(() => {
-    if (activeTab !== 'secrets') return
+    fetchCloudStatus()
+    fetchSecrets()
+    fetchStorageFiles()
+    fetchFunctions()
+    fetchLogs()
+    fetchAutomationTasks()
+  }, [])
 
+  // Auto-refresh based on active tab
+  useEffect(() => {
     const interval = setInterval(() => {
-      // Simulate auto-refresh
-      console.log('Auto-refreshing secrets...')
-    }, 30000)
+      if (activeTab === 'overview') fetchCloudStatus()
+      if (activeTab === 'secrets') fetchSecrets()
+      if (activeTab === 'storage') fetchStorageFiles()
+      if (activeTab === 'functions') fetchFunctions()
+      if (activeTab === 'logs') fetchLogs()
+      if (activeTab === 'automation') fetchAutomationTasks()
+    }, 30000) // Refresh every 30 seconds
 
     return () => clearInterval(interval)
-  }, [activeTab])
+  }, [activeTab, logFilter, storageFilter, functionFilter, logPage, logSearch, selectedDate])
 
+  // Toggle secret visibility
   const toggleSecretVisibility = (secretId: string) => {
     setShowValues(prev => ({
       ...prev,
@@ -237,60 +372,272 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
     }))
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success('✅ Copied to clipboard', {
-      description: 'Secret copied successfully',
-      duration: 2000,
-    })
-  }
-
-  const addNewSecret = () => {
-    const newSecret = {
-      id: Date.now().toString(),
-      name: 'NEW_SECRET',
-      value: '',
-      description: 'New secret key',
-      lastRotated: new Date().toISOString()
+  // Copy to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('✅ Copied to clipboard', {
+        description: 'Content copied successfully',
+        duration: 2000,
+      })
+    } catch (error) {
+      toast.error('Failed to copy to clipboard')
     }
-    setSecrets(prev => [...prev, newSecret])
-    toast.success('✅ New secret added', {
-      description: 'Please configure to new secret',
-      duration: 2000,
-    })
   }
 
-  const rotateSecret = (secretId: string) => {
-    setSecrets(prev => prev.map(secret => 
-      secret.id === secretId 
-        ? { ...secret, lastRotated: new Date().toISOString() }
-        : secret
-    ))
-    toast.success('🔄 Secret rotated', {
-      description: 'Secret has been rotated successfully',
-      duration: 2000,
-    })
+  // Add new secret
+  const addNewSecret = async () => {
+    if (!newSecret.name || !newSecret.value) {
+      toast.error('Name and value are required')
+      return
+    }
+
+    setLoading({ ...loading, addSecret: true })
+    try {
+      const response = await fetch('/api/cloud/secrets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSecret)
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('✅ Secret added successfully')
+        setNewSecret({ name: '', value: '', description: '' })
+        setShowAddSecret(false)
+        fetchSecrets()
+      } else {
+        toast.error(result.error || 'Failed to add secret')
+      }
+    } catch (error) {
+      toast.error('Failed to add secret')
+    } finally {
+      setLoading({ ...loading, addSecret: false })
+    }
   }
 
-  const runAutomation = (type: string) => {
-    toast.info(`🚀 ${type} started`, {
-      description: `${type} is now running...`,
-      duration: 3000,
-    })
+  // Delete secret
+  const deleteSecret = async (secretId: string) => {
+    setLoading({ ...loading, [`delete_${secretId}`]: true })
+    try {
+      const response = await fetch(`/api/cloud/secrets?id=${secretId}`, {
+        method: 'DELETE'
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('🗑️ Secret deleted successfully')
+        fetchSecrets()
+      } else {
+        toast.error(result.error || 'Failed to delete secret')
+      }
+    } catch (error) {
+      toast.error('Failed to delete secret')
+    } finally {
+      setLoading({ ...loading, [`delete_${secretId}`]: false })
+    }
   }
 
-  const downloadLogs = () => {
-    toast.info('📥 Downloading logs...', {
-      description: 'Preparing logs for download',
-      duration: 3000,
-    })
+  // Rotate secret
+  const rotateSecret = async (secretId: string) => {
+    setLoading({ ...loading, [`rotate_${secretId}`]: true })
+    try {
+      const response = await fetch('/api/cloud/secrets/' + secretId + '/rotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('🔄 Secret rotated successfully')
+        fetchSecrets()
+      } else {
+        toast.error(result.error || 'Failed to rotate secret')
+      }
+    } catch (error) {
+      toast.error('Failed to rotate secret')
+    } finally {
+      setLoading({ ...loading, [`rotate_${secretId}`]: false })
+    }
   }
 
-  const clearLogs = () => {
-    toast.success('🗑️ Logs cleared', {
-      description: 'All logs have been cleared',
-      duration: 2000,
-    })
+  // Run schema sync
+  const runSchemaSync = async () => {
+    setLoading({ ...loading, sync: true })
+    try {
+      const response = await fetch('/api/cloud/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('🚀 Schema sync initiated successfully')
+      } else {
+        toast.error(result.error || 'Failed to initiate schema sync')
+      }
+    } catch (error) {
+      toast.error('Failed to initiate schema sync')
+    } finally {
+      setLoading({ ...loading, sync: false })
+    }
+  }
+
+  // Run backup
+  const runBackup = async (type: string = 'full') => {
+    setLoading({ ...loading, [`backup_${type}`]: true })
+    try {
+      const response = await fetch('/api/cloud/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('💾 Backup initiated successfully')
+      } else {
+        toast.error(result.error || 'Failed to initiate backup')
+      }
+    } catch (error) {
+      toast.error('Failed to initiate backup')
+    } finally {
+      setLoading({ ...loading, [`backup_${type}`]: false })
+    }
+  }
+
+  // Deploy function
+  const deployFunction = async (functionId: string) => {
+    setLoading({ ...loading, [`deploy_${functionId}`]: true })
+    try {
+      const response = await fetch('/api/cloud/functions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deploy', functionId })
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('🚀 Function deployment started')
+      } else {
+        toast.error(result.error || 'Failed to deploy function')
+      }
+    } catch (error) {
+      toast.error('Failed to deploy function')
+    } finally {
+      setLoading({ ...loading, [`deploy_${functionId}`]: false })
+    }
+  }
+
+  // Test function
+  const testFunction = async (functionId: string) => {
+    setLoading({ ...loading, [`test_${functionId}`]: true })
+    try {
+      const response = await fetch('/api/cloud/functions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test', functionId })
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('✅ Function tests completed')
+      } else {
+        toast.error(result.error || 'Failed to test function')
+      }
+    } catch (error) {
+      toast.error('Failed to test function')
+    } finally {
+      setLoading({ ...loading, [`test_${functionId}`]: false })
+    }
+  }
+
+  // Delete storage file
+  const deleteStorageFile = async (fileId: string) => {
+    setLoading({ ...loading, [`delete_file_${fileId}`]: true })
+    try {
+      const response = await fetch(`/api/cloud/storage?id=${fileId}`, {
+        method: 'DELETE'
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('🗑️ File deleted successfully')
+        fetchStorageFiles()
+      } else {
+        toast.error(result.error || 'Failed to delete file')
+      }
+    } catch (error) {
+      toast.error('Failed to delete file')
+    } finally {
+      setLoading({ ...loading, [`delete_file_${fileId}`]: false })
+    }
+  }
+
+  // Run automation task
+  const runAutomationTask = async (taskId: string) => {
+    setLoading({ ...loading, [`run_${taskId}`]: true })
+    try {
+      const response = await fetch('/api/cloud/automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'run', taskId })
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success(`🚀 ${result.message}`)
+      } else {
+        toast.error(result.error || 'Failed to run task')
+      }
+    } catch (error) {
+      toast.error('Failed to run task')
+    } finally {
+      setLoading({ ...loading, [`run_${taskId}`]: false })
+    }
+  }
+
+  // Toggle automation task
+  const toggleAutomationTask = async (taskId: string) => {
+    try {
+      const response = await fetch('/api/cloud/automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle', taskId })
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success(`✅ ${result.data.message}`)
+        fetchAutomationTasks()
+      } else {
+        toast.error(result.error || 'Failed to toggle task')
+      }
+    } catch (error) {
+      toast.error('Failed to toggle task')
+    }
+  }
+
+  // Clear logs
+  const clearLogs = async () => {
+    setLoading({ ...loading, clearLogs: true })
+    try {
+      const response = await fetch('/api/cloud/logs', {
+        method: 'DELETE'
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success(`🗑️ ${result.data.deletedCount} logs deleted`)
+        fetchLogs()
+      } else {
+        toast.error(result.error || 'Failed to clear logs')
+      }
+    } catch (error) {
+      toast.error('Failed to clear logs')
+    } finally {
+      setLoading({ ...loading, clearLogs: false })
+    }
   }
 
   return (
@@ -310,6 +657,18 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Saanify Cloud Dashboard</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">Complete Infrastructure Management</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              onClick={() => fetchCloudStatus()}
+              variant="outline"
+              size="sm"
+              disabled={loading.refresh}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading.refresh ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
         </div>
 
@@ -332,268 +691,239 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Stats Grid - All metrics visible */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-900/20 dark:to-blue-800/20 p-4 md:p-6 rounded-xl border border-sky-200/50 dark:border-sky-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Database className="h-6 w-6 md:h-8 md:w-8 text-sky-600" />
+              {cloudStatus && (
+                <>
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className="bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-900/20 dark:to-blue-800/20 p-4 md:p-6 rounded-xl border border-sky-200/50 dark:border-sky-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                     >
-                      <RefreshCw className="h-3 w-3 md:h-4 md:w-4 text-sky-500" />
+                      <div className="flex items-center justify-between mb-2">
+                        <Database className="h-6 w-6 md:h-8 md:w-8 text-sky-600" />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        >
+                          <RefreshCw className="h-3 w-3 md:h-4 md:w-4 text-sky-500" />
+                        </motion.div>
+                      </div>
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                          {cloudStatus.resources.databases.connected}
+                        </motion.div>
+                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Databases</p>
+                      </div>
                     </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                      {stats.projects}
-                    </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Projects</p>
-                  </div>
-                </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/20 p-4 md:p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Server className="h-6 w-6 md:h-8 md:w-8 text-emerald-600" />
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.2 }}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className="bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-900/20 dark:to-purple-800/20 p-4 md:p-6 rounded-xl border border-violet-200/50 dark:border-violet-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                     >
-                      <Activity className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" />
+                      <div className="flex items-center justify-between mb-2">
+                        <HardDrive className="h-6 w-6 md:h-8 md:w-8 text-violet-600" />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                        >
+                          <Zap className="h-3 w-3 md:h-4 md:w-4 text-violet-500" />
+                        </motion.div>
+                      </div>
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.5, delay: 0.4 }}
+                        >
+                          {cloudStatus.resources.storage.used}%
+                        </motion.div>
+                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
+                      </div>
                     </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                    >
-                      {stats.databases}
-                    </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Databases</p>
-                  </div>
-                </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-900/20 dark:to-purple-800/20 p-4 md:p-6 rounded-xl border border-violet-200/50 dark:border-violet-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <HardDrive className="h-6 w-6 md:h-8 md:w-8 text-violet-600" />
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.4 }}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-800/20 p-4 md:p-6 rounded-xl border border-amber-200/50 dark:border-amber-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                     >
-                      <Zap className="h-3 w-3 md:h-4 md:w-4 text-violet-500" />
+                      <div className="flex items-center justify-between mb-2">
+                        <Cpu className="h-6 w-6 md:h-8 md:w-8 text-amber-600" />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
+                        >
+                          <BarChart3 className="h-3 w-3 md:h-4 md:w-4 text-amber-500" />
+                        </motion.div>
+                      </div>
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.5, delay: 0.5 }}
+                        >
+                          {cloudStatus.resources.functions.deployed}
+                        </motion.div>
+                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Functions</p>
+                      </div>
                     </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.4 }}
-                    >
-                      {stats.storage}%
-                    </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
-                  </div>
-                </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.4 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-800/20 p-4 md:p-6 rounded-xl border border-amber-200/50 dark:border-amber-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Cpu className="h-6 w-6 md:h-8 md:w-8 text-amber-600" />
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.5 }}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/20 p-4 md:p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
                     >
-                      <BarChart3 className="h-3 w-3 md:h-4 md:w-4 text-amber-500" />
+                      <div className="flex items-center justify-between mb-2">
+                        <Activity className="h-6 w-6 md:h-8 md:w-8 text-emerald-600" />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                        >
+                          <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" />
+                        </motion.div>
+                      </div>
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.5, delay: 0.6 }}
+                        >
+                          {cloudStatus.uptime}%
+                        </motion.div>
+                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Uptime</p>
+                      </div>
                     </motion.div>
                   </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.5 }}
-                    >
-                      {stats.functions}
-                    </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Functions</p>
-                  </div>
-                </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.5 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-900/20 dark:to-pink-800/20 p-4 md:p-6 rounded-xl border border-rose-200/50 dark:border-rose-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Globe className="h-6 w-6 md:h-8 md:w-8 text-rose-600" />
+                  {/* Project Info */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Wifi className="h-3 w-3 md:h-4 md:w-4 text-rose-500" />
-                    </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.6 }}
-                    >
-                      {stats.uptime}%
-                    </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Uptime</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.6 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-indigo-900/20 dark:to-blue-800/20 p-4 md:p-6 rounded-xl border border-indigo-200/50 dark:border-indigo-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-indigo-600" />
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Activity className="h-3 w-3 md:h-4 md:w-4 text-indigo-500" />
-                    </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.5, delay: 0.7 }}
+                      className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
-                      {stats.requests}
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-sky-600" />
+                        Project Information
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Name</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.project.name}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Region</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.project.region}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                          <Badge variant={cloudStatus.project.status === 'healthy' ? 'default' : 'destructive'}>
+                            {cloudStatus.project.status}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Version</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.project.version}</span>
+                        </div>
+                      </div>
                     </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Requests</p>
-                  </div>
-                </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.7 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-cyan-50 to-teal-100 dark:from-cyan-900/20 dark:to-teal-800/20 p-4 md:p-6 rounded-xl border border-cyan-200/50 dark:border-cyan-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Monitor className="h-6 w-6 md:h-8 md:w-8 text-cyan-600" />
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Cpu className="h-3 w-3 md:h-4 md:w-4 text-cyan-500" />
-                    </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.5, delay: 0.8 }}
+                      className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
-                      {stats.aiCalls}
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-emerald-600" />
+                        Performance Metrics
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Requests</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.performance.requests.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">AI Calls</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.performance.aiCalls.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Bandwidth</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.performance.bandwidth} GB</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Active Users</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.performance.activeUsers.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Response Time</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{cloudStatus.performance.responseTime}ms</span>
+                        </div>
+                      </div>
                     </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">AI Calls</p>
                   </div>
-                </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.8 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-teal-50 to-emerald-100 dark:from-teal-900/20 dark:to-emerald-800/20 p-4 md:p-6 rounded-xl border border-teal-200/50 dark:border-teal-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Users className="h-6 w-6 md:h-8 md:w-8 text-teal-600" />
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 5.5, repeat: Infinity, ease: "linear" }}
-                    >
-                      <UserCheck className="h-3 w-3 md:h-4 md:w-4 text-teal-500" />
-                    </motion.div>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.9 }}
-                    >
-                      {stats.activeUsers}
-                    </motion.div>
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active Users</p>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Bandwidth Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.9 }}
-                whileHover={{ scale: 1.01, y: -1 }}
-                className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 p-6 rounded-xl border border-indigo-200/50 dark:border-indigo-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">System Healthy</span>
-                  </div>
-                  <TrendingUp className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div className="text-center">
-                  <motion.div 
-                    className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.5, delay: 1.0 }}
+                  {/* Quick Actions */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.9 }}
+                    className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
                   >
-                    {stats.bandwidth} GB
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Button
+                        onClick={() => runSchemaSync()}
+                        disabled={loading.sync}
+                        className="bg-sky-600 hover:bg-sky-700 text-white"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loading.sync ? 'animate-spin' : ''}`} />
+                        Sync Schema
+                      </Button>
+                      <Button
+                        onClick={() => runBackup('full')}
+                        disabled={loading.backup_full}
+                        variant="outline"
+                      >
+                        <Archive className="h-4 w-4 mr-2" />
+                        Backup Now
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('logs')}
+                        variant="outline"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Logs
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('secrets')}
+                        variant="outline"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Manage Secrets
+                      </Button>
+                    </div>
                   </motion.div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Bandwidth This Month</p>
-                </div>
-              </motion.div>
+                </>
+              )}
             </motion.div>
           </TabsContent>
 
@@ -640,26 +970,46 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                   </Button>
                 </div>
                 <Button
-                  onClick={() => toast.info('Upload feature coming soon!')}
+                  onClick={() => document.getElementById('file-upload')?.click()}
                   className="bg-sky-600 hover:bg-sky-700 text-white text-xs"
                 >
                   <Upload className="h-4 w-4 mr-1" />
                   Upload
                 </Button>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      try {
+                        const response = await fetch('/api/cloud/storage', {
+                          method: 'POST',
+                          body: formData
+                        })
+                        const result = await response.json()
+                        if (result.success) {
+                          toast.success('File upload started')
+                          fetchStorageFiles()
+                        } else {
+                          toast.error(result.error || 'Failed to upload file')
+                        }
+                      } catch (error) {
+                        toast.error('Failed to upload file')
+                      }
+                    }
+                  }}
+                />
               </div>
 
               {/* Storage Files Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { name: 'user-avatars', type: 'images', size: '245 MB', modified: '2 hours ago', icon: '🖼️' },
-                  { name: 'society-docs', type: 'documents', size: '1.2 GB', modified: '1 day ago', icon: '📄' },
-                  { name: 'backup-2024', type: 'backups', size: '3.8 GB', modified: '1 week ago', icon: '💾' },
-                  { name: 'maintenance-logs', type: 'documents', size: '128 MB', modified: '3 hours ago', icon: '📋' },
-                  { name: 'financial-reports', type: 'documents', size: '456 MB', modified: '5 hours ago', icon: '📊' },
-                  { name: 'property-images', type: 'images', size: '2.1 GB', modified: '2 days ago', icon: '🏠' }
-                ].map((file, index) => (
+                {storageFiles.map((file, index) => (
                   <motion.div
-                    key={file.name}
+                    key={file.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -674,14 +1024,35 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                           <p className="text-xs text-gray-500 dark:text-gray-400">{file.type}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-gray-600"
+                          onClick={() => copyToClipboard(file.path)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-600"
+                          onClick={() => deleteStorageFile(file.id)}
+                          disabled={loading[`delete_file_${file.id}`]}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                       <span>{file.size}</span>
-                      <span>{file.modified}</span>
+                      <span>{new Date(file.modified).toLocaleString()}</span>
                     </div>
+                    {file.fileCount && (
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        {file.fileCount} files
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -690,13 +1061,15 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage Usage</span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{stats.storage}% of 100 GB</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {cloudStatus?.resources.storage.used}% of {cloudStatus?.resources.storage.total} {cloudStatus?.resources.storage.unit}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <motion.div 
                     className="bg-gradient-to-r from-sky-500 to-blue-600 h-2 rounded-full"
                     initial={{ width: 0 }}
-                    animate={{ width: `${stats.storage}%` }}
+                    animate={{ width: `${cloudStatus?.resources.storage.used || 0}%` }}
                     transition={{ duration: 1, delay: 0.5 }}
                   />
                 </div>
@@ -719,7 +1092,7 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                     onClick={() => setFunctionFilter('all')}
                     className="text-xs"
                   >
-                    All
+                    All Functions
                   </Button>
                   <Button
                     variant={functionFilter === 'active' ? 'default' : 'outline'}
@@ -730,66 +1103,104 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                     Active
                   </Button>
                   <Button
-                    variant={functionFilter === 'idle' ? 'default' : 'outline'}
+                    variant={functionFilter === 'inactive' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setFunctionFilter('idle')}
+                    onClick={() => setFunctionFilter('inactive')}
                     className="text-xs"
                   >
-                    Idle
+                    Inactive
                   </Button>
                 </div>
-                <Button
-                  onClick={() => toast.info('Deploy function feature coming soon!')}
-                  className="bg-sky-600 hover:bg-sky-700 text-white text-xs"
-                >
+                <Button className="bg-sky-600 hover:bg-sky-700 text-white text-xs">
                   <Plus className="h-4 w-4 mr-1" />
-                  Deploy Function
+                  Deploy New
                 </Button>
               </div>
 
               {/* Functions Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { name: 'user-auth', status: 'active', invocations: 1247, avgLatency: '45ms', errorRate: '0.1%' },
-                  { name: 'data-sync', status: 'active', invocations: 892, avgLatency: '120ms', errorRate: '0.3%' },
-                  { name: 'email-service', status: 'idle', invocations: 45, avgLatency: '200ms', errorRate: '0%' },
-                  { name: 'backup-automation', status: 'active', invocations: 234, avgLatency: '500ms', errorRate: '0.2%' },
-                  { name: 'report-generator', status: 'active', invocations: 67, avgLatency: '1.2s', errorRate: '0.5%' },
-                  { name: 'notification-push', status: 'idle', invocations: 12, avgLatency: '80ms', errorRate: '0%' }
-                ].map((func, index) => (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {functions.map((func, index) => (
                   <motion.div
-                    key={func.name}
+                    key={func.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     whileHover={{ scale: 1.02, y: -2 }}
-                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
+                    className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${func.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                        <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
+                          <Code className="h-5 w-5 text-white" />
+                        </div>
                         <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{func.name}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{func.status}</p>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">{func.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{func.runtime}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <Badge variant={func.status === 'active' ? 'default' : 'secondary'}>
+                        {func.status}
+                      </Badge>
                     </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
+
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{func.description}</p>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Memory:</span>
+                        <span className="ml-2 font-medium">{func.memory}MB</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Timeout:</span>
+                        <span className="ml-2 font-medium">{func.timeout}s</span>
+                      </div>
+                      <div>
                         <span className="text-gray-500 dark:text-gray-400">Invocations:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{func.invocations}</span>
+                        <span className="ml-2 font-medium">{func.invocations.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Errors:</span>
+                        <span className="ml-2 font-medium text-red-600">{func.errors}</span>
+                      </div>
+                      <div>
                         <span className="text-gray-500 dark:text-gray-400">Avg Latency:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{func.avgLatency}</span>
+                        <span className="ml-2 font-medium">{func.avgLatency}ms</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Error Rate:</span>
-                        <span className={`font-medium ${func.errorRate === '0%' ? 'text-green-600' : 'text-orange-600'}`}>{func.errorRate}</span>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Last Deployed:</span>
+                        <span className="ml-2 font-medium">{new Date(func.lastDeployed).toLocaleDateString()}</span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => deployFunction(func.id)}
+                        disabled={loading[`deploy_${func.id}`]}
+                        className="bg-sky-600 hover:bg-sky-700 text-white text-xs"
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Deploy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => testFunction(func.id)}
+                        disabled={loading[`test_${func.id}`]}
+                        className="text-xs"
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Test
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(func.endpoint)}
+                        className="text-xs"
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy URL
+                      </Button>
                     </div>
                   </motion.div>
                 ))}
@@ -804,113 +1215,103 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-800/20 p-6 rounded-xl border border-purple-200/50 dark:border-purple-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <Cpu className="h-8 w-8 text-purple-600" />
-                    <Badge className="bg-purple-100 text-purple-800 text-xs">Active</Badge>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                      {stats.aiCalls}
-                    </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">AI Calls Today</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-800/20 p-6 rounded-xl border border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <Zap className="h-8 w-8 text-blue-600" />
-                    <Badge className="bg-blue-100 text-blue-800 text-xs">Optimized</Badge>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                    >
-                      98.5%
-                    </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Accuracy Rate</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/20 p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <TrendingUp className="h-8 w-8 text-emerald-600" />
-                    <Badge className="bg-emerald-100 text-emerald-800 text-xs">Fast</Badge>
-                  </div>
-                  <div className="text-center">
-                    <motion.div 
-                      className="text-3xl font-bold text-gray-900 dark:text-white"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.4 }}
-                    >
-                      1.2s
-                    </motion.div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Avg Response</p>
-                  </div>
-                </motion.div>
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">AI Usage & Optimization</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Monitor and optimize your AI model usage</p>
               </div>
 
-              {/* AI Models */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">AI Models & Services</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { name: 'GPT-4', type: 'Language Model', status: 'active', usage: '45%' },
-                    { name: 'Claude-3', type: 'Language Model', status: 'active', usage: '30%' },
-                    { name: 'DALL-E 3', type: 'Image Generation', status: 'active', usage: '15%' },
-                    { name: 'Embeddings', type: 'Vector Search', status: 'active', usage: '10%' }
-                  ].map((model, index) => (
-                    <motion.div
-                      key={model.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      whileHover={{ scale: 1.02 }}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${model.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white text-sm">{model.name}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{model.type}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{model.usage}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">usage</div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+              {/* AI Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Today's Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">15,420</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">2,847,500 tokens</p>
+                    <p className="text-sm font-medium text-sky-600">$142.38</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">145ms</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Avg response time</p>
+                    <p className="text-sm font-medium text-emerald-600">99.7% success rate</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Optimization</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">$582</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Potential monthly savings</p>
+                    <p className="text-sm font-medium text-amber-600">3 recommendations</p>
+                  </CardContent>
+                </Card>
               </div>
+
+              {/* AI Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">AI Management</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/cloud/ai', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'optimize' })
+                          })
+                          const result = await response.json()
+                          if (result.success) {
+                            toast.success('AI optimization started')
+                          } else {
+                            toast.error(result.error || 'Failed to start optimization')
+                          }
+                        } catch (error) {
+                          toast.error('Failed to start optimization')
+                        }
+                      }}
+                      className="bg-sky-600 hover:bg-sky-700 text-white"
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      Optimize AI Usage
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/cloud/ai', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'clear_cache' })
+                          })
+                          const result = await response.json()
+                          if (result.success) {
+                            toast.success('AI cache cleared')
+                          } else {
+                            toast.error(result.error || 'Failed to clear cache')
+                          }
+                        } catch (error) {
+                          toast.error('Failed to clear cache')
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Clear Cache
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           </TabsContent>
 
@@ -929,47 +1330,51 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                     onClick={() => setLogFilter('all')}
                     className="text-xs"
                   >
-                    All
+                    All Logs
                   </Button>
                   <Button
-                    variant={logFilter === 'db' ? 'default' : 'outline'}
+                    variant={logFilter === 'error' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setLogFilter('db')}
+                    onClick={() => setLogFilter('error')}
                     className="text-xs"
                   >
-                    DB
+                    Errors
                   </Button>
                   <Button
-                    variant={logFilter === 'auth' ? 'default' : 'outline'}
+                    variant={logFilter === 'warn' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setLogFilter('auth')}
+                    onClick={() => setLogFilter('warn')}
                     className="text-xs"
                   >
-                    Auth
+                    Warnings
                   </Button>
                   <Button
-                    variant={logFilter === 'storage' ? 'default' : 'outline'}
+                    variant={logFilter === 'info' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setLogFilter('storage')}
+                    onClick={() => setLogFilter('info')}
                     className="text-xs"
                   >
-                    Storage
+                    Info
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadLogs}
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
                     className="text-xs"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
+                  />
+                  <Input
+                    placeholder="Search logs..."
+                    value={logSearch}
+                    onChange={(e) => setLogSearch(e.target.value)}
+                    className="text-xs w-32"
+                  />
                   <Button
+                    onClick={clearLogs}
+                    disabled={loading.clearLogs}
                     variant="outline"
                     size="sm"
-                    onClick={clearLogs}
                     className="text-xs"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
@@ -978,24 +1383,66 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                 </div>
               </div>
 
-              {/* Log Viewer */}
-              <div className="bg-gray-900 dark:bg-black rounded-lg p-4 h-96 overflow-y-auto font-mono text-xs text-green-400 border border-gray-700">
-                <div className="space-y-1">
-                  <div>[2024-01-15 10:30:45] INFO: Saanify Cloud connection established</div>
-                  <div>[2024-01-15 10:30:46] INFO: Database schema synchronized</div>
-                  <div>[2024-01-15 10:30:47] INFO: {logFilter.toUpperCase()} operations ready</div>
-                  <div>[2024-01-15 10:30:48] DEBUG: Processing user authentication</div>
-                  <div>[2024-01-15 10:30:49] INFO: Auth token validated successfully</div>
-                  <div>[2024-01-15 10:30:50] DEBUG: Checking storage permissions</div>
-                  <div>[2024-01-15 10:30:51] INFO: Storage access granted</div>
-                  <div>[2024-01-15 10:30:52] INFO: All systems operational</div>
-                  <motion.div
-                    animate={{ opacity: [0.5, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                  >
-                    <div>[2024-01-15 10:30:53] INFO: Live monitoring active...</div>
-                  </motion.div>
-                </div>
+              {/* Logs Table */}
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Timestamp</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Level</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Service</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Message</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Request ID</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {logs.map((log) => (
+                          <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge variant={
+                                log.level === 'error' ? 'destructive' :
+                                log.level === 'warn' ? 'secondary' :
+                                log.level === 'info' ? 'default' : 'outline'
+                              }>
+                                {log.level}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{log.service}</td>
+                            <td className="px-4 py-3 text-xs text-gray-900 dark:text-white">{log.message}</td>
+                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{log.requestId}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLogPage(Math.max(1, logPage - 1))}
+                  disabled={logPage === 1}
+                  className="text-xs"
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Page {logPage}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLogPage(logPage + 1)}
+                  className="text-xs"
+                >
+                  Next
+                </Button>
               </div>
             </motion.div>
           </TabsContent>
@@ -1008,108 +1455,143 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
               transition={{ duration: 0.5 }}
             >
               <div className="flex items-center justify-between mb-4">
-                <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700">
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>🔐 Security First:</strong> Your secrets are encrypted and stored securely.
-                  </AlertDescription>
-                </Alert>
-                <Button
-                  onClick={addNewSecret}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Secret
-                </Button>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Secrets Management</h3>
+                <Dialog open={showAddSecret} onOpenChange={setShowAddSecret}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-sky-600 hover:bg-sky-700 text-white text-sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Secret
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Secret</DialogTitle>
+                      <DialogDescription>
+                        Add a new secret to your cloud environment.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                          id="name"
+                          value={newSecret.name}
+                          onChange={(e) => setNewSecret({ ...newSecret, name: e.target.value })}
+                          placeholder="SECRET_NAME"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="value">Value</Label>
+                        <Input
+                          id="value"
+                          type="password"
+                          value={newSecret.value}
+                          onChange={(e) => setNewSecret({ ...newSecret, value: e.target.value })}
+                          placeholder="Secret value"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="description">Description</Label>
+                        <Input
+                          id="description"
+                          value={newSecret.description}
+                          onChange={(e) => setNewSecret({ ...newSecret, description: e.target.value })}
+                          placeholder="Optional description"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setShowAddSecret(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={addNewSecret}
+                          disabled={loading.addSecret}
+                          className="bg-sky-600 hover:bg-sky-700 text-white"
+                        >
+                          {loading.addSecret ? 'Adding...' : 'Add Secret'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
 
-              <div className="space-y-3">
-                {secrets.map((secret, index) => (
+              {/* Secrets Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {secrets.map((secret) => (
                   <motion.div
                     key={secret.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
                   >
-                    <CardContent className="p-0">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <motion.div 
-                            className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg"
-                            whileHover={{ scale: 1.1, rotate: 5 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            {(secret.name?.charAt(0) ?? "").toUpperCase()}
-                          </motion.div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white">{secret.name}</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{secret.description}</p>
-                          </div>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                          <Key className="h-5 w-5 text-white" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            Active
-                          </Badge>
-                          <motion.div
-                            animate={{ rotate: secret.lastRotated ? 360 : 0 }}
-                            transition={{ duration: 0.5 }}
-                          >
-                            <Clock className="h-4 w-4 text-gray-400" />
-                          </motion.div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">{secret.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{secret.description}</p>
                         </div>
                       </div>
+                    </div>
 
+                    <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <Input
-                            type={showValues[secret.id] ? 'text' : 'password'}
-                            value={secret.value}
-                            readOnly
-                            className="font-mono text-xs bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-                          />
-                        </div>
-                        
+                        <Input
+                          type={showValues[secret.id] ? 'text' : 'password'}
+                          value={secret.value}
+                          readOnly
+                          className="text-xs"
+                        />
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleSecretVisibility(secret.id)}
-                          className="text-gray-500 hover:text-gray-700"
+                          className="text-gray-400 hover:text-gray-600"
                         >
                           {showValues[secret.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
-                        
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(secret.value)}
-                          className="text-gray-500 hover:text-gray-700"
+                          className="text-gray-400 hover:text-gray-600"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => rotateSecret(secret.id)}
-                          className="text-gray-500 hover:text-gray-700"
-                        >
-                          <RotateCw className="h-4 w-4" />
-                        </Button>
                       </div>
 
-                      {secret.lastRotated && (
-                        <motion.p 
-                          className="text-xs text-gray-500 dark:text-gray-400 mt-2"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.3 }}
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>Last rotated: {new Date(secret.lastRotated).toLocaleDateString()}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => rotateSecret(secret.id)}
+                          disabled={loading[`rotate_${secret.id}`]}
+                          variant="outline"
+                          className="text-xs"
                         >
-                          Last rotated: {new Date(secret.lastRotated).toLocaleString()}
-                        </motion.p>
-                      )}
-                    </CardContent>
+                          <RotateCw className="h-4 w-4 mr-1" />
+                          Rotate
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => deleteSecret(secret.id)}
+                          disabled={loading[`delete_${secret.id}`]}
+                          variant="outline"
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -1117,85 +1599,150 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
           </TabsContent>
 
           {/* Automation Tab */}
-          <TabsContent value="automation" className="space-y-6">
+          <TabsContent value="automation" className="space-y-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {Object.entries(automationStatus).map(([key, status], index) => (
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Automation Tasks</h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => runBackup('full')}
+                    disabled={loading.backup_full}
+                    className="bg-sky-600 hover:bg-sky-700 text-white text-sm"
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Backup Now
+                  </Button>
+                  <Button
+                    onClick={runSchemaSync}
+                    disabled={loading.sync}
+                    variant="outline"
+                    className="text-sm"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading.sync ? 'animate-spin' : ''}`} />
+                    Run Auto-Sync
+                  </Button>
+                </div>
+              </div>
+
+              {/* Automation Tasks Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {automationTasks.map((task) => (
                   <motion.div
-                    key={key}
+                    key={task.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
                     whileHover={{ scale: 1.02, y: -2 }}
                     className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
                   >
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center justify-between text-lg">
-                        <div className="flex items-center gap-2">
-                          {key === 'schemaSync' && <RotateCw className="h-5 w-5 text-blue-600" />}
-                          {key === 'autoBackup' && <Archive className="h-5 w-5 text-green-600" />}
-                          {key === 'healthChecks' && <Activity className="h-5 w-5 text-purple-600" />}
-                          {key === 'logRotation' && <Clock className="h-5 w-5 text-orange-600" />}
-                          {key === 'aiOptimization' && <Cpu className="h-5 w-5 text-cyan-600" />}
-                          {key === 'securityScan' && <Shield className="h-5 w-5 text-rose-600" />}
-                          <span className="capitalize">
-                            {key === 'schemaSync' && 'Schema Sync'}
-                            {key === 'autoBackup' && 'Auto Backup'}
-                            {key === 'healthChecks' && 'Health Checks'}
-                            {key === 'logRotation' && 'Log Rotation'}
-                            {key === 'aiOptimization' && 'AI Optimization'}
-                            {key === 'securityScan' && 'Security Scan'}
-                          </span>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                          <Settings2 className="h-5 w-5 text-white" />
                         </div>
-                        <Badge 
-                          variant={status.active ? 'default' : 'secondary'}
-                          className={status.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                        >
-                          {status.active ? 'Active' : 'Inactive'}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">{task.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{task.description}</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={task.enabled}
+                        onCheckedChange={() => toggleAutomationTask(task.id)}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Status:</span>
+                        <Badge variant={task.status === 'success' ? 'default' : 'destructive'}>
+                          {task.status}
                         </Badge>
-                      </CardTitle>
-                      <CardDescription className="text-sm">
-                        {key === 'schemaSync' && 'Automated schema sync for optimal performance'}
-                        {key === 'autoBackup' && 'Automated backups for data protection'}
-                        {key === 'healthChecks' && 'Automated health checks for system monitoring'}
-                        {key === 'logRotation' && 'Automated log rotation for storage optimization'}
-                        {key === 'aiOptimization' && 'AI-powered performance optimization'}
-                        {key === 'securityScan' && 'Automated security vulnerability scanning'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Last run: {status.lastRun}
-                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Success Rate:</span>
+                        <span className="font-medium">{task.successRate}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Last Run:</span>
+                        <span className="font-medium">{new Date(task.lastRun).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Next Run:</span>
+                        <span className="font-medium">{new Date(task.nextRun).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Total Runs:</span>
+                        <span className="font-medium">{task.totalRuns.toLocaleString()}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
                         <Button
-                          onClick={() => runAutomation(key)}
-                          className="bg-sky-600 hover:bg-sky-700 text-white text-sm"
-                          disabled={!status.active}
+                          size="sm"
+                          onClick={() => runAutomationTask(task.id)}
+                          disabled={loading[`run_${task.id}`] || !task.enabled}
+                          className="bg-sky-600 hover:bg-sky-700 text-white text-xs"
                         >
-                          <Play className="h-4 w-4 mr-2" />
+                          <Play className="h-4 w-4 mr-1" />
                           Run Now
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyToClipboard(task.schedule)}
+                          className="text-xs"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Schedule
+                        </Button>
                       </div>
-                    </CardContent>
+                    </div>
                   </motion.div>
                 ))}
               </div>
+
+              {/* Backup & Restore Section */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Backup & Restore</CardTitle>
+                  <CardDescription>
+                    Manage your backups and restore previous versions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button
+                      onClick={() => runBackup('full')}
+                      disabled={loading.backup_full}
+                      className="bg-sky-600 hover:bg-sky-700 text-white"
+                    >
+                      <Archive className="h-4 w-4 mr-2" />
+                      Create Full Backup
+                    </Button>
+                    <Button
+                      onClick={() => runBackup('incremental')}
+                      disabled={loading.backup_incremental}
+                      variant="outline"
+                    >
+                      <ArchiveRestore className="h-4 w-4 mr-2" />
+                      Create Incremental Backup
+                    </Button>
+                  </div>
+                  
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Last backup completed 1 hour ago. Next automatic backup scheduled in 23 hours.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
             </motion.div>
           </TabsContent>
         </Tabs>
-
-        {/* Security Notice */}
-        <Alert className="mt-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
-          <Shield className="h-4 w-4" />
-          <AlertDescription>
-            <strong>🔒 Security Notice:</strong> All sensitive operations are logged and monitored. Service role keys are server-only and never exposed to clients.
-          </AlertDescription>
-        </Alert>
       </div>
     </ErrorBoundaryClass>
   )

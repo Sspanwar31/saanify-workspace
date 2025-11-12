@@ -1,20 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Mock secrets storage
+// Use the same mock data as the main route for consistency
 let mockSecrets = [
   {
     id: '1',
-    name: 'DATABASE_URL',
+    name: 'SUPABASE_URL',
     value: 'https://your-project.supabase.co',
-    description: 'Database connection URL',
-    lastRotated: new Date(Date.now() - 86400000).toISOString()
+    description: 'Your Supabase project URL',
+    lastRotated: new Date('2024-01-15').toISOString(),
+    createdAt: new Date('2024-01-15').toISOString()
   },
   {
-    id: '2',
-    name: 'SUPABASE_SERVICE_ROLE_KEY',
-    value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlbiI6InNlcnZpY2Utcm9sZSIsImF1ZCI6Imh0dHBzOi8veW91ci1wcm9qZWN0LnN1cGFiYXNlLmNvIiwiaWF0IjoxNjE2MjM5MDIyLCJleHAiOjE5NzE4MDEwMjJ9.example',
-    description: 'Service role key for server operations',
-    lastRotated: new Date(Date.now() - 172800000).toISOString()
+    id: '2', 
+    name: 'SUPABASE_ANON_KEY',
+    value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXItcHJvamVjdCIsImlhdCI6MTY0NjQ3MjAwMCwiZXhwIjoxOTYyMDQ4MDAwfQ.placeholder',
+    description: 'Anonymous key for public access',
+    lastRotated: new Date('2024-01-10').toISOString(),
+    createdAt: new Date('2024-01-10').toISOString()
+  },
+  {
+    id: '3',
+    name: 'SUPABASE_SERVICE_KEY',
+    value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXItcHJvamVjdCIsImlhdCI6MTY0NjQ3MjAwMCwiZXhwIjoxOTYyMDQ4MDAwfQ.service-placeholder',
+    description: 'Service role key for admin access',
+    lastRotated: new Date('2024-01-05').toISOString(),
+    createdAt: new Date('2024-01-05').toISOString()
   }
 ]
 
@@ -33,11 +43,10 @@ export async function POST(
       }, { status: 404 })
     }
 
-    // Generate new value (in production, this would use actual secret rotation)
-    const newValue = secretIndex === 0 
-      ? `https://rotated-${Date.now()}.supabase.co`
-      : `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlbiI6InNlcnZpY2Utcm9sZSIsImF1ZCI6Imh0dHBzOi8veW91ci1wcm9qZWN0LnN1cGFiYXNlLmNvIiwiaWF0IjoxNjE2MjM5MDIyLCJleHAiOjE5NzE4MDEwMjJ9.rotated-${Date.now()}`
-
+    // Generate new secret value (in production, use proper cryptographic methods)
+    const newValue = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + Math.random().toString(36).substring(2, 15) + '.' + Math.random().toString(36).substring(2, 15)
+    
+    // Update the secret with new value and rotation timestamp
     mockSecrets[secretIndex] = {
       ...mockSecrets[secretIndex],
       value: newValue,
@@ -49,10 +58,10 @@ export async function POST(
       secret: mockSecrets[secretIndex]
     })
   } catch (error) {
-    console.error('Failed to rotate secret:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to rotate secret'
-    }, { status: 500 })
+    console.error('Error rotating secret:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to rotate secret' },
+      { status: 500 }
+    )
   }
 }

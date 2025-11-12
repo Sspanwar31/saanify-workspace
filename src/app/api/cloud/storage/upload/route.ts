@@ -4,40 +4,37 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const bucket = formData.get('bucket') as string
+    const path = formData.get('path') as string || '/storage'
 
-    if (!file || !bucket) {
-      return NextResponse.json({
-        success: false,
-        error: 'File and bucket are required'
-      }, { status: 400 })
+    if (!file) {
+      return NextResponse.json(
+        { success: false, error: 'No file provided' },
+        { status: 400 }
+      )
     }
 
-    // In a real implementation, you would:
-    // 1. Upload file to Supabase Storage
-    // 2. Update file metadata
-    // 3. Return file URL
-
-    // For demo purposes, we'll simulate successful upload
-    const fileData = {
-      id: `file_${Date.now()}`,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: `/avatars/admin.jpg`, // Mock URL
-      bucket: bucket,
-      createdAt: new Date().toISOString()
+    // Simulate file upload
+    const uploadResult = {
+      uploadId: `upload_${Date.now()}`,
+      fileName: file.name,
+      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+      path: `${path}/${file.name}`,
+      status: 'completed',
+      startTime: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      duration: Math.floor(Math.random() * 5000) + 1000 // 1-6 seconds
     }
 
     return NextResponse.json({
       success: true,
-      file: fileData,
-      message: `File "${file.name}" uploaded successfully`
+      data: uploadResult,
+      message: 'File uploaded successfully'
     })
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to upload file'
-    }, { status: 500 })
+    console.error('Error uploading file:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to upload file' },
+      { status: 500 }
+    )
   }
 }

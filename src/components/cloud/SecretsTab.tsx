@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 interface Secret {
@@ -32,15 +33,23 @@ interface Secret {
   value: string
   description?: string
   lastRotated?: string
-  isEditing?: boolean
+}
+
+interface EditingSecret {
+  id: string
+  name: string
+  value: string
+  description?: string
 }
 
 export default function SecretsTab() {
   const [secrets, setSecrets] = useState<Secret[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [showValues, setShowValues] = useState<{ [key: string]: boolean }>({})
+  const [showSecret, setShowSecret] = useState<{ [key: string]: boolean }>({})
   const [newSecret, setNewSecret] = useState({ name: '', value: '', description: '' })
   const [isAddingSecret, setIsAddingSecret] = useState(false)
+  const [editingSecret, setEditingSecret] = useState<EditingSecret | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   useEffect(() => {
     fetchSecrets()
@@ -54,15 +63,30 @@ export default function SecretsTab() {
       const response = await fetch('/api/cloud/secrets')
       const data = await response.json()
       if (data.success) {
-        setSecrets(data.secrets.map((s: any) => ({ ...s, isEditing: false })))
+        setSecrets(data.secrets)
       }
     } catch (error) {
       console.error('Failed to fetch secrets:', error)
     }
   }
 
+  // Enhanced fetchSecrets for edit operations to get real values
+  const fetchSecretWithRealValue = async (id: string) => {
+    try {
+      const response = await fetch(`/api/cloud/secrets/${id}`)
+      const data = await response.json()
+      if (data.success) {
+        return data.secret
+      }
+      return null
+    } catch (error) {
+      console.error('Failed to fetch secret details:', error)
+      return null
+    }
+  }
+
   const toggleSecretVisibility = (id: string) => {
-    setShowValues(prev => ({ ...prev, [id]: !prev[id] }))
+    setShowSecret(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
   const rotateSecret = async (id: string) => {
@@ -186,11 +210,15 @@ export default function SecretsTab() {
       const data = await response.json()
       
       if (data.success) {
-        toast.success('💾 Secret Updated', {
-          description: `Secret ${data.secret.name} has been updated successfully`,
+        // Update state immediately without refetching
+        setSecrets(prev => prev.map(secret => 
+          secret.id === id ? { ...secret, ...data.secret } : secret
+        ))
+        
+        toast.success('✅ Secret updated successfully', {
+          description: `Secret ${data.secret.name} has been updated`,
           duration: 3000,
         })
-        fetchSecrets()
       } else {
         toast.error('❌ Update Failed', {
           description: data.error || 'Failed to update secret',
@@ -215,15 +243,37 @@ export default function SecretsTab() {
     })
   }
 
-  const toggleEditMode = (id: string) => {
-    setSecrets(prev => prev.map(secret => 
-      secret.id === id ? { ...secret, isEditing: !secret.isEditing } : secret
-    ))
+  const openEditModal = async (secret: Secret) => {
+    // Fetch the real secret value for editing
+    const secretDetails = await fetchSecretWithRealValue(secret.id)
+    
+    setEditingSecret({
+      id: secret.id,
+      name: secret.name,
+      value: secretDetails?.value || secret.value,
+      description: secret.description || ''
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const closeEditModal = () => {
+    setEditingSecret(null)
+    setIsEditModalOpen(false)
+  }
+
+  const saveEditedSecret = async () => {
+    if (!editingSecret) return
+    
+    await updateSecret(editingSecret.id, {
+      value: editingSecret.value,
+      description: editingSecret.description
+    })
+    
+    closeEditModal()
   }
 
   const maskValue = (value: string) => {
-    if (value.length <= 8) return '*'.repeat(value.length)
-    return value.substring(0, 4) + '*'.repeat(value.length - 8) + value.substring(value.length - 4)
+    return '••••••••••'
   }
 
   return (
@@ -341,65 +391,44 @@ export default function SecretsTab() {
                     )}
                     
                     <div className="flex items-center gap-2">
-                      {secret.isEditing ? (
-                        <Textarea
-                          value={secret.value}
-                          onChange={(e) => {
-                            const updatedSecrets = secrets.map(s => 
-                              s.id === secret.id ? { ...s, value: e.target.value } : s
-                            )
-                            setSecrets(updatedSecrets)
-                          }}
-                          className="font-mono text-sm"
-                          rows={2}
-                        />
-                      ) : (
-                        <div className="flex-1 font-mono text-sm bg-muted p-2 rounded">
-                          {showValues[secret.id] ? secret.value : maskValue(secret.value)}
-                        </div>
-                      )}
+                      <div className="flex-1 font-mono text-sm bg-muted p-2 rounded">
+                        {showSecret[secret.id] ? secret.value : maskValue(secret.value)}
+                      </div>
                       
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleSecretVisibility(secret.id)}
+                          className="hover:bg-muted transition-colors"
                         >
-                          {showValues[secret.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showSecret[secret.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                         
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(secret.value)}
+                          className="hover:bg-muted transition-colors"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
                         
-                        {secret.isEditing ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateSecret(secret.id, { value: secret.value })}
-                            disabled={isLoading}
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleEditMode(secret.id)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(secret)}
+                          className="hover:bg-muted transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
                         
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => rotateSecret(secret.id)}
                           disabled={isLoading}
+                          className="hover:bg-muted transition-colors"
                         >
                           <RefreshCw className="h-4 w-4" />
                         </Button>
@@ -409,7 +438,7 @@ export default function SecretsTab() {
                           size="sm"
                           onClick={() => deleteSecret(secret.id)}
                           disabled={isLoading}
-                          className="text-red-500 hover:text-red-600"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -438,6 +467,58 @@ export default function SecretsTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Secret Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Secret</DialogTitle>
+            <DialogDescription>
+              Update the value or description for this secret.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-secret-name">Secret Name</Label>
+              <Input
+                id="edit-secret-name"
+                value={editingSecret?.name || ''}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-secret-value">Secret Value</Label>
+              <Textarea
+                id="edit-secret-value"
+                value={editingSecret?.value || ''}
+                onChange={(e) => setEditingSecret(prev => prev ? { ...prev, value: e.target.value } : null)}
+                placeholder="Enter secret value"
+                rows={3}
+                className="font-mono"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-secret-description">Description (Optional)</Label>
+              <Input
+                id="edit-secret-description"
+                value={editingSecret?.description || ''}
+                onChange={(e) => setEditingSecret(prev => prev ? { ...prev, description: e.target.value } : null)}
+                placeholder="Enter description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEditModal}>
+              Cancel
+            </Button>
+            <Button onClick={saveEditedSecret} disabled={isLoading}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

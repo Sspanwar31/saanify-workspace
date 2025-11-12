@@ -4,62 +4,52 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const bucket = searchParams.get('bucket')
+    const prefix = searchParams.get('prefix') || ''
 
-    // Mock files data
+    // Simulate files in storage
     const files = [
       {
-        id: '1',
-        name: 'society-logo.png',
-        type: 'image/png',
-        size: 245760,
-        url: '/avatars/admin.jpg',
-        bucket: bucket || 'public',
-        createdAt: new Date().toISOString()
+        id: 'file_1',
+        name: 'user-avatar-001.jpg',
+        size: 245678,
+        type: 'image/jpeg',
+        modified: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        etag: 'abc123',
+        bucket: bucket || 'saanify-storage',
+        path: `${prefix}/user-avatar-001.jpg`
       },
       {
-        id: '2',
-        name: 'annual-report-2024.pdf',
+        id: 'file_2',
+        name: 'society-rules.pdf',
+        size: 1024567,
         type: 'application/pdf',
-        size: 2048576,
-        bucket: bucket || 'public',
-        createdAt: new Date().toISOString()
+        modified: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        etag: 'def456',
+        bucket: bucket || 'saanify-storage',
+        path: `${prefix}/society-rules.pdf`
       },
       {
-        id: '3',
-        name: 'maintenance-records.xlsx',
+        id: 'file_3',
+        name: 'maintenance-report.xlsx',
+        size: 567890,
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        size: 524288,
-        bucket: bucket || 'public',
-        createdAt: new Date().toISOString()
+        modified: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+        etag: 'ghi789',
+        bucket: bucket || 'saanify-storage',
+        path: `${prefix}/maintenance-report.xlsx`
       }
     ]
 
     return NextResponse.json({
       success: true,
-      files
+      data: files,
+      total: files.length
     })
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch files'
-    }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const fileId = searchParams.get('id')
-
-    // Mock file deletion
-    return NextResponse.json({
-      success: true,
-      message: 'File deleted successfully'
-    })
-  } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to delete file'
-    }, { status: 500 })
+    console.error('Error fetching storage files:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch storage files' },
+      { status: 500 }
+    )
   }
 }

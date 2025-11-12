@@ -1,25 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Mock data - in production, this would connect to actual Supabase services
-const mockStatus = {
-  connected: true,
-  lastSync: new Date().toISOString(),
-  errorCount: 2,
-  automationStatus: 'idle' as const
-}
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // In production, check actual Supabase connection status
+    // Simulate fetching real-time status data
+    const status = {
+      uptime: 99.7,
+      project: {
+        name: 'saanify-production',
+        region: 'us-east-1',
+        status: 'healthy',
+        version: '2.1.4'
+      },
+      resources: {
+        storage: {
+          used: 85,
+          total: 100,
+          unit: 'GB'
+        },
+        functions: {
+          deployed: 12,
+          total: 20,
+          active: 11
+        },
+        databases: {
+          connected: 5,
+          total: 5,
+          healthy: 5
+        }
+      },
+      performance: {
+        requests: 1247,
+        aiCalls: 892,
+        bandwidth: 62.4,
+        activeUsers: 156,
+        responseTime: 145
+      },
+      lastUpdated: new Date().toISOString()
+    }
+
     return NextResponse.json({
       success: true,
-      status: mockStatus
+      data: status
     })
   } catch (error) {
-    console.error('Failed to get cloud status:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch cloud status'
-    }, { status: 500 })
+    console.error('Error fetching cloud status:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch cloud status' },
+      { status: 500 }
+    )
   }
 }

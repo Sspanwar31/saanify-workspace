@@ -1,70 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-interface AIModel {
-  name: string
-  provider: string
-  type: 'text' | 'image' | 'embedding'
-  calls: number
-  tokens: number
-  cost: number
-  avgLatency: number
-  lastUsed: string
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Mock data for AI models
-    const models: AIModel[] = [
-      {
-        name: 'gpt-4',
-        provider: 'OpenAI',
-        type: 'text',
-        calls: 5846,
-        tokens: 1169000,
-        cost: 116.90,
-        avgLatency: 1250,
-        lastUsed: new Date().toISOString()
+    // Mock AI models data
+    const models = [
+      { 
+        id: '1', 
+        name: 'GPT-4', 
+        type: 'Language Model', 
+        status: 'active', 
+        usage: '45%', 
+        description: 'OpenAI GPT-4 Turbo model for advanced language tasks',
+        created: '2024-01-01'
       },
-      {
-        name: 'gpt-3.5-turbo',
-        provider: 'OpenAI',
-        type: 'text',
-        calls: 4023,
-        tokens: 803000,
-        cost: 16.06,
-        avgLatency: 905,
-        lastUsed: new Date().toISOString()
+      { 
+        id: '2', 
+        name: 'Claude-3', 
+        type: 'Language Model', 
+        status: 'active', 
+        usage: '30%', 
+        description: 'Anthropic Claude-3 Opus for reasoning and analysis',
+        created: '2024-01-02'
       },
-      {
-        name: 'claude-3-sonnet',
-        provider: 'Anthropic',
-        type: 'text',
-        calls: 892,
-        tokens: 178000,
-        cost: 9.82,
-        avgLatency: 1450,
-        lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+      { 
+        id: '3', 
+        name: 'DALL-E 3', 
+        type: 'Image Generation', 
+        status: 'active', 
+        usage: '15%', 
+        description: 'DALL-E 3 for high-quality image generation',
+        created: '2024-01-03'
       },
-      {
-        name: 'dall-e-3',
-        provider: 'OpenAI',
-        type: 'image',
-        calls: 147,
-        tokens: 0,
-        cost: 44.10,
-        avgLatency: 3200,
-        lastUsed: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+      { 
+        id: '4', 
+        name: 'Embeddings', 
+        type: 'Vector Search', 
+        status: 'active', 
+        usage: '10%', 
+        description: 'Text embedding model for semantic search',
+        created: '2024-01-04'
       }
     ]
-
-    return NextResponse.json({
-      success: true,
-      models
-    })
+    
+    return NextResponse.json(models)
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch AI models'
-    }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch AI models' },
+      { status: 500 }
+    )
   }
 }
