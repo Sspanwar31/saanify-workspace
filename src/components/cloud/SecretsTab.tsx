@@ -45,7 +45,7 @@ interface EditingSecret {
 export default function SecretsTab() {
   const [secrets, setSecrets] = useState<Secret[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [showSecret, setShowSecret] = useState<{ [key: string]: boolean }>({})
+  const [showSecret, setShowSecret] = useState<Record<string, boolean>>({})
   const [newSecret, setNewSecret] = useState({ name: '', value: '', description: '' })
   const [isAddingSecret, setIsAddingSecret] = useState(false)
   const [editingSecret, setEditingSecret] = useState<EditingSecret | null>(null)
@@ -57,6 +57,21 @@ export default function SecretsTab() {
     const interval = setInterval(fetchSecrets, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Initialize visibility state for new secrets
+  useEffect(() => {
+    const newVisibilityState: Record<string, boolean> = {}
+    
+    secrets.forEach(secret => {
+      if (!(secret.name in showSecret)) {
+        newVisibilityState[secret.name] = false
+      }
+    })
+    
+    if (Object.keys(newVisibilityState).length > 0) {
+      setShowSecret(prev => ({ ...prev, ...newVisibilityState }))
+    }
+  }, [secrets, showSecret])
 
   const fetchSecrets = async () => {
     try {
@@ -70,23 +85,10 @@ export default function SecretsTab() {
     }
   }
 
-  // Enhanced fetchSecrets for edit operations to get real values
-  const fetchSecretWithRealValue = async (id: string) => {
-    try {
-      const response = await fetch(`/api/cloud/secrets/${id}`)
-      const data = await response.json()
-      if (data.success) {
-        return data.secret
-      }
-      return null
-    } catch (error) {
-      console.error('Failed to fetch secret details:', error)
-      return null
-    }
-  }
+  
 
-  const toggleSecretVisibility = (id: string) => {
-    setShowSecret(prev => ({ ...prev, [id]: !prev[id] }))
+  const toggleVisibility = (key: string) => {
+    setShowSecret(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
   const rotateSecret = async (id: string) => {
@@ -235,22 +237,26 @@ export default function SecretsTab() {
     }
   }
 
-  const copyToClipboard = (value: string) => {
+  const copyToClipboard = (value: string, isMasked: boolean = false) => {
     navigator.clipboard.writeText(value)
-    toast.success('📋 Copied to Clipboard', {
-      description: 'Secret value has been copied',
-      duration: 2000,
-    })
+    if (isMasked) {
+      toast.info('📋 Copied Masked Value', {
+        description: 'Masked secret value has been copied to clipboard',
+        duration: 2000,
+      })
+    } else {
+      toast.success('📋 Copied to Clipboard', {
+        description: 'Secret value has been copied securely',
+        duration: 2000,
+      })
+    }
   }
 
-  const openEditModal = async (secret: Secret) => {
-    // Fetch the real secret value for editing
-    const secretDetails = await fetchSecretWithRealValue(secret.id)
-    
+  const openEditModal = (secret: Secret) => {
     setEditingSecret({
       id: secret.id,
       name: secret.name,
-      value: secretDetails?.value || secret.value,
+      value: secret.value,
       description: secret.description || ''
     })
     setIsEditModalOpen(true)
@@ -272,12 +278,24 @@ export default function SecretsTab() {
     closeEditModal()
   }
 
-  const maskValue = (value: string) => {
-    return '••••••••••'
-  }
+  
 
   return (
     <div className="space-y-6">
+      {/* Supabase Setup Guide */}
+      <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+        <AlertCircle className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800 dark:text-blue-200">
+          <strong>🚀 Supabase Setup:</strong> 
+          <ol className="mt-2 ml-4 list-decimal text-sm space-y-1">
+            <li>Create a <a href="https://supabase.com" target="_blank" rel="noopener" className="underline hover:text-blue-600">Supabase project</a></li>
+            <li>Go to Settings → API in your Supabase dashboard</li>
+            <li>Copy your Project URL and keys below</li>
+            <li>Use the quick template buttons to add required secrets</li>
+          </ol>
+        </AlertDescription>
+      </Alert>
+
       {/* Security Notice */}
       <Alert>
         <Shield className="h-4 w-4" />
@@ -316,11 +334,63 @@ export default function SecretsTab() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Quick Templates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewSecret({ 
+                      name: 'SUPABASE_URL', 
+                      value: 'https://your-project.supabase.co', 
+                      description: 'Supabase project URL - Your project endpoint' 
+                    })}
+                    className="text-xs h-8"
+                  >
+                    📡 SUPABASE_URL
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewSecret({ 
+                      name: 'SUPABASE_ANON_KEY', 
+                      value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', 
+                      description: 'Supabase anonymous/public key for client-side access' 
+                    })}
+                    className="text-xs h-8"
+                  >
+                    🔑 SUPABASE_ANON_KEY
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewSecret({ 
+                      name: 'SUPABASE_SERVICE_KEY', 
+                      value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', 
+                      description: 'Supabase service role key for admin access' 
+                    })}
+                    className="text-xs h-8"
+                  >
+                    🛡️ SUPABASE_SERVICE_KEY
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewSecret({ 
+                      name: 'SUPABASE_DB_URL', 
+                      value: 'postgresql://postgres:[password]@db.your-project.supabase.co:5432/postgres', 
+                      description: 'Direct database connection URL' 
+                    })}
+                    className="text-xs h-8"
+                  >
+                    🗄️ SUPABASE_DB_URL
+                  </Button>
+                </div>
+                
                 <div>
                   <Label htmlFor="secret-name">Name</Label>
                   <Input
                     id="secret-name"
-                    placeholder="DATABASE_URL"
+                    placeholder="SUPABASE_URL"
                     value={newSecret.name}
                     onChange={(e) => setNewSecret(prev => ({ ...prev, name: e.target.value }))}
                   />
@@ -391,25 +461,37 @@ export default function SecretsTab() {
                     )}
                     
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 font-mono text-sm bg-muted p-2 rounded">
-                        {showSecret[secret.id] ? secret.value : maskValue(secret.value)}
-                      </div>
+                      {showSecret[secret.name] ? (
+                        <span className="flex-1 font-mono text-sm text-foreground break-all bg-muted p-2 rounded-md inline-block">
+                          {secret.value}
+                        </span>
+                      ) : (
+                        <span className="flex-1 tracking-widest text-muted-foreground bg-muted p-2 rounded-md inline-block break-all">
+                          ••••••••••••••••••••
+                        </span>
+                      )}
                       
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleSecretVisibility(secret.id)}
-                          className="hover:bg-muted transition-colors"
+                          onClick={() => toggleVisibility(secret.name)}
+                          className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          aria-label={showSecret[secret.name] ? "Hide secret" : "Show secret"}
                         >
-                          {showSecret[secret.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showSecret[secret.name] ? (
+                            <EyeOff className="h-4 w-4 cursor-pointer" />
+                          ) : (
+                            <Eye className="h-4 w-4 cursor-pointer" />
+                          )}
                         </Button>
                         
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard(secret.value)}
+                          onClick={() => copyToClipboard(secret.value, false)}
                           className="hover:bg-muted transition-colors"
+                          aria-label="Copy secret"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -419,6 +501,7 @@ export default function SecretsTab() {
                           size="sm"
                           onClick={() => openEditModal(secret)}
                           className="hover:bg-muted transition-colors"
+                          aria-label="Edit secret"
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
@@ -429,6 +512,7 @@ export default function SecretsTab() {
                           onClick={() => rotateSecret(secret.id)}
                           disabled={isLoading}
                           className="hover:bg-muted transition-colors"
+                          aria-label="Rotate secret"
                         >
                           <RefreshCw className="h-4 w-4" />
                         </Button>
@@ -439,6 +523,7 @@ export default function SecretsTab() {
                           onClick={() => deleteSecret(secret.id)}
                           disabled={isLoading}
                           className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          aria-label="Delete secret"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -83,3 +83,15 @@ model Post {
   
   @@map("posts")
 }
+
+model Secret {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  lastRotated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("secrets")
+}

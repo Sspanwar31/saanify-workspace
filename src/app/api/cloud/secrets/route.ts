@@ -1,44 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdmin, AuthenticatedRequest } from '@/lib/auth-middleware'
+import { db } from '@/lib/db'
 
-// In-memory storage for secrets (in production, use encrypted database)
-let secrets: any[] = [
-  {
-    id: '1',
-    name: 'SUPABASE_URL',
-    value: 'https://your-project.supabase.co',
-    description: 'Your Supabase project URL',
-    lastRotated: new Date('2024-01-15').toISOString(),
-    createdAt: new Date('2024-01-15').toISOString()
-  },
-  {
-    id: '2', 
-    name: 'SUPABASE_ANON_KEY',
-    value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXItcHJvamVjdCIsImlhdCI6MTY0NjQ3MjAwMCwiZXhwIjoxOTYyMDQ4MDAwfQ.placeholder',
-    description: 'Anonymous key for public access',
-    lastRotated: new Date('2024-01-10').toISOString(),
-    createdAt: new Date('2024-01-10').toISOString()
-  },
-  {
-    id: '3',
-    name: 'SUPABASE_SERVICE_KEY',
-    value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXItcHJvamVjdCIsImlhdCI6MTY0NjQ3MjAwMCwiZXhwIjoxOTYyMDQ4MDAwfQ.service-placeholder',
-    description: 'Service role key for admin access',
-    lastRotated: new Date('2024-01-05').toISOString(),
-    createdAt: new Date('2024-01-05').toISOString()
-  }
-]
+// Temporary bypass for demo - remove in production
+const DEMO_MODE = true
 
-export async function GET(request: NextRequest) {
+export const GET = DEMO_MODE ? async (request: NextRequest) => {
   try {
-    // Return secrets without exposing actual values
-    const safeSecrets = secrets.map(secret => ({
-      ...secret,
-      value: '•'.repeat(20) // Mask the actual value
-    }))
+    // Fetch secrets from database including values for demo
+    const secrets = await db.secret.findMany({
+      orderBy: {
+        key: 'asc'
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      secrets: safeSecrets
+      secrets: secrets.map(secret => ({
+        id: secret.id,
+        name: secret.key,
+        value: secret.value,
+        description: secret.description,
+        lastRotated: secret.lastRotated?.toISOString(),
+        createdAt: secret.createdAt?.toISOString()
+      }))
     })
   } catch (error) {
     console.error('Error fetching secrets:', error)
@@ -47,36 +32,77 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+} : withAdmin(async (request: AuthenticatedRequest) => {
+  try {
+    // Fetch secrets from database including values for authenticated admins
+    const secrets = await db.secret.findMany({
+      orderBy: {
+        key: 'asc'
+      }
+    })
 
-export async function POST(request: NextRequest) {
+    return NextResponse.json({
+      success: true,
+      secrets: secrets.map(secret => ({
+        id: secret.id,
+        name: secret.key,
+        value: secret.value,
+        description: secret.description,
+        lastRotated: secret.lastRotated?.toISOString(),
+        createdAt: secret.createdAt?.toISOString()
+      }))
+    })
+  } catch (error) {
+    console.error('Error fetching secrets:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch secrets' },
+      { status: 500 }
+    )
+  }
+})
+
+export const POST = DEMO_MODE ? async (request: NextRequest) => {
   try {
     const body = await request.json()
-    const { name, value, description } = body
+    const { name: key, value, description } = body
 
-    if (!name || !value) {
+    if (!key || !value) {
       return NextResponse.json(
         { success: false, error: 'Name and value are required' },
         { status: 400 }
       )
     }
 
-    const newSecret = {
-      id: Date.now().toString(),
-      name,
-      value,
-      description: description || '',
-      lastRotated: new Date().toISOString(),
-      createdAt: new Date().toISOString()
+    // Check if secret with this key already exists
+    const existingSecret = await db.secret.findUnique({
+      where: { key }
+    })
+
+    if (existingSecret) {
+      return NextResponse.json(
+        { success: false, error: 'Secret with this key already exists' },
+        { status: 409 }
+      )
     }
 
-    secrets.push(newSecret)
+    const newSecret = await db.secret.create({
+      data: {
+        key,
+        value,
+        description: description || '',
+        lastRotated: new Date()
+      }
+    })
 
     return NextResponse.json({
       success: true,
       secret: {
-        ...newSecret,
-        value: '•'.repeat(20) // Mask the value in response
+        id: newSecret.id,
+        name: newSecret.key,
+        value: newSecret.value,
+        description: newSecret.description,
+        lastRotated: newSecret.lastRotated?.toISOString(),
+        createdAt: newSecret.createdAt?.toISOString()
       }
     })
   } catch (error) {
@@ -86,9 +112,60 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+} : withAdmin(async (request: AuthenticatedRequest) => {
+  try {
+    const body = await request.json()
+    const { name: key, value, description } = body
 
-export async function DELETE(request: NextRequest) {
+    if (!key || !value) {
+      return NextResponse.json(
+        { success: false, error: 'Name and value are required' },
+        { status: 400 }
+      )
+    }
+
+    // Check if secret with this key already exists
+    const existingSecret = await db.secret.findUnique({
+      where: { key }
+    })
+
+    if (existingSecret) {
+      return NextResponse.json(
+        { success: false, error: 'Secret with this key already exists' },
+        { status: 409 }
+      )
+    }
+
+    const newSecret = await db.secret.create({
+      data: {
+        key,
+        value,
+        description: description || '',
+        lastRotated: new Date()
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      secret: {
+        id: newSecret.id,
+        name: newSecret.key,
+        value: newSecret.value,
+        description: newSecret.description,
+        lastRotated: newSecret.lastRotated?.toISOString(),
+        createdAt: newSecret.createdAt?.toISOString()
+      }
+    })
+  } catch (error) {
+    console.error('Error creating secret:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to create secret' },
+      { status: 500 }
+    )
+  }
+})
+
+export const DELETE = DEMO_MODE ? async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -100,15 +177,22 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const initialLength = secrets.length
-    secrets = secrets.filter(secret => secret.id !== id)
+    // Check if secret exists
+    const existingSecret = await db.secret.findUnique({
+      where: { id }
+    })
 
-    if (secrets.length === initialLength) {
+    if (!existingSecret) {
       return NextResponse.json(
         { success: false, error: 'Secret not found' },
         { status: 404 }
       )
     }
+
+    // Delete secret
+    await db.secret.delete({
+      where: { id }
+    })
 
     return NextResponse.json({
       success: true,
@@ -121,4 +205,44 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+} : withAdmin(async (request: AuthenticatedRequest) => {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Secret ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Check if secret exists
+    const existingSecret = await db.secret.findUnique({
+      where: { id }
+    })
+
+    if (!existingSecret) {
+      return NextResponse.json(
+        { success: false, error: 'Secret not found' },
+        { status: 404 }
+      )
+    }
+
+    // Delete the secret
+    await db.secret.delete({
+      where: { id }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Secret deleted successfully'
+    })
+  } catch (error) {
+    console.error('Error deleting secret:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete secret' },
+      { status: 500 }
+    )
+  }
+})

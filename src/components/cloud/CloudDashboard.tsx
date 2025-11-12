@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   Copy,
+  Edit2,
   Trash2,
   RotateCw,
   Clock,
@@ -122,11 +123,12 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import ErrorBoundaryClass from '@/components/error-boundary-new'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -241,6 +243,9 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
   const [selectedDate, setSelectedDate] = useState('')
   const [showAddSecret, setShowAddSecret] = useState(false)
   const [newSecret, setNewSecret] = useState({ name: '', value: '', description: '' })
+  const [editingSecret, setEditingSecret] = useState<Secret | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [actualSecretValues, setActualSecretValues] = useState<Record<string, string>>({})
 
   // Fetch cloud status
   const fetchCloudStatus = async () => {
@@ -458,6 +463,49 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
       toast.error('Failed to rotate secret')
     } finally {
       setLoading({ ...loading, [`rotate_${secretId}`]: false })
+    }
+  }
+
+  // Edit secret
+  const openEditModal = (secret: Secret) => {
+    setEditingSecret(secret)
+    setShowEditModal(true)
+  }
+
+  const closeEditModal = () => {
+    setEditingSecret(null)
+    setShowEditModal(false)
+  }
+
+  const saveEditedSecret = async () => {
+    if (!editingSecret) return
+    
+    setLoading({ ...loading, [`edit_${editingSecret.id}`]: true })
+    try {
+      const response = await fetch(`/api/cloud/secrets/${editingSecret.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          value: editingSecret.value,
+          description: editingSecret.description
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('✅ Secret updated successfully')
+        fetchSecrets()
+        closeEditModal()
+      } else {
+        toast.error(result.error || 'Failed to update secret')
+      }
+    } catch (error) {
+      toast.error('Failed to update secret')
+    } finally {
+      setLoading({ ...loading, [`edit_${editingSecret.id}`]: false })
     }
   }
 
@@ -1516,6 +1564,65 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                 </Dialog>
               </div>
 
+              {/* Edit Secret Modal */}
+              <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Edit Secret</DialogTitle>
+                    <DialogDescription>
+                      Update the value or description for this secret.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-secret-name">Secret Name</Label>
+                      <Input
+                        id="edit-secret-name"
+                        value={editingSecret?.name || ''}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-secret-value">Secret Value</Label>
+                      <Textarea
+                        id="edit-secret-value"
+                        value={editingSecret?.value || ''}
+                        onChange={(e) => setEditingSecret(prev => prev ? { ...prev, value: e.target.value } : null)}
+                        placeholder="Enter secret value"
+                        rows={3}
+                        className="font-mono"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-secret-description">Description (Optional)</Label>
+                      <Input
+                        id="edit-secret-description"
+                        value={editingSecret?.description || ''}
+                        onChange={(e) => setEditingSecret(prev => prev ? { ...prev, description: e.target.value } : null)}
+                        placeholder="Enter description"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={closeEditModal}>
+                      Cancel
+                    </Button>
+                    <Button onClick={saveEditedSecret} disabled={loading[`edit_${editingSecret?.id}`]}>
+                      {loading[`edit_${editingSecret?.id}`] ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(editingSecret?.value || '')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               {/* Secrets Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {secrets.map((secret) => (
@@ -1543,7 +1650,7 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                       <div className="flex items-center gap-2">
                         <Input
                           type={showValues[secret.id] ? 'text' : 'password'}
-                          value={secret.value}
+                          value={showValues[secret.id] ? secret.value : '••••••••••••'}
                           readOnly
                           className="text-xs"
                         />
@@ -1562,6 +1669,14 @@ export default function CloudDashboard({ onStatsUpdate }: CloudDashboardProps) {
                           className="text-gray-400 hover:text-gray-600"
                         >
                           <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(secret)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <Edit2 className="h-4 w-4" />
                         </Button>
                       </div>
 
