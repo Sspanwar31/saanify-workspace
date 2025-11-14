@@ -1,20 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import AutomationService from '@/lib/automation-service'
+import { supabase } from '@/lib/real-supabase'
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
+  const { taskId, enabled } = await req.json()
+
   try {
-    const body = await request.json()
-    const { enabled } = body
+    const { data, error } = await supabase
+      .from('automation_tasks')
+      .update({ enabled })
+      .eq('task_name', taskId)
 
-    const automationService = AutomationService.getInstance()
-    const result = await automationService.toggleAutomation(enabled)
+    if (error) throw error
 
-    return NextResponse.json(result)
-  } catch (error) {
-    console.error('Failed to toggle automation:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to toggle automation'
-    }, { status: 500 })
+    return new Response(JSON.stringify({ success: true, data }), { status: 200 })
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
 }
