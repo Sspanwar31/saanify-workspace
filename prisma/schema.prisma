@@ -2,12 +2,14 @@
 // This is your Prisma schema file for Supabase PostgreSQL,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"      // <-- SQLite se PostgreSQL me change
   url      = env("DATABASE_URL")
 }
 
