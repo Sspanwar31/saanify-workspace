@@ -1,77 +1,24 @@
-
-// This is your Prisma schema file for Supabase PostgreSQL,
+// This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// prisma/schema.prisma
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"      // <-- SQLite se PostgreSQL me change
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  name              String?
-  password          String
-  role              String    @default("CLIENT") // CLIENT, SUPERADMIN
-  isActive          Boolean   @default(true)
-  lastLoginAt       DateTime?
-  societyAccountId  String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  // Relations
-  societyAccount    SocietyAccount? @relation(fields: [societyAccountId], references: [id])
-  createdSocieties  Society[]
-  
-  @@map("users")
-}
-
-model SocietyAccount {
-  id                  String   @id @default(cuid())
-  name                String
-  adminName           String?
-  email               String   @unique
-  phone               String?
-  address             String?
-  subscriptionPlan    String   @default("TRIAL") // TRIAL, BASIC, PRO, ENTERPRISE
-  status              String   @default("TRIAL") // TRIAL, ACTIVE, EXPIRED, LOCKED
-  trialEndsAt         DateTime?
-  subscriptionEndsAt  DateTime?
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  // Relations
-  users               User[]
-  societies           Society[]
-  
-  @@map("society_accounts")
-}
-
-model Society {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  address         String?
-  phone           String?
-  email           String?
-  societyAccountId String
-  createdByUserId String
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  societyAccount  SocietyAccount @relation(fields: [societyAccountId], references: [id])
-  createdByUser   User           @relation(fields: [createdByUserId], references: [id])
-  
-  @@map("societies")
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Post {
@@ -82,8 +29,6 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  @@map("posts")
 }
 
 model Secret {
@@ -94,20 +39,4 @@ model Secret {
   lastRotated DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  @@map("secrets")
-}
-
-model AutomationLog {
-  id          String   @id @default(cuid())
-  taskName    String   @map("task_name")
-  status      String
-  durationMs  Int?     @map("duration_ms")
-  details     String?
-  error       String?
-  runTime     DateTime @default(now()) @map("run_time")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@map("automation_logs")
 }

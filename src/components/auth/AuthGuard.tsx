@@ -7,7 +7,7 @@ import LoadingSpinner from '@/components/ui/loading-spinner'
 
 interface AuthGuardProps {
   children: React.ReactNode
-  requiredRole?: 'SUPER_ADMIN' | 'CLIENT'
+  requiredRole?: 'SUPER_ADMIN' | 'CLIENT' | 'SUPERADMIN'
   redirectTo?: string
 }
 
@@ -44,10 +44,20 @@ export default function AuthGuard({ children, requiredRole, redirectTo = '/login
         const data = await response.json()
         
         // Check role if required
-        if (requiredRole && data.user.role !== requiredRole) {
-          toast.error('Access denied. Insufficient privileges.')
-          router.push(redirectTo)
-          return
+        if (requiredRole) {
+          const userRole = data.user.role
+          // Support both role naming conventions
+          if (requiredRole === 'SUPER_ADMIN' || requiredRole === 'SUPERADMIN') {
+            if (userRole !== 'SUPER_ADMIN' && userRole !== 'SUPERADMIN') {
+              toast.error('Access denied. Super Administrator privileges required.')
+              router.push('/not-authorized')
+              return
+            }
+          } else if (userRole !== requiredRole) {
+            toast.error('Access denied. Insufficient privileges.')
+            router.push(redirectTo)
+            return
+          }
         }
 
         setIsAuthenticated(true)

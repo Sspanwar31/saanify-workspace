@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, LogIn, User, Zap, Grid3x3, Settings2, Database, Shield, BarChart3, ChevronDown, Github } from 'lucide-react'
+import { Menu, X, ArrowRight, LogIn, User, Grid3x3, Shield, BarChart3, ChevronDown, Github } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import GitHubIntegration from '@/components/github/GitHubIntegration'
@@ -15,6 +15,38 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isGitHubOpen, setIsGitHubOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Check authentication and role on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('auth-token='))
+          ?.split('=')[1]
+
+        if (token) {
+          const response = await fetch('/api/auth/check-session', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setIsAuthenticated(true)
+            setUserRole(data.user.role)
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+      }
+    }
+
+    checkAuth()
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -87,14 +119,8 @@ export default function Navbar() {
       case 'github':
         setIsGitHubOpen(true)
         break
-      case 'cloud-dashboard':
-        handleNavClick('/cloud/dashboard', 'Cloud Dashboard')
-        break
-      case 'security':
-        toast.info("🔒 Security Center", {
-          description: "Opening security settings...",
-          duration: 3000,
-        })
+      case 'superadmin':
+        handleNavClick('/super-admin', 'SuperAdmin Panel')
         break
       case 'analytics':
         handleNavClick('/analytics', 'Analytics')
@@ -118,20 +144,13 @@ export default function Navbar() {
       action: 'github',
       gradient: 'from-gray-600 to-gray-800'
     },
-    {
-      icon: <Database className="h-4 w-4" />,
-      label: 'Cloud Dashboard',
-      description: 'Access your cloud dashboard',
-      action: 'cloud-dashboard',
-      gradient: 'from-sky-600 to-blue-700'
-    },
-    {
+    ...(isAuthenticated && (userRole === 'SUPER_ADMIN' || userRole === 'SUPERADMIN') ? [{
       icon: <Shield className="h-4 w-4" />,
-      label: 'Security Center',
-      description: 'Security and privacy settings',
-      action: 'security',
-      gradient: 'from-blue-600 to-indigo-700'
-    },
+      label: 'SuperAdmin Panel',
+      description: 'Access admin controls',
+      action: 'superadmin',
+      gradient: 'from-red-600 to-pink-700'
+    }] : []),
     {
       icon: <BarChart3 className="h-4 w-4" />,
       label: 'Analytics',
@@ -479,8 +498,6 @@ export default function Navbar() {
                       }}
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                     >
-                      <Zap className="h-4 w-4 mr-2" />
-                      Get Started
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </motion.div>

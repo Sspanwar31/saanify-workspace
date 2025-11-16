@@ -1,8 +1,34 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { verifyAccessToken } from '@/lib/tokens'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  
+  // Protect SuperAdmin routes
+  if (pathname.startsWith('/super-admin')) {
+    const token = request.cookies.get('auth-token')?.value
+
+    if (!token) {
+      // Redirect to login if no token
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    try {
+      // Verify token
+      const decoded = verifyAccessToken(token)
+      if (!decoded || typeof decoded !== 'object' || !('userId' in decoded)) {
+        return NextResponse.redirect(new URL('/not-authorized', request.url))
+      }
+
+      // For now, we'll rely on client-side checks for role verification
+      // In a real implementation, you'd want to verify the role here too
+      // by checking the database or including role in the JWT
+      
+    } catch (error) {
+      return NextResponse.redirect(new URL('/not-authorized', request.url))
+    }
+  }
   
   // Check if setup mode is enabled and protect setup route
   if (pathname === '/setup') {

@@ -44,7 +44,76 @@ import {
   ChevronDown,
   MoreHorizontal,
   User,
-  LogOut
+  LogOut,
+  Archive,
+  ArchiveRestore,
+  Sync,
+  Play,
+  Pause,
+  HardDrive,
+  Pulse,
+  FileText,
+  Bell,
+  BellRing,
+  MessageSquare,
+  Send,
+  Paperclip,
+  Link,
+  Unlink,
+  Key,
+  Fingerprint,
+  ShieldCheck,
+  ShieldAlert,
+  Cpu,
+  Brain,
+  Heartbeat,
+  Radio,
+  Wifi,
+  Router,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudDrizzle,
+  Sun,
+  Moon,
+  MoreVertical,
+  ChevronUp,
+  ChevronRight,
+  ChevronLeft,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight,
+  ArrowLeft,
+  ArrowUpRight,
+  ArrowDownRight,
+  ArrowUpLeft,
+  ArrowDownLeft,
+  Move,
+  Maximize2,
+  Minimize2,
+  Expand,
+  Shrink,
+  Fullscreen,
+  Minimize,
+  ZoomIn,
+  ZoomOut,
+  Timer,
+  Stopwatch,
+  Hourglass,
+  AlarmClock,
+  Watch,
+  Clock1,
+  Clock2,
+  Clock3,
+  Clock4,
+  Clock5,
+  Clock6,
+  Clock7,
+  Clock8,
+  Clock9,
+  Clock10,
+  Clock11,
+  Clock12
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,6 +146,12 @@ import { useToast } from '@/hooks/use-toast'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 // Type definitions
 interface Client {
@@ -94,6 +169,39 @@ interface Client {
   description?: string
   rating?: number
   lastActive?: string
+}
+
+interface AutomationTask {
+  id: string
+  name: string
+  description: string
+  enabled: boolean
+  schedule: string
+  lastRun: string | null
+  nextRun: string | null
+  status: 'ready' | 'running' | 'completed' | 'failed'
+  duration: number
+  successRate: number
+  totalRuns: number
+  logs?: string[]
+}
+
+interface BackupFile {
+  id: string
+  name: string
+  size: string
+  created: string
+  type: 'manual' | 'scheduled'
+  status: 'completed' | 'failed' | 'in_progress'
+}
+
+interface HealthCheck {
+  id: string
+  service: string
+  status: 'healthy' | 'unhealthy' | 'warning'
+  lastChecked: string
+  responseTime: number
+  details: string
 }
 
 // Enhanced dummy data with more realistic information
@@ -177,54 +285,6 @@ const dummyClients: Client[] = [
     description: "Premium gated community with high-end amenities",
     rating: 4.8,
     lastActive: "1 week ago"
-  },
-  { 
-    id: 6, 
-    name: "Palm Springs Society", 
-    plan: "BASIC", 
-    status: "Active", 
-    members: 150,
-    joinDate: "2024-03-01",
-    revenue: "$600",
-    contact: "palmsprings@society.org",
-    phone: "+91-98765-43215",
-    address: "987 Palm Street, Chennai, Tamil Nadu 600001",
-    website: "www.palmsprings.in",
-    description: "Affordable housing society with basic amenities",
-    rating: 3.8,
-    lastActive: "5 hours ago"
-  },
-  { 
-    id: 7, 
-    name: "Crystal Heights", 
-    plan: "TRIAL", 
-    status: "Trial", 
-    members: 75,
-    joinDate: "2024-03-25",
-    revenue: "$0",
-    contact: "crystal@heights.com",
-    phone: "+91-98765-43216",
-    address: "147 Crystal Lane, Kolkata, West Bengal 700001",
-    website: "www.crystalheights.in",
-    description: "Modern society with smart home features",
-    rating: 4.1,
-    lastActive: "2 days ago"
-  },
-  { 
-    id: 8, 
-    name: "Golden Gate Community", 
-    plan: "PRO", 
-    status: "Active", 
-    members: 220,
-    joinDate: "2024-01-20",
-    revenue: "$2,400",
-    contact: "golden@gate.in",
-    phone: "+91-98765-43217",
-    address: "258 Golden Boulevard, Ahmedabad, Gujarat 380001",
-    website: "www.goldengate.in",
-    description: "Premium society with commercial spaces",
-    rating: 4.6,
-    lastActive: "1 hour ago"
   }
 ]
 
@@ -269,6 +329,8 @@ const initialNewClientState = {
 
 export default function SuperAdminDashboard() {
   const { toast } = useToast()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("overview")
   const [clients, setClients] = useState<Client[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [statusFilter, setStatusFilter] = useState<string>("All")
@@ -278,9 +340,126 @@ export default function SuperAdminDashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [activeTab, setActiveTab] = useState("overview")
   const [newClientData, setNewClientData] = useState(initialNewClientState)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [loading, setLoading] = useState<Record<string, boolean>>({})
+  const [selectedBackupFile, setSelectedBackupFile] = useState<File | null>(null)
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
+  
+  // Automation states
+  const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([
+    {
+      id: 'database-backup',
+      name: 'Database Backup',
+      description: 'Create secure database backups to Supabase Storage',
+      enabled: true,
+      schedule: 'manual',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'database-restore',
+      name: 'Database Restore',
+      description: 'Restore database from backup files',
+      enabled: true,
+      schedule: 'manual',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'schema-sync',
+      name: 'Schema Sync',
+      description: 'Sync database schema changes automatically',
+      enabled: true,
+      schedule: '0 */6 * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'auto-sync',
+      name: 'Auto Sync',
+      description: 'Scheduled data synchronization',
+      enabled: true,
+      schedule: '0 */2 * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    },
+    {
+      id: 'health-check',
+      name: 'Health Check',
+      description: 'Monitor system health and Supabase connectivity',
+      enabled: true,
+      schedule: '*/5 * * * *',
+      lastRun: null,
+      nextRun: null,
+      status: 'ready',
+      duration: 0,
+      successRate: 0,
+      totalRuns: 0
+    }
+  ])
+  
+  const [backupFiles, setBackupFiles] = useState<BackupFile[]>([
+    {
+      id: '1',
+      name: 'backup_2024_01_15_02_00.sql',
+      size: '45.2 MB',
+      created: '2024-01-15 02:00:00',
+      type: 'scheduled',
+      status: 'completed'
+    },
+    {
+      id: '2',
+      name: 'backup_2024_01_14_14_30.sql',
+      size: '44.8 MB',
+      created: '2024-01-14 14:30:00',
+      type: 'manual',
+      status: 'completed'
+    }
+  ])
+  
+  const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([
+    {
+      id: '1',
+      service: 'Supabase Database',
+      status: 'healthy',
+      lastChecked: '2024-01-15 10:30:00',
+      responseTime: 45,
+      details: 'All connections working properly'
+    },
+    {
+      id: '2',
+      service: 'Supabase Storage',
+      status: 'healthy',
+      lastChecked: '2024-01-15 10:30:00',
+      responseTime: 32,
+      details: 'Storage bucket accessible'
+    },
+    {
+      id: '3',
+      service: 'Sessions Table',
+      status: 'healthy',
+      lastChecked: '2024-01-15 10:30:00',
+      responseTime: 28,
+      details: '150 active sessions'
+    }
+  ])
 
   // Initial data load with loading effect
   useEffect(() => {
@@ -314,6 +493,211 @@ export default function SuperAdminDashboard() {
       avgRating: clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.rating || 0), 0) / clients.length).toFixed(1) : 0
     }
   }, [clients])
+
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    const token = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('auth-token='))
+      ?.split('=')[1]
+    
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    }
+  }
+
+  // Run automation task
+  const runTask = async (taskId: string) => {
+    setLoading({ ...loading, [taskId]: true })
+    
+    try {
+      const response = await fetch(`/api/super-admin/automation/${taskId}/run`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success(`✅ ${taskId} completed successfully`, {
+          description: result.message || 'Task completed successfully'
+        })
+        
+        // Update task status
+        setAutomationTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { 
+                ...task, 
+                status: 'completed',
+                lastRun: new Date().toISOString(),
+                totalRuns: task.totalRuns + 1,
+                successRate: task.totalRuns > 0 ? ((task.successRate * task.totalRuns + 100) / (task.totalRuns + 1)) : 100
+              }
+            : task
+        ))
+      } else {
+        toast.error(`❌ ${taskId} failed`, {
+          description: result.error || 'Task failed to complete'
+        })
+        
+        setAutomationTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { 
+                ...task, 
+                status: 'failed',
+                lastRun: new Date().toISOString(),
+                totalRuns: task.totalRuns + 1,
+                successRate: task.totalRuns > 0 ? ((task.successRate * task.totalRuns) / (task.totalRuns + 1)) : 0
+              }
+            : task
+        ))
+      }
+    } catch (error) {
+      toast.error(`❌ ${taskId} failed`, {
+        description: 'Network error occurred'
+      })
+      
+      setAutomationTasks(prev => prev.map(task => 
+        task.id === taskId 
+          ? { 
+              ...task, 
+              status: 'failed',
+              lastRun: new Date().toISOString(),
+              totalRuns: task.totalRuns + 1,
+              successRate: task.totalRuns > 0 ? ((task.successRate * task.totalRuns) / (task.totalRuns + 1)) : 0
+            }
+          : task
+      ))
+    } finally {
+      setLoading({ ...loading, [taskId]: false })
+    }
+  }
+
+  // Toggle task enabled/disabled
+  const toggleTask = async (taskId: string) => {
+    const task = automationTasks.find(t => t.id === taskId)
+    if (!task) return
+    
+    setLoading({ ...loading, [taskId]: true })
+    
+    try {
+      const response = await fetch(`/api/super-admin/automation/${taskId}/toggle`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ enabled: !task.enabled })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setAutomationTasks(prev => prev.map(t => 
+          t.id === taskId ? { ...t, enabled: !t.enabled } : t
+        ))
+        toast.success(`✅ Task ${!task.enabled ? 'enabled' : 'disabled'}`)
+      } else {
+        toast.error(result.error || 'Failed to toggle task')
+      }
+    } catch (error) {
+      toast.error('Failed to toggle task')
+    } finally {
+      setLoading({ ...loading, [taskId]: false })
+    }
+  }
+
+  // Handle database backup
+  const handleDatabaseBackup = async () => {
+    await runTask('database-backup')
+  }
+
+  // Handle database restore
+  const handleDatabaseRestore = async () => {
+    if (!selectedBackupFile) {
+      toast.error('Please select a backup file first')
+      return
+    }
+    
+    setLoading({ ...loading, restore: true })
+    
+    try {
+      const formData = new FormData()
+      formData.append('backupFile', selectedBackupFile)
+      
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))
+        ?.split('=')[1]
+      
+      const response = await fetch('/api/super-admin/automation/database-restore', {
+        method: 'POST',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: formData
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success('✅ Database restored successfully')
+        setShowRestoreDialog(false)
+        setSelectedBackupFile(null)
+      } else {
+        toast.error(result.error || 'Failed to restore database')
+      }
+    } catch (error) {
+      toast.error('Failed to restore database')
+    } finally {
+      setLoading({ ...loading, restore: false })
+    }
+  }
+
+  // Handle schema sync
+  const handleSchemaSync = async () => {
+    await runTask('schema-sync')
+  }
+
+  // Handle auto sync
+  const handleAutoSync = async () => {
+    await runTask('auto-sync')
+  }
+
+  // Handle health check
+  const handleHealthCheck = async () => {
+    await runTask('health-check')
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy':
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'unhealthy':
+      case 'failed':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'warning':
+      case 'running':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'healthy':
+      case 'completed':
+        return CheckCircle
+      case 'unhealthy':
+      case 'failed':
+        return AlertCircle
+      case 'warning':
+      case 'running':
+        return Activity
+      default:
+        return Clock
+    }
+  }
 
   // Action handlers
   const handleView = (client: Client) => {
@@ -450,7 +834,7 @@ export default function SuperAdminDashboard() {
               <Shield className="h-8 w-8 text-indigo-600 mr-3" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Super Admin Dashboard</h1>
-                <p className="text-sm text-gray-500">Manage all societies and clients</p>
+                <p className="text-sm text-gray-500">Manage all societies and automation</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -486,12 +870,11 @@ export default function SuperAdminDashboard() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => {
-                      // Handle logout
                       toast({
                         title: "Logged Out",
                         description: "You have been successfully logged out.",
                       })
-                      window.location.href = '/login'
+                      router.push('/login')
                     }}
                     className="cursor-pointer text-red-600 hover:bg-red-50"
                   >
@@ -526,172 +909,94 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:border-indigo-600">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="societies" className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:border-indigo-600">
-              <Building2 className="h-4 w-4 mr-2" />
-              Societies
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:border-indigo-600">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:border-indigo-600">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Societies</TabsTrigger>
+            <TabsTrigger value="automation">Automation</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
+          {/* Overview Tab - Societies Management */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Societies</CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Societies</CardTitle>
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                  <p className="text-xs text-gray-500">Registered societies</p>
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +2 from last month
+                  </p>
                 </CardContent>
               </Card>
-
+              
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Active</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CardTitle className="text-sm font-medium">Active Societies</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-                  <p className="text-xs text-gray-500">Currently active</p>
+                  <div className="text-2xl font-bold">{stats.active}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {((stats.active / stats.total) * 100).toFixed(1)}% of total
+                  </p>
                 </CardContent>
               </Card>
-
+              
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">${stats.totalRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-gray-500">Monthly recurring</p>
+                  <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +12% from last month
+                  </p>
                 </CardContent>
               </Card>
-
+              
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Avg Rating</CardTitle>
-                  <Star className="h-4 w-4 text-yellow-500" />
+                  <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{stats.avgRating}</div>
-                  <p className="text-xs text-gray-500">Average rating</p>
+                  <div className="text-2xl font-bold">{stats.totalMembers.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +8% from last month
+                  </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button 
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add New Society
-                  </Button>
-                  <Button 
-                    onClick={handleRefresh}
-                    disabled={isLoading}
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                    Refresh Data
-                  </Button>
-                  <Button 
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Data
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {clients.slice(0, 3).map((client) => (
-                      <div key={client.id} className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{client.name}</p>
-                          <p className="text-xs text-gray-500">{client.lastActive}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">System Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Database</span>
-                      <Badge className="bg-green-100 text-green-800">Connected</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">API Server</span>
-                      <Badge className="bg-green-100 text-green-800">Running</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Last Sync</span>
-                      <span className="text-sm text-gray-500">2 mins ago</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Societies Tab */}
-          <TabsContent value="societies" className="space-y-6">
-            {/* Search and Filter */}
+            {/* Filters and Search */}
             <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search societies..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
+              <CardHeader>
+                <CardTitle>Society Management</CardTitle>
+                <CardDescription>Manage all registered societies and their subscriptions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search societies..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="All Status" />
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="All">All Status</SelectItem>
@@ -702,8 +1007,8 @@ export default function SuperAdminDashboard() {
                     </SelectContent>
                   </Select>
                   <Select value={planFilter} onValueChange={setPlanFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="All Plans" />
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue placeholder="Filter by plan" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="All">All Plans</SelectItem>
@@ -714,19 +1019,9 @@ export default function SuperAdminDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Societies Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">Societies Management</CardTitle>
-                <CardDescription>
-                  Manage all registered societies and their subscriptions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
+                {/* Clients Table */}
+                <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -735,117 +1030,116 @@ export default function SuperAdminDashboard() {
                         <TableHead>Status</TableHead>
                         <TableHead>Members</TableHead>
                         <TableHead>Revenue</TableHead>
-                        <TableHead>Rating</TableHead>
+                        <TableHead>Last Active</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-12">
-                            <div className="flex justify-center items-center gap-2">
-                              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-                              <p className="text-lg text-gray-600">Loading societies...</p>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <div className="flex items-center justify-center">
+                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                              Loading societies...
                             </div>
                           </TableCell>
                         </TableRow>
-                      ) : filteredClients.length > 0 ? (
-                        <AnimatePresence>
-                          {filteredClients.map((client, index) => {
-                            const StatusIcon = statusIcons[client.status]
-                            const PlanIcon = planIcons[client.plan]
-                            return (
-                              <motion.tr
-                                key={client.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ delay: index * 0.05 }}
-                                className="border-b hover:bg-gray-50"
-                              >
-                                <TableCell>
-                                  <div>
-                                    <div className="font-medium text-gray-900">{client.name}</div>
-                                    <div className="text-sm text-gray-500">{client.contact}</div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <PlanIcon className="h-4 w-4 text-gray-500" />
-                                    <Badge className={planColors[client.plan]}>
-                                      {client.plan}
-                                    </Badge>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <StatusIcon className="h-4 w-4 text-gray-500" />
-                                    <Badge className={statusColors[client.status]}>
-                                      {client.status}
-                                    </Badge>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-gray-900">{client.members}</TableCell>
-                                <TableCell className="text-gray-900">{client.revenue}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center">
-                                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                                    <span className="text-sm text-gray-600 ml-1">{client.rating}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleView(client)}>
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        View Details
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleEdit(client)}>
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      {client.status !== "Locked" ? (
-                                        <DropdownMenuItem onClick={() => handleLock(client)}>
-                                          <Lock className="h-4 w-4 mr-2" />
-                                          Lock
-                                        </DropdownMenuItem>
-                                      ) : (
-                                        <DropdownMenuItem onClick={() => handleUnlock(client)}>
-                                          <Unlock className="h-4 w-4 mr-2" />
-                                          Unlock
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem onClick={() => handleRenew(client)}>
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        Renew
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleDelete(client)} className="text-red-600">
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </motion.tr>
-                            )
-                          })}
-                        </AnimatePresence>
-                      ) : (
+                      ) : filteredClients.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-12">
-                            <div className="text-center">
-                              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                              <p className="text-gray-500">No societies found matching your criteria</p>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <div className="text-gray-500">
+                              {searchTerm || statusFilter !== "All" || planFilter !== "All" 
+                                ? "No societies found matching your criteria" 
+                                : "No societies registered yet"}
                             </div>
                           </TableCell>
                         </TableRow>
+                      ) : (
+                        filteredClients.map((client) => (
+                          <TableRow key={client.id} className="hover:bg-gray-50">
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-gray-900">{client.name}</div>
+                                <div className="text-sm text-gray-500">{client.contact}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={planColors[client.plan]}>
+                                {(() => {
+                                  const IconComponent = planIcons[client.plan]
+                                  return <IconComponent className="h-3 w-3 mr-1" />
+                                })()}
+                                {client.plan}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={statusColors[client.status]}>
+                                {(() => {
+                                  const IconComponent = statusIcons[client.status]
+                                  return <IconComponent className="h-3 w-3 mr-1" />
+                                })()}
+                                {client.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Users className="h-4 w-4 mr-1 text-gray-400" />
+                                {client.members}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">{client.revenue}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-500">{client.lastActive}</div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleView(client)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEdit(client)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Society
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  {client.status === "Active" ? (
+                                    <DropdownMenuItem onClick={() => handleLock(client)}>
+                                      <Lock className="h-4 w-4 mr-2" />
+                                      Lock Society
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => handleUnlock(client)}>
+                                      <Unlock className="h-4 w-4 mr-2" />
+                                      Unlock Society
+                                    </DropdownMenuItem>
+                                  )}
+                                  {client.status === "Expired" && (
+                                    <DropdownMenuItem onClick={() => handleRenew(client)}>
+                                      <RefreshCw className="h-4 w-4 mr-2" />
+                                      Renew Subscription
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDelete(client)}
+                                    className="text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Society
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
@@ -854,79 +1148,365 @@ export default function SuperAdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Automation Tab */}
+          <TabsContent value="automation" className="space-y-6">
+            <div className="mb-6">
+              <Badge className="bg-red-100 text-red-800 border-red-200 px-3 py-1">
+                <Shield className="h-4 w-4 mr-2" />
+                SUPERADMIN ONLY
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Revenue Overview</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Database Backup
+                  </CardTitle>
+                  <CardDescription>
+                    Manual database backup to Supabase Storage
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={handleDatabaseBackup}
+                    disabled={loading['database-backup']}
+                    className="w-full"
+                  >
+                    {loading['database-backup'] ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    Backup Now
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ArchiveRestore className="h-5 w-5" />
+                    Database Restore
+                  </CardTitle>
+                  <CardDescription>
+                    Restore database from backup files
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => setShowRestoreDialog(true)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Restore Database
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sync className="h-5 w-5" />
+                    Schema Sync
+                  </CardTitle>
+                  <CardDescription>
+                    Sync database schema changes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={handleSchemaSync}
+                    disabled={loading['schema-sync']}
+                    className="w-full"
+                  >
+                    {loading['schema-sync'] ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4 mr-2" />
+                    )}
+                    Sync Now
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Auto Sync
+                  </CardTitle>
+                  <CardDescription>
+                    Scheduled data synchronization
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={handleAutoSync}
+                    disabled={loading['auto-sync']}
+                    className="w-full"
+                  >
+                    {loading['auto-sync'] ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4 mr-2" />
+                    )}
+                    Sync Now
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Health Check
+                  </CardTitle>
+                  <CardDescription>
+                    Monitor system health status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={handleHealthCheck}
+                    disabled={loading['health-check']}
+                    className="w-full"
+                  >
+                    {loading['health-check'] ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Pulse className="h-4 w-4 mr-2" />
+                    )}
+                    Check Health
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Automation Tasks */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Automation Tasks</CardTitle>
+                <CardDescription>
+                  Manage and monitor automated tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {automationTasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-semibold">{task.name}</h3>
+                          <Badge className={getStatusColor(task.status)}>
+                            {(() => {
+                              const IconComponent = getStatusIcon(task.status)
+                              return IconComponent ? <IconComponent className="h-3 w-3 mr-1" /> : null
+                            })()}
+                            {task.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                          {task.description}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span>Schedule: {task.schedule}</span>
+                          <span>Runs: {task.totalRuns}</span>
+                          <span>Success Rate: {task.successRate.toFixed(1)}%</span>
+                          {task.lastRun && (
+                            <span>Last Run: {new Date(task.lastRun).toLocaleString()}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={task.enabled}
+                          onCheckedChange={() => toggleTask(task.id)}
+                          disabled={loading[task.id]}
+                        />
+                        <Button
+                          onClick={() => runTask(task.id)}
+                          disabled={loading[task.id] || !task.enabled}
+                          size="sm"
+                        >
+                          {loading[task.id] ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Health Checks */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  System Health
+                </CardTitle>
+                <CardDescription>
+                  Monitor system health and connectivity
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {healthChecks.map((check) => (
+                    <div key={check.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-semibold">{check.service}</h3>
+                          <Badge className={getStatusColor(check.status)}>
+                            {(() => {
+                              const IconComponent = getStatusIcon(check.status)
+                              return IconComponent ? <IconComponent className="h-3 w-3 mr-1" /> : null
+                            })()}
+                            {check.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                          {check.details}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span>Response Time: {check.responseTime}ms</span>
+                          <span>Last Checked: {check.lastChecked}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Societies</CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +2 from last month
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalMembers.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +8% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +12% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Avg Rating</CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.avgRating}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +0.2 from last month
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue by Plan</CardTitle>
+                  <CardDescription>Monthly revenue breakdown</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Revenue</span>
-                      <span className="text-2xl font-bold text-gray-900">${stats.totalRevenue.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Monthly Average</span>
-                      <span className="text-xl font-semibold text-gray-900">${Math.round(stats.totalRevenue / stats.total || 0)}</span>
-                    </div>
+                    {['BASIC', 'PRO', 'TRIAL', 'ENTERPRISE'].map((plan) => {
+                      const planClients = clients.filter(c => c.plan === plan)
+                      const planRevenue = planClients.reduce((sum, c) => sum + parseInt(c.revenue.replace(/[$,]/g, '')), 0)
+                      const percentage = stats.totalRevenue > 0 ? (planRevenue / stats.totalRevenue * 100).toFixed(1) : '0'
+                      
+                      return (
+                        <div key={plan} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge className={planColors[plan as keyof typeof planColors]}>
+                              {plan}
+                            </Badge>
+                            <span className="text-sm">{planClients.length} societies</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">${planRevenue.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{percentage}%</div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Membership Growth</CardTitle>
+                  <CardTitle>Status Distribution</CardTitle>
+                  <CardDescription>Society status overview</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Members</span>
-                      <span className="text-2xl font-bold text-gray-900">{stats.totalMembers.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Average per Society</span>
-                      <span className="text-xl font-semibold text-gray-900">{Math.round(stats.totalMembers / stats.total || 0)}</span>
-                    </div>
+                    {['Active', 'Trial', 'Expired', 'Locked'].map((status) => {
+                      const statusCount = clients.filter(c => c.status === status).length
+                      const percentage = stats.total > 0 ? (statusCount / stats.total * 100).toFixed(1) : '0'
+                      
+                      return (
+                        <div key={status} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge className={statusColors[status as keyof typeof statusColors]}>
+                              {(() => {
+                                const IconComponent = statusIcons[status as keyof typeof statusIcons]
+                                return <IconComponent className="h-3 w-3 mr-1" />
+                              })()}
+                              {status}
+                            </Badge>
+                            <span className="text-sm">{statusCount} societies</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{percentage}%</div>
+                            <div className="text-xs text-gray-500">of total</div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">System Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-medium">Auto-refresh</h3>
-                      <p className="text-sm text-gray-500">Automatically refresh data every 5 minutes</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-medium">Email Notifications</h3>
-                      <p className="text-sm text-gray-500">Send email alerts for important events</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-medium">Data Export</h3>
-                      <p className="text-gray-500">Export data in CSV or Excel format</p>
-                    </div>
-                    <Button variant="outline" size="sm">Export</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
@@ -935,100 +1515,76 @@ export default function SuperAdminDashboard() {
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-indigo-600" />
-              Society Details
-            </DialogTitle>
+            <DialogTitle>Society Details</DialogTitle>
             <DialogDescription>
-              Complete information about the society
+              Complete information about {selectedClient?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedClient && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Society Name</Label>
-                  <p className="text-base text-gray-900">{selectedClient.name}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Status</Label>
-                  <Badge className={statusColors[selectedClient.status]}>
-                    {selectedClient.status}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Subscription Plan</Label>
-                  <Badge className={planColors[selectedClient.plan]}>
-                    {selectedClient.plan}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Members</Label>
-                  <p className="text-base text-gray-900">{selectedClient.members}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Monthly Revenue</Label>
-                  <p className="text-base text-gray-900">{selectedClient.revenue}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Rating</Label>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    <span className="ml-1 text-base text-gray-900">{selectedClient.rating}</span>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Join Date</Label>
-                  <p className="text-base text-gray-900">{selectedClient.joinDate}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Last Active</Label>
-                  <p className="text-base text-gray-900">{selectedClient.lastActive}</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Society Name</Label>
+                <p className="text-sm text-gray-600">{selectedClient.name}</p>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Contact Information</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-900">{selectedClient.contact}</span>
-                    </div>
-                    {selectedClient.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-900">{selectedClient.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Address</Label>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400 mt-1" />
-                    <span className="text-sm text-gray-900">{selectedClient.address}</span>
-                  </div>
-                </div>
-                {selectedClient.website && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Website</Label>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
-                        {selectedClient.website}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {selectedClient.description && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Description</Label>
-                    <p className="text-sm text-gray-600 mt-1">{selectedClient.description}</p>
-                  </div>
-                )}
+              <div>
+                <Label className="text-sm font-medium">Contact</Label>
+                <p className="text-sm text-gray-600">{selectedClient.contact}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Phone</Label>
+                <p className="text-sm text-gray-600">{selectedClient.phone}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Website</Label>
+                <p className="text-sm text-gray-600">{selectedClient.website}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Plan</Label>
+                <Badge className={planColors[selectedClient.plan]}>
+                  {selectedClient.plan}
+                </Badge>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Status</Label>
+                <Badge className={statusColors[selectedClient.status]}>
+                  {(() => {
+                    const IconComponent = statusIcons[selectedClient.status]
+                    return <IconComponent className="h-3 w-3 mr-1" />
+                  })()}
+                  {selectedClient.status}
+                </Badge>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Members</Label>
+                <p className="text-sm text-gray-600">{selectedClient.members}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Revenue</Label>
+                <p className="text-sm text-gray-600">{selectedClient.revenue}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Join Date</Label>
+                <p className="text-sm text-gray-600">{selectedClient.joinDate}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Last Active</Label>
+                <p className="text-sm text-gray-600">{selectedClient.lastActive}</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium">Address</Label>
+                <p className="text-sm text-gray-600">{selectedClient.address}</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium">Description</Label>
+                <p className="text-sm text-gray-600">{selectedClient.description}</p>
               </div>
             </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1040,93 +1596,63 @@ export default function SuperAdminDashboard() {
           setEditingClient(null)
         }
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-indigo-600" />
-              {isEditModalOpen ? "Edit Society" : "Add New Society"}
-            </DialogTitle>
+            <DialogTitle>{isEditModalOpen ? 'Edit Society' : 'Add New Society'}</DialogTitle>
             <DialogDescription>
-              {isEditModalOpen ? "Update society information" : "Enter the details of the new society to register them."}
+              {isEditModalOpen ? 'Update society information' : 'Register a new society'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right font-medium">
-                Society Name
-              </Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Society Name</Label>
               <Input
                 id="name"
                 name="name"
-                value={editingClient ? editingClient.name : newClientData.name}
+                value={isEditModalOpen ? editingClient?.name : newClientData.name}
                 onChange={handleInputChange}
-                className="col-span-3"
-                placeholder="e.g., Green Valley Apartments"
+                placeholder="Enter society name"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="contact" className="text-right font-medium">
-                Contact Email
-              </Label>
+            <div>
+              <Label htmlFor="contact">Contact Email</Label>
               <Input
                 id="contact"
                 name="contact"
                 type="email"
-                value={editingClient ? editingClient.contact : newClientData.contact}
+                value={isEditModalOpen ? editingClient?.contact : newClientData.contact}
                 onChange={handleInputChange}
-                className="col-span-3"
-                placeholder="e.g., admin@greenvalley.com"
+                placeholder="admin@society.com"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right font-medium">
-                Phone
-              </Label>
+            <div>
+              <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 name="phone"
-                value={editingClient ? editingClient.phone : newClientData.phone}
+                value={isEditModalOpen ? editingClient?.phone : newClientData.phone}
                 onChange={handleInputChange}
-                className="col-span-3"
-                placeholder="e.g., +91-98765-43210"
+                placeholder="+91-98765-43210"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right font-medium">
-                Address
-              </Label>
-              <Input
-                id="address"
-                name="address"
-                value={editingClient ? editingClient.address : newClientData.address}
-                onChange={handleInputChange}
-                className="col-span-3"
-                placeholder="e.g., 123 Green Valley, Mumbai"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="website" className="text-right font-medium">
-                Website
-              </Label>
+            <div>
+              <Label htmlFor="website">Website</Label>
               <Input
                 id="website"
                 name="website"
-                value={editingClient ? editingClient.website : newClientData.website}
+                value={isEditModalOpen ? editingClient?.website : newClientData.website}
                 onChange={handleInputChange}
-                className="col-span-3"
-                placeholder="e.g., www.greenvalley.in"
+                placeholder="www.society.com"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="plan" className="text-right font-medium">
-                Initial Plan
-              </Label>
+            <div>
+              <Label htmlFor="plan">Subscription Plan</Label>
               <Select 
-                value={editingClient ? editingClient.plan : newClientData.plan} 
+                value={isEditModalOpen ? editingClient?.plan : newClientData.plan}
                 onValueChange={handlePlanChange}
               >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a plan" />
+                <SelectTrigger>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TRIAL">Trial</SelectItem>
@@ -1136,29 +1662,27 @@ export default function SuperAdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            {(editingClient || newClientData.description) && (
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="description" className="text-right font-medium">
-                  Description
-                </Label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={editingClient ? editingClient.description : newClientData.description}
-                  onChange={(e) => {
-                    const name = e.target.name
-                    const value = e.target.value
-                    if (editingClient) {
-                      setEditingClient(prev => ({ ...prev, [name]: value }))
-                    } else {
-                      setNewClientData(prev => ({ ...prev, [name]: value }))
-                    }
-                  }}
-                  className="col-span-3 min-h-[80px] resize-none"
-                  placeholder="Brief description about the society"
-                />
-              </div>
-            )}
+            <div className="md:col-span-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                name="address"
+                value={isEditModalOpen ? editingClient?.address : newClientData.address}
+                onChange={handleInputChange}
+                placeholder="123 Society Road, City, State 123456"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={isEditModalOpen ? editingClient?.description : newClientData.description}
+                onChange={handleInputChange}
+                placeholder="Brief description about the society..."
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
@@ -1168,11 +1692,57 @@ export default function SuperAdminDashboard() {
             }}>
               Cancel
             </Button>
+            <Button onClick={isEditModalOpen ? handleUpdateClient : handleAddClient}>
+              {isEditModalOpen ? 'Update Society' : 'Add Society'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restore Dialog */}
+      <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Restore Database</DialogTitle>
+            <DialogDescription>
+              Select a backup file to restore to database. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="restore-file">Backup File</Label>
+              <Input
+                id="restore-file"
+                type="file"
+                accept=".sql"
+                onChange={(e) => setSelectedBackupFile(e.target.files?.[0] || null)}
+                className="mt-1"
+              />
+            </div>
+            {selectedBackupFile && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  You are about to restore the database using <strong>{selectedBackupFile.name}</strong>. 
+                  This will overwrite all current data.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>
+              Cancel
+            </Button>
             <Button 
-              onClick={isEditModalOpen ? handleUpdateClient : handleAddClient}
-              className="bg-indigo-600 text-white hover:bg-indigo-700"
+              onClick={handleDatabaseRestore}
+              disabled={!selectedBackupFile || loading.restore}
             >
-              {isEditModalOpen ? "Update Society" : "Add Society"}
+              {loading.restore ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+              )}
+              Restore Database
             </Button>
           </DialogFooter>
         </DialogContent>
