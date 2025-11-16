@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseService } from '@/lib/supabase-service'
 
 // Security: Only run when SETUP_MODE is true
 const SETUP_MODE = process.env.SETUP_MODE === 'true'
 const SETUP_KEY = process.env.SETUP_KEY
-
-// Initialize Supabase client for schema setup
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 export async function GET(request: NextRequest) {
   // Security check: Only allow when SETUP_MODE is true
@@ -128,11 +122,11 @@ export async function POST(request: NextRequest) {
 async function initializeDatabaseSchema() {
   try {
     // Create users table if it doesn't exist
-    const { error: usersError } = await supabase.rpc('create_users_table_if_not_exists')
+    const { error: usersError } = await supabaseService.rpc('create_users_table_if_not_exists')
     
     if (usersError) {
       // Fallback: Try direct SQL
-      const { error: sqlError } = await supabase
+      const { error: sqlError } = await supabaseService
         .from('raw_sql')
         .insert({ 
           sql: `
@@ -192,7 +186,7 @@ async function createSuperadminUser(email: string, password: string) {
     const hashedPassword = await hashPassword(password)
 
     // Insert superadmin user
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseService
       .from('users')
       .insert({
         email,
@@ -209,7 +203,7 @@ async function createSuperadminUser(email: string, password: string) {
 
     // Also try to create in Supabase Auth if available
     try {
-      const { error: authError } = await supabase.auth.admin.createUser({
+      const { error: authError } = await supabaseService.auth.admin.createUser({
         email,
         password,
         email_confirm: true,

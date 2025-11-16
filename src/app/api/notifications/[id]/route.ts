@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAccessToken } from '@/lib/tokens'
+import jwt from 'jsonwebtoken'
 import { NotificationService } from '@/lib/notifications'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+
+// Simple token verification function (replaces the deleted tokens library)
+const verifyAccessToken = (token: string) => {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      issuer: 'saanify',
+      audience: 'saanify-users'
+    }) as any
+
+    // Ensure it's an access token
+    if (decoded.type !== 'access') {
+      return null
+    }
+
+    return decoded
+  } catch (error) {
+    console.error('Access token verification failed:', error)
+    return null
+  }
+}
 
 export async function PATCH(
   request: NextRequest,

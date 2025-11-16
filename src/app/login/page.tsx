@@ -108,7 +108,7 @@ export default function LoginPage() {
     try {
       console.log('Attempting client login with:', clientData.email)
       
-      const loginEndpoint = useSupabase ? '/api/auth/supabase-login' : '/api/auth/login'
+      const loginEndpoint = useSupabase ? '/api/auth/supabase-signin' : '/api/auth/login'
       
       const response = await fetch(loginEndpoint, {
         method: 'POST',
@@ -166,7 +166,7 @@ export default function LoginPage() {
     try {
       console.log('Attempting admin login with:', adminData.email)
       
-      const loginEndpoint = useSupabase ? '/api/auth/supabase-login' : '/api/auth/login'
+      const loginEndpoint = useSupabase ? '/api/auth/supabase-signin' : '/api/auth/login'
       
       const response = await fetch(loginEndpoint, {
         method: 'POST',

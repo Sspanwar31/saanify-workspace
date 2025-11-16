@@ -3,9 +3,33 @@ import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { generateTokens } from '@/lib/tokens'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+
+// Simple token generation function (replaces the deleted tokens library)
+const generateTokens = (user: { id: string; email: string; role: string; societyAccountId?: string }) => {
+  const accessToken = jwt.sign(
+    { 
+      userId: user.id, 
+      email: user.email, 
+      role: user.role,
+      societyAccountId: user.societyAccountId
+    },
+    JWT_SECRET,
+    { expiresIn: '15m' }
+  )
+  
+  const refreshToken = jwt.sign(
+    { 
+      userId: user.id, 
+      email: user.email
+    },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  )
+  
+  return { accessToken, refreshToken }
+}
 
 // Validation schema
 const loginSchema = z.object({

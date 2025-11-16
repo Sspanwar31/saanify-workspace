@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-
-const supabase = supabaseUrl && supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null
+import { supabaseService } from '@/lib/supabase-service'
 
 export async function POST(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Supabase not configured' },
-        { status: 500 }
-      )
-    }
-
     const { email, password, name, userType } = await request.json()
     
     // Create user with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseService.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -51,7 +36,7 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 1000))
 
     // Verify profile was created
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseService
       .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
@@ -66,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // If it's a client, create a demo society account
     if (userType === 'client') {
-      const { data: societyAccount, error: societyError } = await supabase
+      const { data: societyAccount, error: societyError } = await supabaseService
         .from('society_accounts')
         .insert([{
           name: `${name}'s Society`,
@@ -80,7 +65,7 @@ export async function POST(request: NextRequest) {
 
       if (!societyError && societyAccount) {
         // Link the society account to the user profile
-        await supabase
+        await supabaseService
           .from('profiles')
           .update({ society_account_id: societyAccount.id })
           .eq('id', authData.user.id)

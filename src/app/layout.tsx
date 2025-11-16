@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ErrorBoundaryClass } from "@/components/error-boundary-new";
-import SupabaseProvider from "@/app/providers/SupabaseProvider";
+import Providers from "@/app/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,19 +48,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <Providers>
           <ErrorBoundaryClass>
-            <SupabaseProvider>
-              {children}
-            </SupabaseProvider>
+            {children}
           </ErrorBoundaryClass>
           <Toaster />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

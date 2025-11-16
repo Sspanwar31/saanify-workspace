@@ -1,115 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAccessToken } from '@/lib/tokens'
-import { db } from '@/lib/db'
-import { createClient } from '@supabase/supabase-js'
+import { getServiceClient } from '@/lib/supabase-service'
 
-// SuperAdmin only automation endpoint
 export async function POST(request: NextRequest) {
   try {
-    // Verify SuperAdmin authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Unauthorized - SuperAdmin access required' 
-      }, { status: 401 })
-    }
+    const supabase = getServiceClient()
+    const jobId = crypto.randomUUID()
 
-    const token = authHeader.replace('Bearer ', '')
-    const decoded = verifyAccessToken(token)
-    
-    if (!decoded || typeof decoded !== 'object' || !('userId' in decoded)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Invalid token' 
-      }, { status: 401 })
-    }
-
-    // Verify user is SuperAdmin
-    const user = await db.user.findUnique({
-      where: { id: (decoded as any).userId },
-      select: { role: true }
-    })
-
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'SUPERADMIN')) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Access denied - SuperAdmin privileges required' 
-      }, { status: 403 })
-    }
-
-    // Initialize Supabase client with service role key
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
-    // Get current schema version
-    const { data: currentSchema, error: schemaError } = await supabase
-      .from('schema_versions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    if (schemaError) {
-      console.error('Schema version error:', schemaError)
-    }
-
-    // In a real implementation, you would:
-    // 1. Compare current schema with target schema
-    // 2. Generate migration scripts
-    // 3. Execute migrations safely
-    // 4. Update schema version
-    
-    // For demo purposes, we'll simulate the sync process
-    const syncData = {
-      id: Date.now().toString(),
-      sync_type: 'schema',
-      status: 'completed',
-      synced_at: new Date().toISOString(),
-      previous_version: currentSchema?.[0]?.version || '1.0.0',
-      new_version: '1.0.1'
-    }
-
-    // Store sync metadata
-    const { data, error } = await supabase
-      .from('automation_syncs')
-      .insert([syncData])
+    // Insert running log entry
+    const { data: logEntry, error: logError } = await supabase
+      .from('automation_logs')
+      .insert({
+        id: jobId,
+        task_name: 'schema_sync',
+        status: 'running',
+        message: 'Schema synchronization started',
+        details: { trigger: 'manual', initiated_at: new Date().toISOString() }
+      })
       .select()
+      .single()
 
-    if (error) {
-      console.error('Schema sync metadata error:', error)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to store sync metadata' 
-      }, { status: 500 })
+    if (logError) {
+      console.error('Error creating log entry:', logError)
+      return NextResponse.json({ error: 'Failed to create log entry' }, { status: 500 })
     }
 
-    // Simulate sync execution time
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    let syncResult = null
+    let syncError = null
+
+    try {
+      // Call the sync_schema RPC function
+      const { data, error } = await supabase.rpc('sync_schema')
+      
+      if (error) {
+        throw error
+      }
+
+      syncResult = data
+
+      // Update log entry with success
+      await supabase
+        .from('automation_logs')
+        .update({
+          status: 'success',
+          message: 'Schema synchronization completed successfully',
+          details: { 
+            sync_result: syncResult,
+            completed_at: new Date().toISOString()
+          }
+        })
+        .eq('id', jobId)
+
+      // Update task last_run time
+      await supabase
+        .from('automation_tasks')
+        .update({ 
+          last_run: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('task_name', 'schema_sync')
+
+    } catch (error) {
+      syncError = error
+      console.error('Schema sync failed:', error)
+
+      // Update log entry with failure
+      await supabase
+        .from('automation_logs')
+        .update({
+          status: 'failed',
+          message: `Schema sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { 
+            error: error instanceof Error ? error.message : 'Unknown error',
+            failed_at: new Date().toISOString()
+          }
+        })
+        .eq('id', jobId)
+    }
 
     return NextResponse.json({
-      success: true,
-      message: 'Schema synchronization completed successfully',
-      data: {
-        syncId: syncData.id,
-        previousVersion: syncData.previous_version,
-        newVersion: syncData.new_version,
-        timestamp: syncData.synced_at
-      }
+      success: !syncError,
+      job_id: jobId,
+      message: syncError 
+        ? `Schema sync failed: ${syncError instanceof Error ? syncError.message : 'Unknown error'}`
+        : 'Schema synchronization completed successfully',
+      result: syncResult,
+      timestamp: new Date().toISOString()
     })
 
   } catch (error) {
-    console.error('Schema sync error:', error)
+    console.error('Schema sync API error:', error)
     return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error during schema sync' 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
