@@ -1,22 +1,40 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { supabaseAdmin } from "@/lib/supabase-service";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const setupKey = body.setup_key;
 
+    // DEBUG LOG (temporary)
+    console.log("Received setup_key:", setupKey);
+    console.log("Env SETUP_KEY:", process.env.SETUP_KEY);
+
+    if (!process.env.SETUP_KEY) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "ENV ERROR: process.env.SETUP_KEY is EMPTY in Vercel",
+        },
+        { status: 500 }
+      );
+    }
+
     if (setupKey !== process.env.SETUP_KEY) {
       return NextResponse.json(
-        { success: false, message: "Invalid setup_key" },
+        {
+          success: false,
+          message: "Invalid setup_key",
+          received: setupKey,
+          expected: process.env.SETUP_KEY, // DEBUG ONLY
+        },
         { status: 401 }
       );
     }
 
-    // ----------------------------
-    // 1️⃣ CREATE FUNCTION IF MISSING
-    // ----------------------------
+    // ------------------------------------------
+    // FUNCTION + TABLE CREATION
+    // ------------------------------------------
     await db.$executeRawUnsafe(`
       create or replace function public.create_missing_tables()
       returns void
@@ -42,31 +60,17 @@ export async function POST(req: Request) {
       $$;
     `);
 
-    // ----------------------------
-    // 2️⃣ CALL FUNCTION (CREATES TABLES)
-    // ----------------------------
     await db.$executeRawUnsafe(`select public.create_missing_tables();`);
 
-    // ----------------------------
-    // 3️⃣ INSERT DEFAULT SETTINGS IF MISSING
-    // ----------------------------
     await db.automation_settings.upsert({
       where: { key: "automation_enabled" },
       update: {},
       create: { key: "automation_enabled", value: { enabled: true } }
     });
 
-    // ----------------------------
-    // 4️⃣ DONE — RETURN SUCCESS
-    // ----------------------------
     return NextResponse.json({
       success: true,
       message: "Supabase automation initialized successfully",
-      steps: [
-        { step: "function_created_or_verified", status: "done" },
-        { step: "tables_created_or_verified", status: "done" },
-        { step: "default_settings_added", status: "done" }
-      ]
     });
   } catch (err: any) {
     return NextResponse.json(
