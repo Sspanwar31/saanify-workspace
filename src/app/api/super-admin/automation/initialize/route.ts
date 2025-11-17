@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const setupKey = body.setup_key;
 
-    if (setupKey !== process.env.AUTOMATION_SETUP_KEY) {
+    if (setupKey !== process.env.SETUP_KEY) {
       return NextResponse.json(
         { success: false, message: "Invalid setup_key" },
         { status: 401 }
