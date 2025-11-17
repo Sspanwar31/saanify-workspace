@@ -1,15 +1,30 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    return NextResponse.json(
+      { success: false, message: "Supabase env missing" },
+      { status: 500 }
+    );
+  }
+
+  const client = createClient(url, key);
+  const { data, error } = await client.from("users").select("id").limit(1);
+
+  if (error) {
+    return NextResponse.json(
+      { success: false, message: "Connection failed", error },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({
-    status: "ok",
-    url: supabaseUrl ? "FOUND" : "MISSING",
-    anon: anon ? "FOUND" : "MISSING",
-    service: service ? "FOUND" : "MISSING",
-    envMode: process.env.NODE_ENV,
+    success: true,
+    message: "Connected to Supabase successfully!",
+    sample: data,
   });
 }
