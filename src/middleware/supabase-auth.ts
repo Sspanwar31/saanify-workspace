@@ -1,52 +1,86 @@
-// Authentication Middleware for Supabase
-import { createMiddleware } from 'next-intl/server';
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
+// src/middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default createMiddleware(async (req) => {
-  // Skip authentication for API routes and static files
-  if (
-    req.nextUrl.pathname.startsWith('/api/') ||
-    req.nextUrl.pathname.startsWith('/_next/') ||
-    req.nextUrl.pathname.includes('.')
-  ) {
+// Allowed public routes (no login required)
+const PUBLIC_ROUTES = [
+  "/login",
+  "/auth/callback",
+];
+
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // -------------------------------------------
+  // 1. PUBLIC ROUTES ko allow karo
+  // -------------------------------------------
+  if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
-  // Get session token from cookies
-  const token = req.cookies.get('sb-access-token');
-
-  // If no token, redirect to login
-  if (!token) {
-    return NextResponse.redirect(new URL('/login'));
+  // -------------------------------------------
+  // 2. API routes skip (but allow only safe endpoints)
+  // -------------------------------------------
+  if (pathname.startsWith("/api/test-simple")) {
+    return NextResponse.next();
   }
+
+  if (pathname.startsWith("/api/super-admin/automation/initialize")) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/") || pathname.includes(".")) {
+    return NextResponse.next();
+  }
+
+  // -------------------------------------------
+  // 3. Supabase Auth Token check
+  // -------------------------------------------
+  const token = req.cookies.get("sb-access-token");
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // -------------------------------------------
+  // 4. Decode token safely
+  // -------------------------------------------
+  let user: any = null;
 
   try {
-    // For now, use SQLite authentication (existing system)
-    // TODO: Replace with Supabase authentication when ready
-    const prisma = new PrismaClient();
-    
-    // Verify token (simplified for now)
-    const user = await prisma.user.findUnique({
-      where: { email: 'superadmin@saanify.com' }
-    });
-    
-    if (!user) {
-      // Clear invalid token
-      const response = NextResponse.redirect(new URL('/login'));
-      response.cookies.delete('sb-access-token');
-      return response;
-    }
-    
-    // Add user to request headers
-    req.user = user;
-    
-    return NextResponse.next();
-  } catch (error) {
-    console.error('Auth middleware error:', error.message);
-      return NextResponse.redirect(new URL('/login'));
-  }
-});
+    const base64Url = token.value.split('.')[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
 
-export default authMiddleware;
+    user = JSON.parse(jsonPayload);
+  } catch (err) {
+    console.error("Token decode failed:", err);
+    const res = NextResponse.redirect(new URL("/login", req.url));
+    res.cookies.delete("sb-access-token");
+    return res;
+  }
+
+  // -------------------------------------------
+  // 5. ADMIN check
+  // -------------------------------------------
+  if (pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) {
+    if (user?.role !== "admin" && user?.role !== "superadmin") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    "/((?!.*\\..*|_next).*)",
+    "/",
+    "/(api|trpc)(.*)"
+  ],
+};
