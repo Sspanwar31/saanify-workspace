@@ -1,13 +1,11 @@
-// Prisma schema with Transaction Pooler and Direct Pooler for Supabase
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")   // Transaction Pooler
-  directUrl = env("DIRECT_URL")     // Direct connection / Session Pooler
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")    // Transaction pooler
+  directUrl  = env("DIRECT_URL")      // Session pooler
 }
 
 model User {
