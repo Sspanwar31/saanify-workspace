@@ -94,12 +94,12 @@ export async function POST(req: Request) {
     `);
     
     // --- 5. [अपडेट किया हुआ] एक प्रारंभिक सेटिंग डालना ---
-    await db.automation_settings.upsert({
-      where: { key: "system_initialized" },
-      update: { value: { status: true, date: new Date().toISOString() } },
-      create: { key: "system_initialized", value: { status: true, date: new Date().toISOString() } },
-    });
-    console.log("Initial settings and tasks are populated.");
+   await db.automationSetting.upsert({
+  where: { key: "system_initialized" },
+  update: { value: { status: true, date: new Date().toISOString() } },
+  create: { key: "system_initialized", value: { status: true, date: new Date().toISOString() } },
+});  
+  console.log("Initial settings and tasks are populated.");
 
     // --- 6. अंतिम सफल प्रतिक्रिया ---
     return NextResponse.json({
