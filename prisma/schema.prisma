@@ -1,37 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")    // Transaction pooler
-  directUrl  = env("DIRECT_URL")      // Session pooler
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // used for migrations
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// --------------------------------------------------------------------
+// CORE MODELS FOR YOUR SAAS PROJECT
+// --------------------------------------------------------------------
+
+// Model 1: Profiles (for all users, linked to Supabase Auth)
+// Replaces your old 'User' model.
+model Profile {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auth_id     String   @unique @db.Uuid // This links to auth.users.id
+  email       String   @unique
+  full_name   String?
+  avatar_url  String?
+  // Role can be 'superadmin', 'admin', 'treasurer', 'member'
+  role        String   @default("member") 
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  @@map("profiles")
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Model 2: Automation Tasks (for your SuperAdmin UI)
+model AutomationTask {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_name       String    @unique
+  description     String?
+  schedule        String    @default("manual")
+  enabled         Boolean   @default(true)
+  last_run_status String?
+  last_run_at     DateTime? @db.Timestamptz
+  createdAt       DateTime  @default(now()) @db.Timestamptz
+
+  @@map("automation_tasks")
 }
 
-model Secret {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  description String?
-  lastRotated DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Model 3: Automation Logs (to record the result of each task run)
+model AutomationLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_name   String?
+  status      String   // 'success', 'failed', 'running'
+  message     String?
+  details     Json?    @db.JsonB
+  duration_ms Int?
+  run_time    DateTime @default(now()) @db.Timestamptz
+
+  @@map("automation_logs")
 }
+
+// Model 4: Automation Settings (for system-wide settings like 'setup_mode')
+// Replaces your old 'Secret' model.
+model AutomationSetting {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key       String   @unique
+  value     Json?    @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  @@map("automation_settings")
+}
+
+// NOTE: We have removed the old 'Post' model for now.
+// You can add models for 'societies', 'transactions', etc. here later
+// when you are ready to build those features.
