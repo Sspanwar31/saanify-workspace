@@ -3,76 +3,112 @@ import { db } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
+    // --- 1. सुरक्षा जांच (यह आपका पुराना कोड है, जो बिल्कुल सही है) ---
     const body = await req.json();
     const setupKey = body.setup_key;
 
-    // DEBUG LOG (temporary)
-    console.log("Received setup_key:", setupKey);
-    console.log("Env SETUP_KEY:", process.env.SETUP_KEY);
-
     if (!process.env.SETUP_KEY) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "ENV ERROR: process.env.SETUP_KEY is EMPTY in Vercel",
-        },
+        { success: false, message: "ENV ERROR: process.env.SETUP_KEY is EMPTY in Vercel" },
         { status: 500 }
       );
     }
 
     if (setupKey !== process.env.SETUP_KEY) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid setup_key",
-          received: setupKey,
-          expected: process.env.SETUP_KEY, // DEBUG ONLY
-        },
+        { success: false, message: "Invalid setup_key" },
         { status: 401 }
       );
     }
 
-    // ------------------------------------------
-    // FUNCTION + TABLE CREATION
-    // ------------------------------------------
+    // --- 2. [अपडेट किया हुआ] FUNCTION + TABLE CREATION ---
+    // हमने फंक्शन का नाम बदल दिया है और इसके अंदर 4 टेबल बनाने का लॉजिक डाल दिया है।
+    console.log("Initializing database with 4 core tables...");
     await db.$executeRawUnsafe(`
-      create or replace function public.create_missing_tables()
-      returns void
-      language plpgsql
-      as $$
-      begin
-        create table if not exists public.automation_logs (
-            id uuid primary key default gen_random_uuid(),
-            job_id text,
-            status text,
-            step text,
-            error text,
-            created_at timestamptz default now()
+      CREATE OR REPLACE FUNCTION public.create_perfect_initial_schema()
+      RETURNS VOID
+      LANGUAGE plpgsql
+      AS $$
+      BEGIN
+        
+        -- TABLE 1: PROFILES (सभी यूजर्स के लिए, Supabase Auth से लिंक)
+        CREATE TABLE IF NOT EXISTS public.profiles (
+            id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+            email TEXT UNIQUE NOT NULL,
+            full_name TEXT,
+            avatar_url TEXT,
+            role TEXT DEFAULT 'member', -- भविष्य में रोल यहाँ स्टोर होगा
+            created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
-        create table if not exists public.automation_settings (
-            id uuid primary key default gen_random_uuid(),
-            key text unique,
-            value jsonb,
-            created_at timestamptz default now()
+        -- TABLE 2: AUTOMATION TASKS (SuperAdmin UI में टास्क की लिस्ट दिखाने के लिए)
+        CREATE TABLE IF NOT EXISTS public.automation_tasks (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            task_name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            schedule TEXT DEFAULT 'manual',
+            enabled BOOLEAN DEFAULT TRUE,
+            last_run_status TEXT,
+            last_run_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
         );
-      end
+
+        -- TABLE 3: AUTOMATION LOGS (हर टास्क के चलने का रिजल्ट रिकॉर्ड करने के लिए)
+        CREATE TABLE IF NOT EXISTS public.automation_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            task_name TEXT,
+            status TEXT NOT NULL, -- 'success', 'failed', 'running'
+            message TEXT,
+            details JSONB,
+            duration_ms INTEGER,
+            run_time TIMESTAMPTZ DEFAULT NOW()
+        );
+        
+        -- TABLE 4: AUTOMATION SETTINGS (सिस्टम की सेटिंग्स के लिए, जैसे 'setup_mode')
+        CREATE TABLE IF NOT EXISTS public.automation_settings (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            key TEXT UNIQUE NOT NULL, 
+            value JSONB,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+      END;
       $$;
     `);
 
-    await db.$executeRawUnsafe(`select public.create_missing_tables();`);
+    // --- 3. [अपडेट किया हुआ] फंक्शन को चलाना ---
+    await db.$executeRawUnsafe(`SELECT public.create_perfect_initial_schema();`);
+    console.log("Core tables created successfully.");
 
+    // --- 4. [नया और महत्वपूर्ण] AUTOMATION TASKS टेबल को डेटा से भरना ---
+    // यह आपके UI को तुरंत सही डेटा दिखाएगा।
+    console.log("Populating automation_tasks table...");
+    await db.$executeRawUnsafe(`
+      INSERT INTO public.automation_tasks (task_name, description, schedule) VALUES
+      ('database-backup', 'Create secure database backups to Supabase Storage', 'manual'),
+      ('database-restore', 'Restore database from backup files', 'manual'),
+      ('schema-sync', 'Sync database schema changes automatically', '0 */6 * * *'),
+      ('auto-sync', 'Scheduled data synchronization', '0 */2 * * *'),
+      ('health-check', 'Monitor system health and Supabase connectivity', '*/5 * * * *')
+      ON CONFLICT (task_name) DO NOTHING;
+    `);
+    
+    // --- 5. [अपडेट किया हुआ] एक प्रारंभिक सेटिंग डालना ---
     await db.automation_settings.upsert({
-      where: { key: "automation_enabled" },
-      update: {},
-      create: { key: "automation_enabled", value: { enabled: true } }
+      where: { key: "system_initialized" },
+      update: { value: { status: true, date: new Date().toISOString() } },
+      create: { key: "system_initialized", value: { status: true, date: new Date().toISOString() } },
     });
+    console.log("Initial settings and tasks are populated.");
 
+    // --- 6. अंतिम सफल प्रतिक्रिया ---
     return NextResponse.json({
       success: true,
-      message: "Supabase automation initialized successfully",
+      message: "Database initialized with core tables and default tasks. Ready for SuperAdmin setup.",
     });
+
   } catch (err: any) {
+    console.error("INITIALIZATION FAILED:", err);
     return NextResponse.json(
       { success: false, error: err.message },
       { status: 500 }
