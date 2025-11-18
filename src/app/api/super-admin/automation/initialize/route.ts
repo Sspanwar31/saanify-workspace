@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
-    // --- 1. सुरक्षा जांच (यह आपका पुराना कोड है, जो बिल्कुल सही है) ---
+    // --- 1. Security Check ---
     const body = await req.json();
     const setupKey = body.setup_key;
 
@@ -21,8 +21,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- 2. [अपडेट किया हुआ] FUNCTION + TABLE CREATION ---
-    // हमने फंक्शन का नाम बदल दिया है और इसके अंदर 4 टेबल बनाने का लॉजिक डाल दिया है।
+    // --- 2. Create Tables and Functions ---
     console.log("Initializing database with 4 core tables...");
     await db.$executeRawUnsafe(`
       CREATE OR REPLACE FUNCTION public.create_perfect_initial_schema()
@@ -31,17 +30,17 @@ export async function POST(req: Request) {
       AS $$
       BEGIN
         
-        -- TABLE 1: PROFILES (सभी यूजर्स के लिए, Supabase Auth से लिंक)
+        -- TABLE 1: PROFILES (For all users, linked to Supabase Auth)
         CREATE TABLE IF NOT EXISTS public.profiles (
             id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
             email TEXT UNIQUE NOT NULL,
             full_name TEXT,
             avatar_url TEXT,
-            role TEXT DEFAULT 'member', -- भविष्य में रोल यहाँ स्टोर होगा
+            role TEXT DEFAULT 'member',
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
-        -- TABLE 2: AUTOMATION TASKS (SuperAdmin UI में टास्क की लिस्ट दिखाने के लिए)
+        -- TABLE 2: AUTOMATION TASKS (For SuperAdmin UI)
         CREATE TABLE IF NOT EXISTS public.automation_tasks (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             task_name TEXT UNIQUE NOT NULL,
@@ -53,18 +52,18 @@ export async function POST(req: Request) {
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
-        -- TABLE 3: AUTOMATION LOGS (हर टास्क के चलने का रिजल्ट रिकॉर्ड करने के लिए)
+        -- TABLE 3: AUTOMATION LOGS (For task results)
         CREATE TABLE IF NOT EXISTS public.automation_logs (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             task_name TEXT,
-            status TEXT NOT NULL, -- 'success', 'failed', 'running'
+            status TEXT NOT NULL,
             message TEXT,
             details JSONB,
             duration_ms INTEGER,
             run_time TIMESTAMPTZ DEFAULT NOW()
         );
         
-        -- TABLE 4: AUTOMATION SETTINGS (सिस्टम की सेटिंग्स के लिए, जैसे 'setup_mode')
+        -- TABLE 4: AUTOMATION SETTINGS (For system settings)
         CREATE TABLE IF NOT EXISTS public.automation_settings (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             key TEXT UNIQUE NOT NULL, 
@@ -76,12 +75,11 @@ export async function POST(req: Request) {
       $$;
     `);
 
-    // --- 3. [अपडेट किया हुआ] फंक्शन को चलाना ---
+    // --- 3. Run the function ---
     await db.$executeRawUnsafe(`SELECT public.create_perfect_initial_schema();`);
     console.log("Core tables created successfully.");
 
-    // --- 4. [नया और महत्वपूर्ण] AUTOMATION TASKS टेबल को डेटा से भरना ---
-    // यह आपके UI को तुरंत सही डेटा दिखाएगा।
+    // --- 4. Populate the automation_tasks table ---
     console.log("Populating automation_tasks table...");
     await db.$executeRawUnsafe(`
       INSERT INTO public.automation_tasks (task_name, description, schedule) VALUES
@@ -93,22 +91,24 @@ export async function POST(req: Request) {
       ON CONFLICT (task_name) DO NOTHING;
     `);
     
-    // --- 5. [अपडेट किया हुआ] एक प्रारंभिक सेटिंग डालना ---
-   await db.automationSetting.upsert({
-  where: { key: "system_initialized" },
-  update: { value: { status: true, date: new Date().toISOString() } },
-  create: { key: "system_initialized", value: { status: true, date: new Date().toISOString() } },
-});  
-  console.log("Initial settings and tasks are populated.");
+    // --- 5. [FIXED] Insert an initial setting ---
+    console.log("Inserting initial system settings...");
+    await db.automationSetting.upsert({
+      where: { key: "system_initialized" },
+      update: { value: { status: true, date: new Date().toISOString() } },
+      create: { key: "system_initialized", value: { status: true, date: new Date().toISOString() } },
+    });
+    
+    console.log("Initial settings and tasks are populated.");
 
-    // --- 6. अंतिम सफल प्रतिक्रिया ---
+    // --- 6. Final success response ---
     return NextResponse.json({
       success: true,
       message: "Database initialized with core tables and default tasks. Ready for SuperAdmin setup.",
     });
 
   } catch (err: any) {
-    console.error("INITIALIZATION FAILED:", err);
+    console.error("INITIALIZATION FAILED:", err.message);
     return NextResponse.json(
       { success: false, error: err.message },
       { status: 500 }
