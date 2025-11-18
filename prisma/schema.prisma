@@ -6,24 +6,26 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas   = ["public", "auth"] // REQUIRED for Supabase cross-schema relations
+  schemas   = ["public", "auth"]
 }
 
-/* --------------------------------------------------------------------
-   AUTH.SCHEMA - SUPABASE (READ ONLY)
--------------------------------------------------------------------- */
+/* ---------------------------------------------------------
+   SUPABASE AUTH USERS (LIGHTWEIGHT SAFE MODEL)
+   Only required fields for relation mapping
+--------------------------------------------------------- */
 
 model users {
-  id      String   @id @db.Uuid
+  id    String   @id @db.Uuid
+  email String?  @db.Text
   profile Profile?
 
   @@map("users")
   @@schema("auth")
 }
 
-/* --------------------------------------------------------------------
-   PUBLIC.SCHEMA - MAIN PROJECT TABLES
--------------------------------------------------------------------- */
+/* ---------------------------------------------------------
+   PUBLIC SCHEMA MODELS
+--------------------------------------------------------- */
 
 model Profile {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -67,10 +69,6 @@ model SocietyMember {
   @@unique([profileId, societyId])
   @@map("society_members")
 }
-
-/* --------------------------------------------------------------------
-   AUTOMATION SYSTEM
--------------------------------------------------------------------- */
 
 model AutomationTask {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
