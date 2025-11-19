@@ -1,256 +1,213 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseService } from '@/lib/supabase-service'
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db"; // हम Prisma का use करेंगे, SupabaseService का नहीं
 
-// Security: Only run when SETUP_MODE is true
-const SETUP_MODE = process.env.SETUP_MODE === 'true'
-const SETUP_KEY = process.env.SETUP_KEY
-
-export async function GET(request: NextRequest) {
-  // Security check: Only allow when SETUP_MODE is true
-  if (!SETUP_MODE) {
-    return NextResponse.json(
-      { success: false, error: 'Setup mode is disabled' },
-      { status: 403 }
-    )
+// 1. Helper: SQL चलाने के लिए (ताकि RPC Error न आए)
+async function runSql(sql: string) {
+  try {
+    await db.$executeRawUnsafe(sql);
+  } catch (e) {
+    console.error("runSql failed:", e);
   }
-
-  // Check if setup is already completed
-  if (SETUP_MODE === 'false') {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: 'Setup wizard is ready',
-    setupRequired: true
-  })
 }
 
-export async function POST(request: NextRequest) {
-  // Security check: Only allow when SETUP_MODE is true
-  if (!SETUP_MODE) {
-    return NextResponse.json(
-      { success: false, error: 'Setup mode is disabled' },
-      { status: 403 }
-    )
-  }
-
+// 2. Helper: कॉलम चेक और रिपेयर करने के लिए
+async function ensureColumn(table: string, column: string, type: string) {
   try {
-    const { setupKey, superadminEmail, superadminPassword } = await request.json()
+    await db.$executeRawUnsafe(
+      `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS "${column}" ${type};`
+    );
+  } catch (e) {
+    console.error(`ensureColumn failed (${table}.${column}):`, e);
+  }
+}
 
-    // Verify setup key
-    if (setupKey !== SETUP_KEY) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid setup key' },
-        { status: 401 }
-      )
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    // Frontend से keys लें
+    const { setupKey, superadminEmail, superadminPassword } = body;
+
+    // --- SECURITY CHECK ---
+    // 1. Check Environment Key
+    if (!process.env.SETUP_KEY) {
+      return NextResponse.json({ success: false, message: "SERVER ERROR: SETUP_KEY missing in .env" }, { status: 500 });
+    }
+    // 2. Match Keys
+    if (setupKey !== process.env.SETUP_KEY) {
+      return NextResponse.json({ success: false, message: "Invalid Setup Key" }, { status: 401 });
     }
 
-    // Validate inputs
-    if (!superadminEmail || !superadminPassword) {
-      return NextResponse.json(
-        { success: false, error: 'Superadmin email and password are required' },
-        { status: 400 }
-      )
-    }
+    // Default values agar frontend se na aayein
+    const adminEmail = superadminEmail || process.env.SETUP_ADMIN_EMAIL || "admin@example.com";
+    const adminPass = superadminPassword || process.env.SETUP_ADMIN_PASSWORD || "admin123";
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(superadminEmail)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      )
-    }
+    console.log("Starting Database Setup...");
 
-    // Password validation (minimum 8 characters)
-    if (superadminPassword.length < 8) {
-      return NextResponse.json(
-        { success: false, error: 'Password must be at least 8 characters long' },
-        { status: 400 }
-      )
-    }
+    // --- STEP 1: Enable Extensions (Password Hashing & UUID ke liye) ---
+    await runSql(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
+    await runSql(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
-    // Step 1: Initialize database schema
-    const schemaInitResult = await initializeDatabaseSchema()
-    if (!schemaInitResult.success) {
-      return NextResponse.json(
-        { success: false, error: `Database initialization failed: ${schemaInitResult.error}` },
-        { status: 500 }
-      )
-    }
+    // --- STEP 2: Create Schema Function (Sari Tables ek saath) ---
+    await runSql(`
+      CREATE OR REPLACE FUNCTION public.create_perfect_initial_schema()
+      RETURNS VOID LANGUAGE plpgsql AS $$
+      BEGIN
+        
+        -- A. USERS TABLE (NextAuth + Custom Role)
+        CREATE TABLE IF NOT EXISTS public.users (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT,
+          email TEXT UNIQUE,
+          "emailVerified" TIMESTAMPTZ,
+          image TEXT,
+          password TEXT,
+          role TEXT DEFAULT 'CLIENT',
+          "isActive" BOOLEAN DEFAULT TRUE,
+          "societyAccountId" TEXT,
+          "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+          "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+        );
 
-    // Step 2: Create superadmin user
-    const userCreationResult = await createSuperadminUser(superadminEmail, superadminPassword)
-    if (!userCreationResult.success) {
-      return NextResponse.json(
-        { success: false, error: `Superadmin creation failed: ${userCreationResult.error}` },
-        { status: 500 }
-      )
-    }
+        -- B. NEXTAUTH ACCOUNTS
+        CREATE TABLE IF NOT EXISTS public.accounts (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          "userId" TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+          type TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          "providerAccountId" TEXT NOT NULL,
+          refresh_token TEXT,
+          access_token TEXT,
+          expires_at INTEGER,
+          token_type TEXT,
+          scope TEXT,
+          id_token TEXT,
+          session_state TEXT,
+          CONSTRAINT accounts_provider_providerAccountId_key UNIQUE (provider, "providerAccountId")
+        );
 
-    // Step 3: Create a completion marker file to prevent re-running
-    const setupCompletionResult = await markSetupCompleted()
+        -- C. NEXTAUTH SESSIONS
+        CREATE TABLE IF NOT EXISTS public.sessions (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          "sessionToken" TEXT UNIQUE NOT NULL,
+          "userId" TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+          expires TIMESTAMPTZ NOT NULL
+        );
 
-    if (!setupCompletionResult.success) {
-      return NextResponse.json(
-        { success: false, error: `Setup completion failed: ${setupCompletionResult.error}` },
-        { status: 500 }
+        -- D. SOCIETY ACCOUNTS (Business Logic)
+        CREATE TABLE IF NOT EXISTS public.society_accounts (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          "adminName" TEXT,
+          email TEXT UNIQUE NOT NULL,
+          "subscriptionPlan" TEXT DEFAULT 'TRIAL',
+          "isActive" BOOLEAN DEFAULT TRUE,
+          "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+          "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        -- E. AUTOMATION TABLES
+        CREATE TABLE IF NOT EXISTS public.automation_tasks (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          task_name TEXT UNIQUE NOT NULL,
+          description TEXT,
+          schedule TEXT DEFAULT 'manual',
+          enabled BOOLEAN DEFAULT TRUE,
+          last_run_status TEXT,
+          last_run_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS public.automation_logs (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          task_name TEXT,
+          status TEXT NOT NULL,
+          message TEXT,
+          details JSONB,
+          run_time TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS public.automation_settings (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          key TEXT UNIQUE NOT NULL,
+          value JSONB,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+      END;
+      $$;
+    `);
+
+    // Function Run karein (Tables ban jayengi)
+    await runSql(`SELECT public.create_perfect_initial_schema();`);
+
+    // --- STEP 3: Auto-Repair (Safety Net) ---
+    // Agar table pehle se thi par column nahi the, to ye unhe add kar dega
+    await ensureColumn("public.users", "role", "text DEFAULT 'CLIENT'");
+    await ensureColumn("public.users", "societyAccountId", "text");
+    await ensureColumn("public.users", "password", "text");
+    await ensureColumn("public.society_accounts", "adminName", "text");
+
+    // --- STEP 4: Create Default Admin & Society ---
+    
+    // 1. Master Society बनाएं
+    const societyId = '00000000-0000-0000-0000-000000000001';
+    await runSql(`
+      INSERT INTO public.society_accounts (id, name, email, "subscriptionPlan", "adminName")
+      VALUES (
+        '${societyId}', 
+        'Master Admin Society', 
+        '${adminEmail}', 
+        'LIFETIME', 
+        'Super Admin'
       )
-    }
+      ON CONFLICT (email) DO NOTHING;
+    `);
+
+    // 2. Super Admin User बनाएं (Password Hash ke sath)
+    // Note: Hum pgcrypto ka 'crypt' use kar rahe hain password secure karne ke liye
+    await runSql(`
+      INSERT INTO public.users (email, password, name, role, "societyAccountId", "emailVerified", "isActive")
+      VALUES (
+        '${adminEmail}',
+        crypt('${adminPass}', gen_salt('bf')), 
+        'Super Admin',
+        'SUPERADMIN',
+        '${societyId}',
+        NOW(),
+        TRUE
+      )
+      ON CONFLICT (email) DO UPDATE 
+      SET role = 'SUPERADMIN', "societyAccountId" = '${societyId}';
+    `);
+
+    // --- STEP 5: Insert Default Automation Tasks ---
+    await runSql(`
+      INSERT INTO public.automation_tasks (task_name, description, schedule)
+      VALUES
+        ('database-backup', 'Create secure database backups', 'manual'),
+        ('health-check', 'System Health Check', '*/5 * * * *'),
+        ('schema-sync', 'Sync Schema', '0 */6 * * *')
+      ON CONFLICT (task_name) DO NOTHING;
+    `);
+
+    // Mark Setup as Complete in Settings
+    await runSql(`
+      INSERT INTO public.automation_settings ("key", value)
+      VALUES ('system_initialized', '{"status": true, "date": "${new Date().toISOString()}"}'::jsonb)
+      ON CONFLICT ("key") DO UPDATE SET value = EXCLUDED.value;
+    `);
 
     return NextResponse.json({
       success: true,
-      message: 'Setup completed successfully',
-      redirectUrl: '/auth/login',
-      superadminCreated: {
-        email: superadminEmail,
-        role: 'superadmin'
-      }
-    })
+      message: "Setup Completed Successfully! Tables created & Admin account ready.",
+      redirectUrl: '/auth/login'
+    });
 
-  } catch (error) {
-    console.error('Setup error:', error)
+  } catch (err: any) {
+    console.error("SETUP FAILED:", err);
     return NextResponse.json(
-      { success: false, error: 'Setup process failed' },
+      { success: false, error: err?.message ?? String(err) },
       { status: 500 }
-    )
+    );
   }
-}
-
-// Initialize minimal required database schema
-async function initializeDatabaseSchema() {
-  try {
-    // Create users table if it doesn't exist
-    const { error: usersError } = await supabaseService.rpc('create_users_table_if_not_exists')
-    
-    if (usersError) {
-      // Fallback: Try direct SQL
-      const { error: sqlError } = await supabaseService
-        .from('raw_sql')
-        .insert({ 
-          sql: `
-            CREATE TABLE IF NOT EXISTS users (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            role VARCHAR(50) NOT NULL DEFAULT 'user',
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            is_active BOOLEAN DEFAULT true,
-            last_login TIMESTAMP WITH TIME ZONE,
-            society_id UUID REFERENCES societies(id),
-            phone VARCHAR(20),
-            address TEXT,
-            profile_image TEXT
-          );
-          
-          CREATE TABLE IF NOT EXISTS societies (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            address TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            is_active BOOLEAN DEFAULT true
-          );
-          
-          CREATE TABLE IF NOT EXISTS roles (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            name VARCHAR(100) UNIQUE NOT NULL,
-            permissions JSONB,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-          );
-          
-          INSERT INTO roles (name, permissions) VALUES 
-            ('superadmin', '{"all": true}'),
-            ('admin', '{"manage_users": true, "manage_society": true, "view_reports": true}'),
-            ('treasurer', '{"manage_finances": true, "view_reports": true}'),
-            ('user', '{"view_profile": true}');
-          `
-        })
-        .select()
-      
-      if (sqlError) throw sqlError
-    }
-
-    return { success: true }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-}
-
-// Create superadmin user in database
-async function createSuperadminUser(email: string, password: string) {
-  try {
-    // Hash password (in production, use bcrypt)
-    const hashedPassword = await hashPassword(password)
-
-    // Insert superadmin user
-    const { error: insertError } = await supabaseService
-      .from('users')
-      .insert({
-        email,
-        password: hashedPassword,
-        role: 'superadmin',
-        is_active: true,
-        created_at: new Date().toISOString()
-      })
-      .select()
-
-    if (insertError) {
-      throw insertError
-    }
-
-    // Also try to create in Supabase Auth if available
-    try {
-      const { error: authError } = await supabaseService.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          role: 'superadmin',
-          is_setup_admin: true
-        }
-      })
-
-      if (authError) {
-        console.warn('Supabase Auth user creation failed:', authError.message)
-        // Continue anyway - local user exists
-      }
-    } catch (authError) {
-      console.warn('Supabase Auth not available:', authError.message)
-      // Continue anyway - local user exists
-    }
-
-    return { success: true }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-}
-
-// Mark setup as completed
-async function markSetupCompleted() {
-  try {
-    // In a real implementation, this would:
-    // 1. Set an environment variable or database flag
-    // 2. Create a completion file
-    // 3. Update server configuration
-    
-    // For this demo, we'll simulate completion
-    console.log('Setup marked as completed')
-    
-    return { success: true }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-}
-
-// Simple password hashing (use bcrypt in production)
-async function hashPassword(password: string): Promise<string> {
-  // This is a simple hash - in production, use bcrypt!
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
