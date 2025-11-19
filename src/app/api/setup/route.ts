@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db"; // हम Prisma का use करेंगे, SupabaseService का नहीं
+import { db } from "@/lib/db";
+import bcrypt from "bcryptjs"; // ✅ हम Password यहाँ Hash करेंगे ताकि Login में दिक्कत न आए
 
-// 1. Helper: SQL चलाने के लिए (ताकि RPC Error न आए)
+// Helper: SQL चलाने के लिए
 async function runSql(sql: string) {
   try {
     await db.$executeRawUnsafe(sql);
@@ -10,7 +11,7 @@ async function runSql(sql: string) {
   }
 }
 
-// 2. Helper: कॉलम चेक और रिपेयर करने के लिए
+// Helper: Column Auto-repair
 async function ensureColumn(table: string, column: string, type: string) {
   try {
     await db.$executeRawUnsafe(
@@ -24,36 +25,35 @@ async function ensureColumn(table: string, column: string, type: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // Frontend से keys लें
     const { setupKey, superadminEmail, superadminPassword } = body;
 
     // --- SECURITY CHECK ---
-    // 1. Check Environment Key
     if (!process.env.SETUP_KEY) {
-      return NextResponse.json({ success: false, message: "SERVER ERROR: SETUP_KEY missing in .env" }, { status: 500 });
+      return NextResponse.json({ success: false, message: "ENV ERROR: SETUP_KEY missing" }, { status: 500 });
     }
-    // 2. Match Keys
     if (setupKey !== process.env.SETUP_KEY) {
       return NextResponse.json({ success: false, message: "Invalid Setup Key" }, { status: 401 });
     }
 
-    // Default values agar frontend se na aayein
-    const adminEmail = superadminEmail || process.env.SETUP_ADMIN_EMAIL || "admin@example.com";
-    const adminPass = superadminPassword || process.env.SETUP_ADMIN_PASSWORD || "admin123";
+    const adminEmail = superadminEmail || "testadmin1@gmail.com";
+    const rawPassword = superadminPassword || "admin123_password";
 
-    console.log("Starting Database Setup...");
+    // ✅ FIX 1: Password को bcryptjs से Hash करें (ताकि Login API इसे पढ़ सके)
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-    // --- STEP 1: Enable Extensions (Password Hashing & UUID ke liye) ---
+    console.log("Setup Started...");
+
+    // --- STEP 1: Enable Extensions ---
     await runSql(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
     await runSql(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
-    // --- STEP 2: Create Schema Function (Sari Tables ek saath) ---
+    // --- STEP 2: Create Schema Function ---
     await runSql(`
       CREATE OR REPLACE FUNCTION public.create_perfect_initial_schema()
       RETURNS VOID LANGUAGE plpgsql AS $$
       BEGIN
         
-        -- A. USERS TABLE (NextAuth + Custom Role)
+        -- A. USERS TABLE
         CREATE TABLE IF NOT EXISTS public.users (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           name TEXT,
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
           "updatedAt" TIMESTAMPTZ DEFAULT NOW()
         );
 
-        -- B. NEXTAUTH ACCOUNTS
+        -- B. NEXTAUTH TABLES
         CREATE TABLE IF NOT EXISTS public.accounts (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           "userId" TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -85,7 +85,6 @@ export async function POST(req: Request) {
           CONSTRAINT accounts_provider_providerAccountId_key UNIQUE (provider, "providerAccountId")
         );
 
-        -- C. NEXTAUTH SESSIONS
         CREATE TABLE IF NOT EXISTS public.sessions (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           "sessionToken" TEXT UNIQUE NOT NULL,
@@ -93,7 +92,14 @@ export async function POST(req: Request) {
           expires TIMESTAMPTZ NOT NULL
         );
 
-        -- D. SOCIETY ACCOUNTS (Business Logic)
+        CREATE TABLE IF NOT EXISTS public.verification_tokens (
+            identifier TEXT NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            expires TIMESTAMPTZ NOT NULL,
+            CONSTRAINT verification_tokens_identifier_token_key UNIQUE (identifier, token)
+        );
+
+        -- C. SOCIETY ACCOUNTS
         CREATE TABLE IF NOT EXISTS public.society_accounts (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           name TEXT NOT NULL,
@@ -105,7 +111,7 @@ export async function POST(req: Request) {
           "updatedAt" TIMESTAMPTZ DEFAULT NOW()
         );
 
-        -- E. AUTOMATION TABLES
+        -- D. AUTOMATION TABLES
         CREATE TABLE IF NOT EXISTS public.automation_tasks (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           task_name TEXT UNIQUE NOT NULL,
@@ -123,6 +129,7 @@ export async function POST(req: Request) {
           status TEXT NOT NULL,
           message TEXT,
           details JSONB,
+          duration_ms INTEGER,
           run_time TIMESTAMPTZ DEFAULT NOW()
         );
 
@@ -137,77 +144,10 @@ export async function POST(req: Request) {
       $$;
     `);
 
-    // Function Run karein (Tables ban jayengi)
+    // Run Schema Creation
     await runSql(`SELECT public.create_perfect_initial_schema();`);
 
-    // --- STEP 3: Auto-Repair (Safety Net) ---
-    // Agar table pehle se thi par column nahi the, to ye unhe add kar dega
+    // --- STEP 3: Auto-Repair ---
     await ensureColumn("public.users", "role", "text DEFAULT 'CLIENT'");
     await ensureColumn("public.users", "societyAccountId", "text");
-    await ensureColumn("public.users", "password", "text");
-    await ensureColumn("public.society_accounts", "adminName", "text");
-
-    // --- STEP 4: Create Default Admin & Society ---
-    
-    // 1. Master Society बनाएं
-    const societyId = '00000000-0000-0000-0000-000000000001';
-    await runSql(`
-      INSERT INTO public.society_accounts (id, name, email, "subscriptionPlan", "adminName")
-      VALUES (
-        '${societyId}', 
-        'Master Admin Society', 
-        '${adminEmail}', 
-        'LIFETIME', 
-        'Super Admin'
-      )
-      ON CONFLICT (email) DO NOTHING;
-    `);
-
-    // 2. Super Admin User बनाएं (Password Hash ke sath)
-    // Note: Hum pgcrypto ka 'crypt' use kar rahe hain password secure karne ke liye
-    await runSql(`
-      INSERT INTO public.users (email, password, name, role, "societyAccountId", "emailVerified", "isActive")
-      VALUES (
-        '${adminEmail}',
-        crypt('${adminPass}', gen_salt('bf')), 
-        'Super Admin',
-        'SUPERADMIN',
-        '${societyId}',
-        NOW(),
-        TRUE
-      )
-      ON CONFLICT (email) DO UPDATE 
-      SET role = 'SUPERADMIN', "societyAccountId" = '${societyId}';
-    `);
-
-    // --- STEP 5: Insert Default Automation Tasks ---
-    await runSql(`
-      INSERT INTO public.automation_tasks (task_name, description, schedule)
-      VALUES
-        ('database-backup', 'Create secure database backups', 'manual'),
-        ('health-check', 'System Health Check', '*/5 * * * *'),
-        ('schema-sync', 'Sync Schema', '0 */6 * * *')
-      ON CONFLICT (task_name) DO NOTHING;
-    `);
-
-    // Mark Setup as Complete in Settings
-    await runSql(`
-      INSERT INTO public.automation_settings ("key", value)
-      VALUES ('system_initialized', '{"status": true, "date": "${new Date().toISOString()}"}'::jsonb)
-      ON CONFLICT ("key") DO UPDATE SET value = EXCLUDED.value;
-    `);
-
-    return NextResponse.json({
-      success: true,
-      message: "Setup Completed Successfully! Tables created & Admin account ready.",
-      redirectUrl: '/auth/login'
-    });
-
-  } catch (err: any) {
-    console.error("SETUP FAILED:", err);
-    return NextResponse.json(
-      { success: false, error: err?.message ?? String(err) },
-      { status: 500 }
-    );
-  }
-}
+    await
