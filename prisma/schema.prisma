@@ -17,14 +17,14 @@ datasource db {
 
 // Model 1: Profiles
 model Profile {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  auth_id   String   @unique @db.Uuid
-  email     String   @unique
-  full_name String?
-  avatar_url String?
-  role      String   @default("member")
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auth_id     String   @unique @db.Uuid
+  email       String   @unique
+  full_name   String?
+  avatar_url  String?
+  role        String   @default("member")
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
 
   memberships SocietyMember[]
 
@@ -61,39 +61,44 @@ model SocietyMember {
 }
 
 // --------------------------------------------------------------------
-// UPDATED MODELS (MATCHING SUPABASE SQL EXACTLY)
+// AUTOMATION SYSTEM MODELS (MATCH EXACT SUPABASE SQL + FIXED RELATIONS)
 // --------------------------------------------------------------------
 
-// Model 4: AutomationTask (matches Supabase table structure)
+// Model 4: AutomationTask
 model AutomationTask {
-  id              String    @id @default(uuid())
-  task_name       String    @unique
+  id              String          @id @default(uuid())
+  task_name       String          @unique
   description     String?
-  schedule        String?   @default("manual")
-  enabled         Boolean?  @default(true)
+  schedule        String?         @default("manual")
+  enabled         Boolean?        @default(true)
   last_run_status String?
-  last_run_at     DateTime? @db.Timestamptz
-  created_at      DateTime? @default(now()) @db.Timestamptz
+  last_run_at     DateTime?       @db.Timestamptz
+  created_at      DateTime?       @default(now()) @db.Timestamptz
 
-  logs AutomationLog[]
+  // relation to logs
+  logs            AutomationLog[] @relation("TaskLogs")
 
   @@map("automation_tasks")
 }
 
-// Model 5: AutomationLog (matches Supabase table structure)
+// Model 5: AutomationLog
 model AutomationLog {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   task_name   String?
   status      String
   message     String?
   details     Json?
   duration_ms Int?
-  run_time    DateTime? @default(now()) @db.Timestamptz
+  run_time    DateTime?       @default(now()) @db.Timestamptz
+
+  // relation back to AutomationTask
+  task        AutomationTask? @relation("TaskLogs", fields: [taskId], references: [id])
+  taskId      String?
 
   @@map("automation_logs")
 }
 
-// Model 6: AutomationSetting (matches Supabase table structure)
+// Model 6: AutomationSetting
 model AutomationSetting {
   id          String   @id @default(uuid())
   key         String   @unique
