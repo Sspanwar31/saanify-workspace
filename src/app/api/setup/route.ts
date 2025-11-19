@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import bcrypt from "bcryptjs"; // ✅ हम Password यहाँ Hash करेंगे ताकि Login में दिक्कत न आए
+import bcrypt from "bcryptjs";
 
 // Helper: SQL चलाने के लिए
 async function runSql(sql: string) {
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const adminEmail = superadminEmail || "testadmin1@gmail.com";
     const rawPassword = superadminPassword || "admin123_password";
 
-    // ✅ FIX 1: Password को bcryptjs से Hash करें (ताकि Login API इसे पढ़ सके)
+    // ✅ Password Hash (Node.js bcrypt - Login API compatible)
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
     console.log("Setup Started...");
@@ -150,4 +150,69 @@ export async function POST(req: Request) {
     // --- STEP 3: Auto-Repair ---
     await ensureColumn("public.users", "role", "text DEFAULT 'CLIENT'");
     await ensureColumn("public.users", "societyAccountId", "text");
-    await
+    await ensureColumn("public.users", "password", "text");
+    await ensureColumn("public.society_accounts", "adminName", "text");
+
+    // --- STEP 4: Create Admin & Society ---
+    
+    const societyId = '00000000-0000-0000-0000-000000000001';
+
+    // 1. Create Society
+    await runSql(`
+      INSERT INTO public.society_accounts (id, name, email, "subscriptionPlan", "adminName")
+      VALUES (
+        '${societyId}', 
+        'Master Admin Society', 
+        '${adminEmail}', 
+        'LIFETIME', 
+        'Super Admin'
+      )
+      ON CONFLICT (email) DO NOTHING;
+    `);
+
+    // 2. Create Admin User (Updated with SUPER_ADMIN and bcrypt hash)
+    await runSql(`
+      INSERT INTO public.users (email, password, name, role, "societyAccountId", "emailVerified", "isActive")
+      VALUES (
+        '${adminEmail}',
+        '${hashedPassword}', 
+        'Super Admin',
+        'SUPER_ADMIN',
+        '${societyId}',
+        NOW(),
+        TRUE
+      )
+      ON CONFLICT (email) DO UPDATE 
+      SET role = 'SUPER_ADMIN', "societyAccountId" = '${societyId}', password = '${hashedPassword}';
+    `);
+
+    // --- STEP 5: Automation Tasks ---
+    await runSql(`
+      INSERT INTO public.automation_tasks (task_name, description, schedule)
+      VALUES
+        ('database-backup', 'Backup DB', 'manual'),
+        ('health-check', 'System Health Check', '*/5 * * * *'),
+        ('schema-sync', 'Sync Schema', '0 */6 * * *')
+      ON CONFLICT (task_name) DO NOTHING;
+    `);
+
+    await runSql(`
+      INSERT INTO public.automation_settings ("key", value)
+      VALUES ('system_initialized', '{"status": true, "date": "${new Date().toISOString()}"}'::jsonb)
+      ON CONFLICT ("key") DO UPDATE SET value = EXCLUDED.value;
+    `);
+
+    return NextResponse.json({
+      success: true,
+      message: "Setup Completed! Admin user created with SUPER_ADMIN role.",
+      redirectUrl: '/auth/login'
+    });
+
+  } catch (err: any) {
+    console.error("SETUP FAILED:", err);
+    return NextResponse.json(
+      { success: false, error: err?.message ?? String(err) },
+      { status: 500 }
+    );
+  }
+}
