@@ -11,7 +11,7 @@ async function runSql(sql: string) {
   }
 }
 
-// Helper: Column Auto-repair
+// Helper: Column Check
 async function ensureColumn(table: string, column: string, type: string) {
   try {
     await db.$executeRawUnsafe(
@@ -38,22 +38,23 @@ export async function POST(req: Request) {
     const adminEmail = superadminEmail || "testadmin1@gmail.com";
     const rawPassword = superadminPassword || "admin123_password";
 
-    // ✅ Password Hash (Node.js bcrypt - Login API compatible)
+    // ✅ Password Hash (Login compatible)
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-    console.log("Setup Started...");
+    console.log("Setup Started (Clean Version)...");
 
-    // --- STEP 1: Enable Extensions ---
+    // --- STEP 1: Extensions ---
     await runSql(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
     await runSql(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
-    // --- STEP 2: Create Schema Function ---
+    // --- STEP 2: Tables Creation Function ---
+    // ⚠️ NOTE: Maine yahan se 'profiles' table hata di hai taaki Prisma Error P4002 na aaye.
     await runSql(`
       CREATE OR REPLACE FUNCTION public.create_perfect_initial_schema()
       RETURNS VOID LANGUAGE plpgsql AS $$
       BEGIN
         
-        -- A. USERS TABLE
+        -- 1. USERS TABLE (Ab ye main table hai)
         CREATE TABLE IF NOT EXISTS public.users (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           name TEXT,
@@ -64,11 +65,12 @@ export async function POST(req: Request) {
           role TEXT DEFAULT 'CLIENT',
           "isActive" BOOLEAN DEFAULT TRUE,
           "societyAccountId" TEXT,
+          "lastLoginAt" TIMESTAMPTZ, -- ✅ Added to fix login error
           "createdAt" TIMESTAMPTZ DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ DEFAULT NOW()
         );
 
-        -- B. NEXTAUTH TABLES
+        -- 2. NEXTAUTH TABLES
         CREATE TABLE IF NOT EXISTS public.accounts (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           "userId" TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -99,7 +101,7 @@ export async function POST(req: Request) {
             CONSTRAINT verification_tokens_identifier_token_key UNIQUE (identifier, token)
         );
 
-        -- C. SOCIETY ACCOUNTS
+        -- 3. SOCIETY ACCOUNTS
         CREATE TABLE IF NOT EXISTS public.society_accounts (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           name TEXT NOT NULL,
@@ -111,7 +113,7 @@ export async function POST(req: Request) {
           "updatedAt" TIMESTAMPTZ DEFAULT NOW()
         );
 
-        -- D. AUTOMATION TABLES
+        -- 4. AUTOMATION TABLES
         CREATE TABLE IF NOT EXISTS public.automation_tasks (
           id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
           task_name TEXT UNIQUE NOT NULL,
@@ -144,17 +146,19 @@ export async function POST(req: Request) {
       $$;
     `);
 
-    // Run Schema Creation
+    // Run the function
     await runSql(`SELECT public.create_perfect_initial_schema();`);
+    
+    // ⚠️ OPTIONAL: Force delete old profiles table if it exists
+    // await runSql(`DROP TABLE IF EXISTS profiles CASCADE;`);
 
-    // --- STEP 3: Auto-Repair ---
+    // --- STEP 3: Auto-Repair Columns ---
     await ensureColumn("public.users", "role", "text DEFAULT 'CLIENT'");
     await ensureColumn("public.users", "societyAccountId", "text");
     await ensureColumn("public.users", "password", "text");
-    await ensureColumn("public.society_accounts", "adminName", "text");
+    await ensureColumn("public.users", "lastLoginAt", "timestamptz"); // ✅ Ensuring this column exists
 
     // --- STEP 4: Create Admin & Society ---
-    
     const societyId = '00000000-0000-0000-0000-000000000001';
 
     // 1. Create Society
@@ -170,7 +174,7 @@ export async function POST(req: Request) {
       ON CONFLICT (email) DO NOTHING;
     `);
 
-    // 2. Create Admin User (Updated with SUPER_ADMIN and bcrypt hash)
+    // 2. Create Admin User (with SUPER_ADMIN role and bcrypt password)
     await runSql(`
       INSERT INTO public.users (email, password, name, role, "societyAccountId", "emailVerified", "isActive")
       VALUES (
@@ -186,7 +190,7 @@ export async function POST(req: Request) {
       SET role = 'SUPER_ADMIN', "societyAccountId" = '${societyId}', password = '${hashedPassword}';
     `);
 
-    // --- STEP 5: Automation Tasks ---
+    // --- STEP 5: Default Automation Data ---
     await runSql(`
       INSERT INTO public.automation_tasks (task_name, description, schedule)
       VALUES
@@ -204,7 +208,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Setup Completed! Admin user created with SUPER_ADMIN role.",
+      message: "Setup Completed! Tables created (No profiles table). Admin ready.",
       redirectUrl: '/auth/login'
     });
 
