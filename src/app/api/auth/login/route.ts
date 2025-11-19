@@ -4,34 +4,26 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-it'
 
-// Simple token generation function (replaces the deleted tokens library)
-const generateTokens = (user: { id: string; email: string; role: string; societyAccountId?: string }) => {
-  const accessToken = jwt.sign(
-    { 
-      userId: user.id, 
-      email: user.email, 
-      role: user.role,
-      societyAccountId: user.societyAccountId
-    },
-    JWT_SECRET,
-    { expiresIn: '15m' }
-  )
-  
-  const refreshToken = jwt.sign(
-    { 
-      userId: user.id, 
-      email: user.email
-    },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  )
+// --- 1. Token Generation ---
+const generateTokens = (user: any) => {
+  const payload = { 
+    userId: user.id, 
+    email: user.email, 
+    role: user.role,
+    societyAccountId: user.societyAccountId
+  }
+
+  // Access Token (Short life)
+  const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' })
+  // Refresh Token (Long life)
+  const refreshToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' })
   
   return { accessToken, refreshToken }
 }
 
-// Validation schema
+// --- 2. Input Validation ---
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
@@ -42,61 +34,58 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('Login attempt:', body)
     
-    // Validate input
+    // Validate Body
     const validatedData = loginSchema.parse(body)
-    console.log('Validated data:', validatedData)
 
-    // Find user by email
+    // --- 3. Find User (Standard Prisma) ---
+    // Raw SQL hata diya hai, ye safer hai
     const user = await db.user.findUnique({
       where: { email: validatedData.email }
     })
-    
-    console.log('Found user:', user ? { id: user.id, email: user.email, role: user.role, isActive: user.isActive } : null)
 
+    // User check
     if (!user) {
-      console.log('User not found')
       return NextResponse.json(
-        { error: 'Invalid credentials - User not found' },
+        { error: 'User not found with this email' },
         { status: 401 }
       )
     }
 
-    // Check if user is active
-    if (!user.isActive) {
-      console.log('User not active')
+    // Active check
+    if (user.isActive === false) {
       return NextResponse.json(
         { error: 'Account is deactivated' },
         { status: 401 }
       )
     }
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(validatedData.password, user.password)
-    console.log('Password valid:', isPasswordValid)
+    // --- 4. Password Check (Bcrypt) ---
+    // Setup script ne bcrypt se hash kiya tha, isliye yahan bcrypt.compare chalega
+    const isPasswordValid = await bcrypt.compare(validatedData.password, user.password || "")
     
     if (!isPasswordValid) {
-      console.log('Invalid password')
       return NextResponse.json(
-        { error: 'Invalid credentials - Wrong password' },
+        { error: 'Invalid password' },
         { status: 401 }
       )
     }
 
-    // Check role compatibility with strict validation
+    // --- 5. Role Logic (SUPER_ADMIN fix) ---
     if (validatedData.userType) {
-      console.log('Role check - user.role:', user.role, 'requested userType:', validatedData.userType)
-      
-      if (validatedData.userType === 'admin' && user.role !== 'SUPER_ADMIN') {
-        console.log('Access denied - not admin')
-        return NextResponse.json(
-          { error: 'Access denied. Admin privileges required.' },
-          { status: 403 }
-        )
+      // Admin Login ke liye
+      if (validatedData.userType === 'admin') {
+         // Agar user SUPER_ADMIN ya ADMIN nahi hai, to rok do
+         if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+            return NextResponse.json(
+              { error: 'Access denied. Admin privileges required.' },
+              { status: 403 }
+            )
+         }
       }
+      
+      // Client Login ke liye
       if (validatedData.userType === 'client' && user.role !== 'CLIENT') {
-        console.log('Access denied - not client')
         return NextResponse.json(
           { error: 'Access denied. Client privileges required.' },
           { status: 403 }
@@ -104,21 +93,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update last login
-    await db.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() }
-    })
+    // --- 6. Update Last Login ---
+    try {
+      await db.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() }
+      })
+    } catch (e) {
+      console.log("Error updating last login:", e)
+    }
 
-    // Generate tokens
-    const tokens = generateTokens({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      societyAccountId: user.societyAccountId
-    })
+    // --- 7. Generate Tokens & Response ---
+    const tokens = generateTokens(user)
 
-    // Create response with cookies
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
@@ -132,39 +119,33 @@ export async function POST(request: NextRequest) {
       refreshToken: tokens.refreshToken
     })
 
-    // Set access token cookie (short-lived)
+    // Set Cookies
     response.cookies.set('auth-token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60 // 15 minutes
+      maxAge: 15 * 60 // 15 min
     })
 
-    // Set refresh token cookie (long-lived)
     response.cookies.set('refresh-token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: validatedData.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60 // 30 days or 7 days
+      maxAge: validatedData.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60
     })
 
     return response
 
   } catch (error) {
+    console.error('Login Error:', error) // Console me error print hoga (Vercel logs me dikhega)
+    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed',
-          details: error.errors.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        },
+        { error: 'Validation failed', details: error.errors },
         { status: 400 }
       )
     }
 
-    console.error('Login error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
