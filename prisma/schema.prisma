@@ -23,8 +23,6 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime
 
-  societyAccount SocietyAccount? @relation(fields: [societyAccountId], references: [id])
-  
   @@map("users")
 }
 
@@ -46,9 +44,6 @@ model SocietyAccount {
   createdAt           DateTime @default(now())
   updatedAt           DateTime
 
-  users     User[]
-  societies Society[]
-
   @@map("society_accounts")
 }
 
@@ -67,9 +62,6 @@ model Society {
   isActive          Boolean @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime
-
-  societyAccount SocietyAccount @relation(fields: [societyAccountId], references: [id])
-  createdBy      User           @relation(fields: [createdByUserId], references: [id])
 
   @@map("societies")
 }
@@ -90,7 +82,7 @@ model Post {
 }
 
 ////////////////////////////////////////////////////
-// AUTOMATION TASKS
+// AUTOMATION TASKS — NO RELATIONS
 ////////////////////////////////////////////////////
 model AutomationTask {
   id              String    @id @default(uuid())
@@ -102,13 +94,11 @@ model AutomationTask {
   last_run_at     DateTime? @db.Timestamptz
   created_at      DateTime? @default(now()) @db.Timestamptz
 
-  logs AutomationLog[]
-
   @@map("automation_tasks")
 }
 
 ////////////////////////////////////////////////////
-// AUTOMATION LOGS
+// AUTOMATION LOGS — NO RELATIONS
 ////////////////////////////////////////////////////
 model AutomationLog {
   id          String   @id @default(uuid())
@@ -122,14 +112,4 @@ model AutomationLog {
   @@map("automation_logs")
 }
 
-////////////////////////////////////////////////////
-// AUTOMATION SETTINGS
-////////////////////////////////////////////////////
-model AutomationSetting {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  value       Json?
-  created_at  DateTime? @default(now()) @db.Timestamptz
-
-  @@map("automation_settings")
-}
+///////////////////////////////
