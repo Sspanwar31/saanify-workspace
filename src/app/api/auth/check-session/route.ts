@@ -1,68 +1,79 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseService } from '@/lib/supabase-service'
-import { db } from '@/lib/db'
+import { NextRequest, NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
+import { db } from "@/lib/db";
+
+// Ensure this matches the secret used in your Login API
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-it";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from cookie or Authorization header
-    const token = request.cookies.get('auth-token')?.value || 
-                 request.headers.get('authorization')?.replace('Bearer ', '')
+    // 1. Get token from Cookie (auth-token)
+    // Header check is optional fallback
+    const token = request.cookies.get("auth-token")?.value || 
+                  request.headers.get("authorization")?.replace("Bearer ", "");
 
     if (!token) {
       return NextResponse.json(
-        { 
-          authenticated: false,
-          error: 'No authentication token found'
-        },
+        { authenticated: false, error: "No authentication token found" },
         { status: 401 }
-      )
+      );
     }
 
-    // For now, just check if token exists and has reasonable length
-    // In production, you'd want to verify JWT structure with Supabase
-    if (token.length < 10) {
-      return NextResponse.json(
-        { 
-          authenticated: false,
-          error: 'Invalid token format'
-        },
-        { status: 401 }
-      )
-    }
-
-    // Try to get user from database using a simple approach
-    // This is a temporary solution - in production, verify with Supabase
+    // 2. Verify JWT Token (Real Verification)
+    let decoded: any;
     try {
-      // For demo purposes, we'll return a mock authenticated user
-      // In production, you'd verify the JWT and get user from Supabase
-      return NextResponse.json({
-        authenticated: true,
-        user: {
-          id: 'demo-user-id',
-          email: 'demo@saanify.com',
-          name: 'Demo User',
-          role: 'user',
-          lastLoginAt: new Date().toISOString()
-        }
-      })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
       return NextResponse.json(
-        { 
-          authenticated: false,
-          error: 'Database error'
-        },
-        { status: 500 }
-      )
+        { authenticated: false, error: "Invalid or expired token" },
+        { status: 401 }
+      );
     }
+
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { authenticated: false, error: "Invalid token payload" },
+        { status: 401 }
+      );
+    }
+
+    // 3. Fetch Real User from Database (To get latest Role)
+    const user = await db.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,            // ✅ Correct Role (SUPER_ADMIN) yahan se aayega
+        societyAccountId: true,
+        lastLoginAt: true
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { authenticated: false, error: "User no longer exists" },
+        { status: 401 }
+      );
+    }
+
+    // 4. Return Real User Data
+    return NextResponse.json({
+      authenticated: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role, // Ab ye 'SUPER_ADMIN' bhejega
+        societyAccountId: user.societyAccountId
+      }
+    });
+
   } catch (error) {
-    console.error('Session check error:', error)
+    console.error("Session check error:", error);
     return NextResponse.json(
-      { 
-        authenticated: false,
-        error: 'Internal server error'
-      },
+      { authenticated: false, error: "Internal server error" },
       { status: 500 }
-    )
+    );
   }
 }
