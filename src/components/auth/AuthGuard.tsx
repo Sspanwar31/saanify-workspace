@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import LoadingSpinner from '@/components/ui/loading-spinner'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -19,52 +17,50 @@ export default function AuthGuard({ children, requiredRole, redirectTo = '/login
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // ✅ FIX: document.cookie हटा दिया (क्योंकि HttpOnly cookie JS नहीं पढ़ सकता)
-        // सीधा API कॉल करें, Browser अपने आप Cookie भेजेगा।
-        
+        // 1. Check Session via API
         const response = await fetch('/api/auth/check-session', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          cache: 'no-store' // Cache se bachein
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store'
         })
 
         if (!response.ok) {
-          throw new Error('Not authenticated')
+          console.log("AuthGuard: Session check failed")
+          router.push(redirectTo)
+          return
         }
 
         const data = await response.json()
-        
+
         if (!data.authenticated || !data.user) {
-          throw new Error('Invalid session')
+          console.log("AuthGuard: Not authenticated")
+          router.push(redirectTo)
+          return
         }
 
-        // ✅ FIX: Role Checking Logic (Flexible)
+        // 2. Role Checking Logic (Flexible & Safe)
         if (requiredRole) {
-          const userRole = String(data.user.role).toUpperCase(); // Role ko bada (uppercase) karein
+          // Role ko string banakar uppercase karein taaki crash na ho
+          const userRole = String(data.user.role || '').toUpperCase()
           
-          // Agar SUPER_ADMIN chahiye
+          // Super Admin Check
           if (requiredRole === 'SUPER_ADMIN' || requiredRole === 'SUPERADMIN') {
-            // Check karein ki role me 'SUPER' aur 'ADMIN' dono shabd hain
-            if (!userRole.includes('SUPER') || !userRole.includes('ADMIN')) {
-              toast.error('Access denied. Super Admin rights required.')
+            if (!userRole.includes('SUPER') && !userRole.includes('ADMIN')) {
+              console.error("AuthGuard: Role Mismatch. User:", userRole)
               router.push('/not-authorized')
               return
             }
           } 
-          // Baki roles ke liye exact match
+          // Client Check
           else if (userRole !== requiredRole) {
-            toast.error('Access denied. Insufficient privileges.')
-            router.push('/not-authorized') // RedirectTo ki jagah not-authorized safe hai
+            router.push('/not-authorized')
             return
           }
         }
 
         setIsAuthenticated(true)
       } catch (error) {
-        // console.error('Auth check failed:', error)
-        // Toast hata diya taaki user pareshan na ho agar wo bas refresh kar raha hai
+        console.error('AuthGuard Error:', error)
         router.push(redirectTo)
       } finally {
         setIsLoading(false)
@@ -74,16 +70,18 @@ export default function AuthGuard({ children, requiredRole, redirectTo = '/login
     checkAuth()
   }, [router, requiredRole, redirectTo])
 
+  // --- SAFE LOADING UI (No External Component) ---
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="mt-4 text-gray-500 font-medium">Verifying Access...</p>
       </div>
     )
   }
 
   if (!isAuthenticated) {
-    return null // Redirect ho raha hai
+    return null // Redirecting...
   }
 
   return <>{children}</>
