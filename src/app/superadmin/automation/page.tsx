@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-// UI Components (Assuming you have these from shadcn/ui)
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,20 +9,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Play, 
-  RefreshCw,
-  Activity, 
-  Database, 
-  Download,
-  Upload,
+  RefreshCw, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
   Shield,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Clock
+  Database,
+  Activity,
+  Download
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// --- HELPER FUNCTIONS (CRASH PREVENTION) ---
+// --- HELPER FUNCTIONS ---
 const safeRender = (val: any) => {
   if (val === null || val === undefined) return '-'
   if (typeof val === 'object') {
@@ -42,13 +40,10 @@ export default function AutomationDashboard() {
   const [loading, setLoading] = useState(true)
   const [runningTasks, setRunningTasks] = useState<Set<string>>(new Set())
 
-  // 1. Fetch Data (Updated API Endpoint & No Headers needed)
   const fetchData = async () => {
     try {
-      // ✅ FIX: Correct API Endpoint
       const response = await fetch('/api/super-admin/automation/data', {
         method: 'GET',
-        // ✅ FIX: No headers needed (Browser sends cookies automatically)
         cache: 'no-store'
       })
       
@@ -69,11 +64,10 @@ export default function AutomationDashboard() {
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 30000) // Refresh every 30s
+    const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
   }, [])
 
-  // 2. Run Task Function
   const runTask = async (taskName: string) => {
     if (runningTasks.has(taskName)) return
 
@@ -81,11 +75,10 @@ export default function AutomationDashboard() {
     toast.info(`Initiating task: ${taskName}...`)
     
     try {
-      // Simulate API Call for now (Backend logic later)
+      // Simulate API Call
       await new Promise(r => setTimeout(r, 1500))
-      
-      toast.success(`Task ${taskName} completed successfully`)
-      fetchData() // Refresh data
+      toast.success(`Task ${taskName} completed`)
+      fetchData()
     } catch (error) {
       toast.error('Failed to run task')
     } finally {
@@ -115,7 +108,6 @@ export default function AutomationDashboard() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header Banner */}
       <Alert className="border-blue-200 bg-blue-50 text-blue-800">
         <Shield className="h-4 w-4" />
         <AlertDescription className="font-semibold">
@@ -130,13 +122,12 @@ export default function AutomationDashboard() {
           <TabsTrigger value="actions">Manual Actions</TabsTrigger>
         </TabsList>
 
-        {/* --- TASKS TAB --- */}
         <TabsContent value="tasks">
           <div className="grid gap-4">
             {tasks.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 border rounded bg-white">No tasks found in database.</div>
+              <div className="p-8 text-center border rounded bg-white text-gray-500">No tasks found.</div>
             ) : (
-              tasks.map((task) => (
+              tasks.map((task: any) => (
                 <Card key={task.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -179,7 +170,6 @@ export default function AutomationDashboard() {
           </div>
         </TabsContent>
 
-        {/* --- LOGS TAB (Fixed Crash) --- */}
         <TabsContent value="logs">
           <Card>
             <CardHeader>
@@ -190,19 +180,16 @@ export default function AutomationDashboard() {
                 {logs.length === 0 ? (
                    <div className="text-center p-4 text-gray-500">No logs available.</div>
                 ) : (
-                  logs.map((log) => (
-                    <div key={log.id} className="flex items-start gap-3 p-3 border-b last:border-0 hover:bg-gray-50 transition-colors">
+                  logs.map((log: any) => (
+                    <div key={log.id} className="flex items-start gap-3 p-3 border-b last:border-0 hover:bg-gray-50">
                       <div className="mt-1">
                         {getStatusIcon(log.status)}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-gray-900">{log.task_name}</span>
-                          <span className="text-xs text-gray-500">
-                            {formatDate(log.run_time)}
-                          </span>
+                          <span className="text-xs text-gray-500">{formatDate(log.run_time)}</span>
                         </div>
-                        {/* ✅ SAFE RENDER: Details ko string me badal kar dikhana */}
                         <p className="text-sm text-gray-600 font-mono truncate">
                            {safeRender(log.details || log.message)}
                         </p>
@@ -215,37 +202,49 @@ export default function AutomationDashboard() {
           </Card>
         </TabsContent>
 
-        {/* --- ACTIONS TAB --- */}
         <TabsContent value="actions">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="hover:shadow-md transition-shadow">
+            <Card>
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <Database className="h-5 w-5 text-blue-600" />
                   <h3 className="font-semibold">Schema Sync</h3>
                 </div>
-                <p className="text-sm text-gray-500">Force sync Prisma schema with Supabase DB.</p>
+                <p className="text-sm text-gray-500">Force sync Prisma schema.</p>
                 <Button onClick={() => runTask('schema_sync')} disabled={runningTasks.has('schema_sync')}>
                    Sync Schema
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card>
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <Download className="h-5 w-5 text-green-600" />
                   <h3 className="font-semibold">Backup Database</h3>
                 </div>
-                <p className="text-sm text-gray-500">Create an immediate backup snapshot.</p>
+                <p className="text-sm text-gray-500">Create immediate backup.</p>
                 <Button onClick={() => runTask('database-backup')} disabled={runningTasks.has('database-backup')}>
                    Backup Now
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card>
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <Activity className="h-5 w-5 text-red-600" />
-                  <
+                  <h3 className="font-semibold">System Health</h3>
+                </div>
+                <p className="text-sm text-gray-500">Check services status.</p>
+                <Button onClick={() => runTask('health-check')} disabled={runningTasks.has('health-check')}>
+                   Check Health
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
