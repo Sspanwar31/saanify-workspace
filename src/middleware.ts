@@ -1,105 +1,59 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { getServiceClient } from './lib/supabase-service'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-  
-  // Protect SuperAdmin routes
-  if (pathname.startsWith('/super-admin') || pathname.startsWith('/api/super-admin')) {
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '') || request.cookies.get('auth-token')?.value
+// Helper: JWT Token ko decode karne ke liye (Supabase ki jarurat nahi)
+function decodeJwtPayload(tokenValue: string) {
+  try {
+    const base64Url = tokenValue.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(atob(base64).split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join(""));
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    return null;
+  }
+}
 
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // 1. Token Retrieve (Cookie 'auth-token' se)
+  const token = req.cookies.get("auth-token");
+
+  // 2. Protect Admin Routes
+  if (pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) {
+    
+    // Agar token nahi hai -> Login pe bhejo
     if (!token) {
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-      return NextResponse.redirect(new URL('/login', request.url))
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    try {
-      // Verify token and check SUPERADMIN role
-      const supabase = getServiceClient()
-      
-      // First try to get user from JWT
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-      
-      if (authError || !user) {
-        // Fallback: check if it's an automation admin token
-        const automationToken = process.env.AUTOMATION_ADMIN_TOKEN
-        if (automationToken && token === automationToken) {
-          // Allow automation token access
-          const response = NextResponse.next()
-          response.headers.set('x-user-role', 'SUPERADMIN')
-          response.headers.set('x-user-id', 'automation')
-          return response
-        }
-        
-        if (pathname.startsWith('/api/')) {
-          return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-        }
-        return NextResponse.redirect(new URL('/not-authorized', request.url))
-      }
+    // Token Decode karo
+    const user = decodeJwtPayload(token.value);
+    
+    // Agar token invalid hai -> Login pe bhejo
+    if (!user) {
+      const response = NextResponse.redirect(new URL("/login", req.url));
+      response.cookies.delete("auth-token");
+      return response;
+    }
 
-      // Check user role in database
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (userError || !userData || userData.role !== 'SUPERADMIN') {
-        if (pathname.startsWith('/api/')) {
-          return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-        }
-        return NextResponse.redirect(new URL('/not-authorized', request.url))
-      }
-
-      // Add user info to headers for downstream use
-      const response = NextResponse.next()
-      response.headers.set('x-user-id', user.id)
-      response.headers.set('x-user-role', userData.role)
-      response.headers.set('x-user-email', user.email || '')
-      
-      return response
-      
-    } catch (error) {
-      console.error('Middleware auth error:', error)
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
-      }
-      return NextResponse.redirect(new URL('/not-authorized', request.url))
+    // Role Check (Case Insensitive & Flexible)
+    const role = user?.role?.toLowerCase() || "";
+    
+    // Agar role me 'admin' ya 'super' nahi hai -> Access Denied
+    if (!role.includes("admin") && !role.includes("super")) {
+      return NextResponse.redirect(new URL("/not-authorized", req.url));
     }
   }
-  
-  // Check if setup mode is enabled and protect setup route
-  if (pathname === '/setup') {
-    const SETUP_MODE = process.env.SETUP_MODE === 'true'
-    
-    if (!SETUP_MODE) {
-      // If setup mode is disabled, redirect to login
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    
-    // If setup mode is completed, redirect to login
-    if (SETUP_MODE === 'false') {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-  }
-  
-  return NextResponse.next()
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    // Kin routes par middleware chalega
+    // Login, API, Static files ko chhodkar sab par
+    '/((?!login|register|api|not-authorized|_next/static|_next/image|favicon.ico).*)',
   ],
-}
+};
