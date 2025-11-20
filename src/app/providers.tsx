@@ -1,42 +1,26 @@
 'use client'
 
-import { SessionProvider } from "next-auth/react"
+import { ReactNode } from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from "@/components/auth/SupabaseProvider"
-import { ReactNode, useEffect, useState } from "react"
 
-/**
- * ✅ This provider ensures all browser-only logic (localStorage, session) 
- * runs only on the client — not during server rendering.
- */
+// ✅ यह है हमारा नया Custom Auth Provider (NextAuth हटा दिया)
+import AuthProvider from "@/providers/auth-provider"
 
 export default function Providers({ children }: { children: ReactNode }) {
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    // Wait until component mounts on client
-    setIsClient(true)
-  }, [])
-
-  if (!isClient) {
-    // Avoid rendering any localStorage/Session components on server
-    return null
-  }
-
   return (
-    <SessionProvider>
+    // Theme Provider सबसे ऊपर रहेगा
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      {/* ✅ SessionProvider हटाकर AuthProvider लगा दिया */}
       <AuthProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        {children}
+        <Toaster />
       </AuthProvider>
-    </SessionProvider>
+    </ThemeProvider>
   )
 }
