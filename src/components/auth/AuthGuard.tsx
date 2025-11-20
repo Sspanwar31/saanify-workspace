@@ -19,51 +19,52 @@ export default function AuthGuard({ children, requiredRole, redirectTo = '/login
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('auth-token='))
-          ?.split('=')[1]
-
-        if (!token) {
-          toast.error('Please login to continue')
-          router.push(redirectTo)
-          return
-        }
-
-        // Verify token with server
+        // ✅ FIX: document.cookie हटा दिया (क्योंकि HttpOnly cookie JS नहीं पढ़ सकता)
+        // सीधा API कॉल करें, Browser अपने आप Cookie भेजेगा।
+        
         const response = await fetch('/api/auth/check-session', {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store' // Cache se bachein
         })
 
         if (!response.ok) {
-          throw new Error('Invalid token')
+          throw new Error('Not authenticated')
         }
 
         const data = await response.json()
         
-        // Check role if required
+        if (!data.authenticated || !data.user) {
+          throw new Error('Invalid session')
+        }
+
+        // ✅ FIX: Role Checking Logic (Flexible)
         if (requiredRole) {
-          const userRole = data.user.role
-          // Support both role naming conventions
+          const userRole = String(data.user.role).toUpperCase(); // Role ko bada (uppercase) karein
+          
+          // Agar SUPER_ADMIN chahiye
           if (requiredRole === 'SUPER_ADMIN' || requiredRole === 'SUPERADMIN') {
-            if (userRole !== 'SUPER_ADMIN' && userRole !== 'SUPERADMIN') {
-              toast.error('Access denied. Super Administrator privileges required.')
+            // Check karein ki role me 'SUPER' aur 'ADMIN' dono shabd hain
+            if (!userRole.includes('SUPER') || !userRole.includes('ADMIN')) {
+              toast.error('Access denied. Super Admin rights required.')
               router.push('/not-authorized')
               return
             }
-          } else if (userRole !== requiredRole) {
+          } 
+          // Baki roles ke liye exact match
+          else if (userRole !== requiredRole) {
             toast.error('Access denied. Insufficient privileges.')
-            router.push(redirectTo)
+            router.push('/not-authorized') // RedirectTo ki jagah not-authorized safe hai
             return
           }
         }
 
         setIsAuthenticated(true)
       } catch (error) {
-        console.error('Auth check failed:', error)
-        toast.error('Session expired. Please login again.')
+        // console.error('Auth check failed:', error)
+        // Toast hata diya taaki user pareshan na ho agar wo bas refresh kar raha hai
         router.push(redirectTo)
       } finally {
         setIsLoading(false)
@@ -82,7 +83,7 @@ export default function AuthGuard({ children, requiredRole, redirectTo = '/login
   }
 
   if (!isAuthenticated) {
-    return null // Will redirect
+    return null // Redirect ho raha hai
   }
 
   return <>{children}</>
