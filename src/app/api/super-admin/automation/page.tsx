@@ -1,172 +1,64 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-
-// Helper to format date safely
-const formatDate = (dateVal: any) => {
-  if (!dateVal) return '-'
-  try {
-    return new Date(dateVal).toLocaleString()
-  } catch (e) {
-    return String(dateVal)
-  }
-}
-
-// Helper to render JSON/Objects safely
-const safeRender = (val: any) => {
-  if (val === null || val === undefined) return '-'
-  if (typeof val === 'string') return val
-  if (typeof val === 'number') return val
-  if (typeof val === 'boolean') return val ? 'True' : 'False'
-  if (typeof val === 'object') {
-    try {
-      return JSON.stringify(val)
-    } catch (e) {
-      return 'Error: Invalid Data'
-    }
-  }
-  return String(val)
-}
 
 export default function AutomationPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [data, setData] = useState<{ tasks: any[], logs: any[] }>({
-    tasks: [],
-    logs: []
-  })
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/super-admin/automation/data')
-      const json = await res.json()
-      
-      if (!res.ok) throw new Error(json.error || 'Failed to fetch data')
-      
-      setData({
-        tasks: Array.isArray(json.tasks) ? json.tasks : [],
-        logs: Array.isArray(json.logs) ? json.logs : []
-      })
-    } catch (error) {
-      console.error(error)
-      toast.error('Failed to load automation data')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<string>('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchData()
+    const debugFetch = async () => {
+      try {
+        console.log("Fetching Automation Data...")
+        const res = await fetch('/api/super-admin/automation/data')
+        const json = await res.json()
+        
+        // Console me data print karein taaki inspect karke dekh sakein
+        console.log("✅ API DATA RECEIVED:", json)
+        
+        if (!res.ok) throw new Error(json.error || 'API Failed')
+        
+        setData(json)
+      } catch (err: any) {
+        console.error("❌ FETCH ERROR:", err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    debugFetch()
   }, [])
 
-  const runTask = async (taskName: string) => {
-    toast.info(`Triggering task: ${taskName}...`)
-    await new Promise(r => setTimeout(r, 1000))
-    toast.success('Task signal sent')
-    fetchData()
-  }
-
-  if (isLoading) return <div className="p-10 text-center">Loading Dashboard...</div>
+  if (loading) return <div className="p-10 text-blue-600">Loading Debug Data...</div>
+  if (error) return <div className="p-10 text-red-600 font-bold">Error: {error}</div>
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Automation Center</h1>
-        <button 
-          onClick={fetchData}
-          className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 text-sm"
-        >
-          Refresh
-        </button>
-      </div>
+    <div className="p-6 font-mono text-sm">
+      <h1 className="text-2xl font-bold mb-4 text-red-600">🛠️ Debug Mode</h1>
+      <p className="mb-4">
+        अगर आपको यह पेज दिख रहा है, तो इसका मतलब <strong>API सही चल रही है</strong>।
+        <br />
+        नीचे दिए गए Data में चेक करें कि क्या किसी Column में अजीब डेटा आ रहा है।
+      </p>
 
-      {/* --- TASKS LIST --- */}
-      <div className="bg-white rounded-xl shadow border p-6">
-        <h2 className="text-xl font-semibold mb-4">Scheduled Tasks</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 uppercase">
-              <tr>
-                <th className="px-4 py-3">Task Name</th>
-                <th className="px-4 py-3">Schedule</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Last Run</th>
-                <th className="px-4 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data.tasks || data.tasks.length === 0 ? (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-500">No tasks found</td></tr>
-              ) : (
-                data.tasks.map((task: any, i) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{safeRender(task.task_name)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{safeRender(task.schedule || 'Manual')}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${task.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {task.enabled ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {formatDate(task.last_run_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button 
-                        onClick={() => runTask(task.task_name)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Run
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <div className="grid gap-6">
+        {/* TASKS SECTION */}
+        <section className="border p-4 rounded bg-gray-50">
+          <h2 className="font-bold text-lg mb-2">Tasks Data (Raw JSON)</h2>
+          <pre className="bg-black text-green-400 p-4 rounded overflow-auto max-h-60">
+            {JSON.stringify(data.tasks, null, 2)}
+          </pre>
+        </section>
 
-      {/* --- LOGS LIST (Fixed Crash Issue) --- */}
-      <div className="bg-white rounded-xl shadow border p-6">
-        <h2 className="text-xl font-semibold mb-4">Execution Logs</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 uppercase">
-              <tr>
-                <th className="px-4 py-3">Time</th>
-                <th className="px-4 py-3">Task</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data.logs || data.logs.length === 0 ? (
-                <tr><td colSpan={4} className="p-4 text-center text-gray-500">No logs yet</td></tr>
-              ) : (
-                data.logs.map((log: any, i) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500">
-                      {formatDate(log.run_time)}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{safeRender(log.task_name)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        log.status === 'ERROR' ? 'bg-red-100 text-red-800' : 
-                        log.status === 'SUCCESS' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {safeRender(log.status)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs font-mono text-gray-600 max-w-xs truncate" title={safeRender(log.details)}>
-                      {/* ✅ SAFE RENDER FUNCTION USE KIYA HAI */}
-                      {safeRender(log.details)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* LOGS SECTION */}
+        <section className="border p-4 rounded bg-gray-50">
+          <h2 className="font-bold text-lg mb-2">Logs Data (Raw JSON)</h2>
+          <pre className="bg-black text-green-400 p-4 rounded overflow-auto max-h-60">
+            {JSON.stringify(data.logs, null, 2)}
+          </pre>
+        </section>
       </div>
     </div>
   )
