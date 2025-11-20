@@ -8,7 +8,8 @@ export default function SuperAdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <AuthGuard requiredRole="SUPER_ADMIN" redirectTo="/not-authorized">
+    // Role check 'SUPER_ADMIN' pass kar rahe hain
+    <AuthGuard requiredRole="SUPER_ADMIN" redirectTo="/login">
       {children}
     </AuthGuard>
   )
