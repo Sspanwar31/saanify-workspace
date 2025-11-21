@@ -1,57 +1,37 @@
-'use client'
+"use client";
 
-import AuthGuard from '@/components/auth/AuthGuard'
-import { Button } from "@/components/ui/button"
-import { Home, Users, Settings, BarChart2, LogOut } from "lucide-react"
-import Link from "next/link"
+import AuthGuard from "@/components/auth/AuthGuard";
+import Sidebar from "@/components/super-admin/Sidebar";
+import { useState } from "react";
 
-export default function SuperAdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const navigation = [
-    { name: "Dashboard", icon: Home, href: "/super-admin" },
-    { name: "Societies", icon: Users, href: "/super-admin/societies" },
-    { name: "Automation", icon: Settings, href: "/super-admin/automation" },
-    { name: "Analytics", icon: BarChart2, href: "/super-admin/analytics" },
-  ]
+export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <AuthGuard requiredRole="SUPER_ADMIN" redirectTo="/login">
-      <div className="flex h-screen bg-gray-50">
-        
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/20 to-teal-50/30">
         {/* Sidebar */}
-        <div className="w-64 bg-white border-r shadow-md p-4 space-y-4">
-          <h2 className="text-xl font-bold">SuperAdmin</h2>
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-          <nav className="space-y-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="flex items-center gap-2 p-2 rounded-md text-gray-700 hover:bg-gray-200 hover:text-black transition"
-              >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
-            ))}
-          </nav>
+        {/* Main Area */}
+        <div className="flex flex-col flex-1 transition-all">
+          {/* Top Header */}
+          <header className="sticky top-0 bg-white/90 backdrop-blur-md shadow-sm px-6 py-4 flex justify-between items-center z-20">
+            <h1 className="text-xl font-semibold text-gray-900">Super Admin Dashboard</h1>
+            <button
+              onClick={() => (window.location.href = "/login")}
+              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition"
+            >
+              Logout
+            </button>
+          </header>
 
-          <div className="absolute bottom-4">
-            <form action="/logout" method="POST">
-              <Button variant="destructive" type="submit" className="w-full flex items-center gap-2">
-                <LogOut className="w-4 h-4" /> Logout
-              </Button>
-            </form>
-          </div>
+          {/* Page Content */}
+          <main className="p-6">
+            <div className="max-w-7xl mx-auto w-full">{children}</div>
+          </main>
         </div>
-
-        {/* Content Area */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          {children}
-        </main>
       </div>
     </AuthGuard>
-  )
+  );
 }
