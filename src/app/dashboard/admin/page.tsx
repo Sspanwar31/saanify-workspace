@@ -6,7 +6,7 @@ import {
   TrendingUp, Search, Filter, Plus, Lock, Unlock, RefreshCw, Eye, Edit, Trash2,
   CreditCard, Calendar, Mail, Bell, Database, Download, Upload, ChevronDown,
   Activity, DollarSign, UserCheck, UserX, Clock, CheckCircle, XCircle, Zap,
-  Globe, Smartphone, Tablet, Monitor, Menu, X, Maximize2, Minimize2
+  Globe, Smartphone, Tablet, Monitor, Menu, X, Maximize2, Minimize2, Play
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,15 @@ import { DataCharts } from '@/components/data-charts'
 import { RealTimeNotifications } from '@/components/real-time-notifications'
 import { AnalyticsDashboard } from '@/components/analytics-dashboard'
 import { AdminSettings } from '@/components/admin-settings'
+
+// --- CONSTANT DATA FOR AUTOMATION (ADDED) ---
+const DB_TASKS_DATA = [
+  { "idx": 0, "id": "1493c7d4-2d7b-4d7c-983d-d16c249f7799", "task_name": "schema-sync", "description": "Sync database schema changes automatically", "schedule": "0 */6 * * *", "enabled": true, "last_run_status": "Success" },
+  { "idx": 1, "id": "b1ab0b6b-db3b-45d3-8da2-87e0a41d8991", "task_name": "database-restore", "description": "Restore database from backup files", "schedule": "manual", "enabled": true, "last_run_status": null },
+  { "idx": 2, "id": "b975d726-644c-407a-9bd0-0f2ae339acea", "task_name": "database-backup", "description": "Create secure database backups to Supabase Storage", "schedule": "manual", "enabled": true, "last_run_status": "Success" },
+  { "idx": 3, "id": "cc372267-4337-4712-a7aa-b5b8c3004a98", "task_name": "auto-sync", "description": "Scheduled data synchronization", "schedule": "0 */2 * * *", "enabled": true, "last_run_status": "Failed" },
+  { "idx": 4, "id": "d9f51dc4-cf71-4d34-9c62-5df89b238b66", "task_name": "health-check", "description": "Monitor system health and Supabase connectivity", "schedule": "*/5 * * * *", "enabled": true, "last_run_status": "Success" }
+];
 
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
@@ -717,78 +726,192 @@ export default function AdminDashboard() {
     )
   }
 
-  // Automation & Notifications Component
+  // --- UPDATED AUTOMATION COMPONENT ---
   function AutomationNotifications() {
+    const [dbTasks, setDbTasks] = useState(DB_TASKS_DATA);
+    const [activeTab, setActiveTab] = useState("system"); // 'system' or 'communication'
+
+    // Handler: Toggle Enable/Disable
+    const toggleTask = (id: string) => {
+      setDbTasks(dbTasks.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t));
+      // Here you would add your API call: await supabase.from('tasks').update(...)
+    };
+
+    // Handler: Run Now
+    const runTask = (taskName: string) => {
+      // Simulate API Call
+      alert(`Triggering Edge Function for: ${taskName}`);
+    };
+
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold text-white mb-2">Automation & Notifications</h2>
-          <p className="text-white/60">Manage automated workflows and communications</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-2">Automation Center</h2>
+            <p className="text-white/60">Manage system tasks, crons, and communication workflows</p>
+          </div>
+          
+          {/* Sub-Tabs for Automation */}
+          <div className="bg-white/5 p-1 rounded-lg flex gap-2 border border-white/10">
+            <button 
+              onClick={() => setActiveTab("system")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'system' ? 'bg-cyan-500/20 text-cyan-400 shadow-sm' : 'text-white/60 hover:text-white'}`}
+            >
+              System Tasks
+            </button>
+            <button 
+              onClick={() => setActiveTab("communication")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'communication' ? 'bg-cyan-500/20 text-cyan-400 shadow-sm' : 'text-white/60 hover:text-white'}`}
+            >
+              Communications
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="backdrop-blur-xl bg-white/5 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Mail className="h-5 w-5 text-blue-400" />
-                Email Automation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { type: 'Welcome Email', status: 'Active', sent: '24', pending: '0' },
-                  { type: 'Trial Expiry Reminder', status: 'Active', sent: '12', pending: '3' },
-                  { type: 'Payment Failed', status: 'Active', sent: '2', pending: '1' },
-                  { type: 'Renewal Reminder', status: 'Paused', sent: '8', pending: '5' }
-                ].map((email, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                    <div>
-                      <p className="text-white font-medium">{email.type}</p>
-                      <p className="text-white/60 text-sm">Sent: {email.sent} | Pending: {email.pending}</p>
-                    </div>
-                    <Badge className={email.status === 'Active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}>
-                      {email.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        {/* TAB 1: SYSTEM TASKS (The JSON Data you provided) */}
+        {activeTab === "system" && (
+          <div className="grid grid-cols-1 gap-6">
+             <Card className="backdrop-blur-xl bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Database className="h-5 w-5 text-cyan-400" />
+                  Database & Cron Jobs
+                </CardTitle>
+                <CardDescription className="text-white/40">
+                  Direct control over Supabase edge functions and maintenance tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {dbTasks.map((task) => (
+                    <div key={task.id} className="flex flex-col md:flex-row items-center justify-between p-4 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 transition-all">
+                      
+                      {/* Info Section */}
+                      <div className="flex items-start gap-4 mb-4 md:mb-0 flex-1">
+                        <div className={`p-3 rounded-lg ${task.enabled ? 'bg-cyan-500/10 text-cyan-400' : 'bg-gray-500/10 text-gray-500'}`}>
+                          {task.task_name.includes('backup') || task.task_name.includes('restore') ? <Database size={20} /> : 
+                           task.task_name.includes('health') ? <Activity size={20} /> : <RefreshCw size={20} />}
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium flex items-center gap-2">
+                            {task.task_name}
+                            <Badge variant="outline" className="border-white/10 text-white/40 text-[10px] font-normal">
+                              {task.schedule}
+                            </Badge>
+                          </h4>
+                          <p className="text-white/50 text-sm mt-1">{task.description}</p>
+                        </div>
+                      </div>
 
-          <Card className="backdrop-blur-xl bg-white/5 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Bell className="h-5 w-5 text-yellow-400" />
-                Push Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { event: 'New Client Signup', enabled: true, lastTriggered: '2 hours ago' },
-                  { event: 'Subscription Renewed', enabled: true, lastTriggered: '1 day ago' },
-                  { event: 'Payment Failed', enabled: true, lastTriggered: '3 days ago' },
-                  { event: 'System Maintenance', enabled: false, lastTriggered: '1 week ago' }
-                ].map((notification, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                    <div>
-                      <p className="text-white font-medium">{notification.event}</p>
-                      <p className="text-white/60 text-sm">Last: {notification.lastTriggered}</p>
+                      {/* Actions Section */}
+                      <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                        {/* Status Badge */}
+                        <div className="text-right mr-2">
+                          <span className="text-[10px] text-white/30 block uppercase tracking-wider mb-1">Last Run</span>
+                          <Badge className={`${
+                            !task.last_run_status ? 'bg-gray-500/20 text-gray-400' :
+                            task.last_run_status === 'Success' ? 'bg-green-500/20 text-green-400 border-green-500/20' : 
+                            'bg-red-500/20 text-red-400 border-red-500/20'
+                          }`}>
+                            {task.last_run_status || 'PENDING'}
+                          </Badge>
+                        </div>
+
+                        {/* Toggle Button */}
+                        <Button
+                          onClick={() => toggleTask(task.id)}
+                          size="icon"
+                          variant="ghost"
+                          className={`${task.enabled ? 'text-green-400 hover:text-green-300 hover:bg-green-400/10' : 'text-white/20 hover:text-white hover:bg-white/10'}`}
+                          title={task.enabled ? "Disable Task" : "Enable Task"}
+                        >
+                          <Zap className={`h-5 w-5 ${task.enabled ? 'fill-current' : ''}`} />
+                        </Button>
+
+                        {/* Run Button */}
+                        <Button 
+                          onClick={() => runTask(task.task_name)}
+                          size="sm" 
+                          className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-lg shadow-cyan-900/20 border-0"
+                        >
+                          <Play className="h-3 w-3 mr-2 fill-current" />
+                          Run Now
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={notification.enabled ? "default" : "outline"}
-                      className={notification.enabled ? "bg-green-500 hover:bg-green-600" : "border-white/20 text-white hover:bg-white/10"}
-                    >
-                      {notification.enabled ? 'Enabled' : 'Disabled'}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* TAB 2: COMMUNICATIONS (Existing Data) */}
+        {activeTab === "communication" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="backdrop-blur-xl bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-blue-400" />
+                  Email Automation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { type: 'Welcome Email', status: 'Active', sent: '24', pending: '0' },
+                    { type: 'Trial Expiry Reminder', status: 'Active', sent: '12', pending: '3' },
+                    { type: 'Payment Failed', status: 'Active', sent: '2', pending: '1' },
+                    { type: 'Renewal Reminder', status: 'Paused', sent: '8', pending: '5' }
+                  ].map((email, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                      <div>
+                        <p className="text-white font-medium">{email.type}</p>
+                        <p className="text-white/60 text-sm">Sent: {email.sent} | Pending: {email.pending}</p>
+                      </div>
+                      <Badge className={email.status === 'Active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}>
+                        {email.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="backdrop-blur-xl bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-yellow-400" />
+                  Push Notifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { event: 'New Client Signup', enabled: true, lastTriggered: '2 hours ago' },
+                    { event: 'Subscription Renewed', enabled: true, lastTriggered: '1 day ago' },
+                    { event: 'Payment Failed', enabled: true, lastTriggered: '3 days ago' },
+                    { event: 'System Maintenance', enabled: false, lastTriggered: '1 week ago' }
+                  ].map((notification, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                      <div>
+                        <p className="text-white font-medium">{notification.event}</p>
+                        <p className="text-white/60 text-sm">Last: {notification.lastTriggered}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={notification.enabled ? "default" : "outline"}
+                        className={notification.enabled ? "bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30" : "border-white/20 text-white hover:bg-white/10"}
+                      >
+                        {notification.enabled ? 'Enabled' : 'Disabled'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     )
   }
